@@ -11,7 +11,7 @@ from fhirclient.models.patient import Patient
 from MIABIS_on_FHIR.gender import Gender
 
 
-class MFSampleDonor:
+class MoFSampleDonor:
     """Class representing a sample donor/patient as defined by the MIABIS on FHIR profile."""
     def __init__(self, identifier: str, gender: Gender = None, birth_date: datetime = None, datasetType: str = None):
         """
