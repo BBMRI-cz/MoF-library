@@ -2,7 +2,7 @@ from fhirclient.models import list as fhir_list
 from fhirclient.models.fhirreference import FHIRReference
 
 
-class MFSpecimenList:
+class MoFSpecimenList:
     def __init__(self, collection_identifier: str, specimen_identifiers: list[str], name: str = None):
         """
         :param name: Name of the specimen list

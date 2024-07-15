@@ -9,14 +9,15 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection
 
+from MIABIS_on_FHIR.storage_temperature import StorageTemperature
 from _constants import MATERIAL_TYPE_CODES
 
 
-class MFSample:
+class MoFSample:
     """Class representing a biological specimen as defined by the MIABIS on FHIR profile."""
 
     def __init__(self, identifier: str, donor_identifier: str, material_type: str, collected_datetime: datetime = None,
-                 body_site: str = None, body_site_system: str = None, storage_temperature: str = None,
+                 body_site: str = None, body_site_system: str = None, storage_temperature: StorageTemperature = None,
                  use_restrictions: str = None):
         """
         :param identifier: Sample organizational identifier
@@ -86,12 +87,12 @@ class MFSample:
         self._body_site_system = body_site_system
 
     @property
-    def storage_temperature(self) -> str:
+    def storage_temperature(self) -> StorageTemperature:
         """Temperature at which the sample is stored."""
         return self._storage_temperature
 
     @storage_temperature.setter
-    def storage_temperature(self, storage_temperature: str):
+    def storage_temperature(self, storage_temperature: StorageTemperature):
         self._storage_temperature = storage_temperature
 
     @property
@@ -121,14 +122,14 @@ class MFSample:
                 specimen.collection.collectedDateTime = self.collected_datetime
             if self.body_site is not None:
                 specimen.collection.bodySite = self.__create_body_site()
-            if subject_id is not None:
-                specimen.subject = FHIRReference()
-                specimen.subject.reference = f"Patient/{subject_id}"
-            if self.storage_temperature is not None:
-                extensions.append(self.__create_storage_temperature_extension())
-            if self.use_restrictions is not None:
-                specimen.note = [Annotation()]
-                specimen.note[0].text = self.use_restrictions
+        if subject_id is not None:
+            specimen.subject = FHIRReference()
+            specimen.subject.reference = f"Patient/{subject_id}"
+        if self.storage_temperature is not None:
+            extensions.append(self.__create_storage_temperature_extension())
+        if self.use_restrictions is not None:
+            specimen.note = [Annotation()]
+            specimen.note[0].text = self.use_restrictions
         if extensions:
             specimen.extension = extensions
         return specimen
@@ -162,5 +163,5 @@ class MFSample:
         storage_temperature_extension.url = "https://example.org/StructureDefinition/StorageTemperature"
         storage_temperature_extension.valueCodeableConcept = CodeableConcept()
         storage_temperature_extension.valueCodeableConcept.coding = [Coding()]
-        storage_temperature_extension.valueCodeableConcept.coding[0].code = self.storage_temperature
+        storage_temperature_extension.valueCodeableConcept.coding[0].code = self.storage_temperature.value
         return storage_temperature_extension
