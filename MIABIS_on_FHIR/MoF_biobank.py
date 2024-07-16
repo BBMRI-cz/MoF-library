@@ -5,11 +5,12 @@ from fhirclient.models.humanname import HumanName
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.organization import Organization, OrganizationContact
 
-from _constants import INFRASTRUCTURAL_CAPABILITIES, ORGANISATIONAL_CAPABILITIES, \
-    BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES
+from _constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
+    BIOBANK_ORGANISATIONAL_CAPABILITIES
 
 
 class MoFBiobank():
+    """Class representing a biobank as defined by the MIABIS on FHIR profile."""
     def __init__(self, identifier: str, name: str, alias: str, country: str, contact_name: str, contact_surname: str,
                  contact_email: str, infrastructural_capabilities: list[str] = None,
                  organisational_capabilities: list[str] = None,
