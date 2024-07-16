@@ -3,6 +3,7 @@ from fhirclient.models.fhirreference import FHIRReference
 
 
 class MoFSpecimenList:
+    """Class representing a list of specimens in a collection."""
     def __init__(self, collection_identifier: str, specimen_identifiers: list[str], name: str = None):
         """
         :param name: Name of the specimen list
@@ -33,6 +34,8 @@ class MoFSpecimenList:
         # TODO entry.deleted maybe not always false ? when deleting samples from storage, it could be used as a flag
         specimen_list = fhir_list.List()
         specimen_list.title = self._name
+        specimen_list.status = "current"
+        specimen_list.mode = "working"
         specimen_list.subject = FHIRReference()
         specimen_list.subject.reference = f"Group/{collection_id}"
         specimen_list.entry = []

@@ -11,6 +11,7 @@ from _constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, BIOBAN
 
 class MoFBiobank():
     """Class representing a biobank as defined by the MIABIS on FHIR profile."""
+
     def __init__(self, identifier: str, name: str, alias: str, country: str, contact_name: str, contact_surname: str,
                  contact_email: str, infrastructural_capabilities: list[str] = None,
                  organisational_capabilities: list[str] = None,
@@ -42,17 +43,17 @@ class MoFBiobank():
         self._contact_email = contact_email
         if infrastructural_capabilities is not None:
             for capability in infrastructural_capabilities:
-                if capability not in INFRASTRUCTURAL_CAPABILITIES:
+                if capability not in BIOBANK_INFRASTRUCTURAL_CAPABILITIES:
                     raise ValueError(f"{capability} is not a valid code for infrastructural capabilities")
             self._infrastructural_capabilities = infrastructural_capabilities
         if organisational_capabilities is not None:
             for capability in organisational_capabilities:
-                if capability not in ORGANISATIONAL_CAPABILITIES:
+                if capability not in BIOBANK_ORGANISATIONAL_CAPABILITIES:
                     raise ValueError(f"{capability} is not a valid code for organisational capabilities")
             self._organisational_capabilities = organisational_capabilities
         if bioprocessing_and_analysis_capabilities is not None:
             for capability in bioprocessing_and_analysis_capabilities:
-                if capability not in BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES:
+                if capability not in BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES:
                     raise ValueError(f"{capability} is not a valid code for bioprocessing and analysis capabilities")
             self._bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
         self._quality__management_standards = quality__management_standards
