@@ -27,7 +27,7 @@ class TestSampleDonor(unittest.TestCase):
 
     def test_sample_donor_init_invalid_gender(self):
         with self.assertRaises(TypeError):
-           d = MoFSampleDonor("testId", "invalid_gender")
+            d = MoFSampleDonor("testId", "invalid_gender")
 
     def test_sample_donor_set_invalid_gender(self):
         donor = MoFSampleDonor("testId")
@@ -38,7 +38,7 @@ class TestSampleDonor(unittest.TestCase):
         donor = MoFSampleDonor("testId")
         date = datetime(year=2022, month=10, day=20)
         donor.date_of_birth = date
-        self.assertEqual(date , donor.date_of_birth)
+        self.assertEqual(date, donor.date_of_birth)
 
     def test_sample_donor_set_birth_date_invalid(self):
         donor = MoFSampleDonor("testId")
@@ -90,4 +90,3 @@ class TestSampleDonor(unittest.TestCase):
         self.assertEqual("female", donor_fhir.gender)
         self.assertEqual("2022-10-20", donor_fhir.birthDate.date.isoformat())
         self.assertEqual("Lifestyle", donor_fhir.extension[0].valueCodeableConcept.coding[0].code)
-
