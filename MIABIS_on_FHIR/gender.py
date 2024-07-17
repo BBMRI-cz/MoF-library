@@ -2,7 +2,7 @@
 from enum import Enum
 
 
-class Gender(Enum):
+class MoFGender(Enum):
     """Enum for expressing patient's gender"""
     MALE = 1
     FEMALE = 2
@@ -15,13 +15,13 @@ class Gender(Enum):
         return list(map(lambda c: c.name, cls))
 
 
-def get_gender_from_abbreviation(gender: str) -> Gender:
+def get_gender_from_abbreviation(gender: str) -> MoFGender:
     match gender.upper():
         case "F":
-            return Gender.FEMALE
+            return MoFGender.FEMALE
         case "M":
-            return Gender.MALE
+            return MoFGender.MALE
         case "O":
-            return Gender.OTHER
+            return MoFGender.OTHER
         case _:
-            return Gender.UNKNOWN
+            return MoFGender.UNKNOWN

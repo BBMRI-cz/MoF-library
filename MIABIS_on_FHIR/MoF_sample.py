@@ -9,7 +9,7 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection
 
-from MIABIS_on_FHIR.storage_temperature import StorageTemperature
+from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
 from _constants import MATERIAL_TYPE_CODES
 
 
@@ -17,7 +17,7 @@ class MoFSample:
     """Class representing a biological specimen as defined by the MIABIS on FHIR profile."""
 
     def __init__(self, identifier: str, donor_identifier: str, material_type: str, collected_datetime: datetime = None,
-                 body_site: str = None, body_site_system: str = None, storage_temperature: StorageTemperature = None,
+                 body_site: str = None, body_site_system: str = None, storage_temperature: MoFStorageTemperature = None,
                  use_restrictions: str = None):
         """
         :param identifier: Sample organizational identifier
@@ -29,15 +29,29 @@ class MoFSample:
         :param storage_temperature: Temperature at which the sample is stored
         :param use_restrictions: Restrictions on the use of the sample
         """
+        if not isinstance(identifier, str):
+            raise TypeError("Identifier must be string")
         self._identifier = identifier
+        if not isinstance(donor_identifier, str):
+            raise TypeError("Identifier must be string")
         self._donor_identifier = donor_identifier
         if material_type not in MATERIAL_TYPE_CODES:
-            raise ValueError(f"Material type {material_type} is not valid")
+            raise ValueError(f"Material type {material_type} is not valid. Valid values are: {MATERIAL_TYPE_CODES}")
         self._material_type = material_type
+        if collected_datetime is not None and not isinstance(collected_datetime, datetime):
+            raise TypeError("Collected datetime must be a datetime object")
         self._collected_datetime = collected_datetime
+        if body_site is not None and not isinstance(body_site, str):
+            raise TypeError("Body site must be a string")
         self._body_site = body_site
+        if body_site_system is not None and not isinstance(body_site_system, str):
+            raise TypeError("Body site system must be a string")
         self._body_site_system = body_site_system
+        if storage_temperature is not None and not isinstance(storage_temperature, MoFStorageTemperature):
+            raise TypeError("Storage temperature must be a StorageTemperature object")
         self._storage_temperature = storage_temperature
+        if use_restrictions is not None and not isinstance(use_restrictions, str):
+            raise TypeError("Use restrictions must be a string")
         self._use_restrictions = use_restrictions
 
     @property
@@ -45,10 +59,22 @@ class MoFSample:
         """Institutional identifier."""
         return self._identifier
 
+    @identifier.setter
+    def identifier(self, identifier: str):
+        if not isinstance(identifier, str):
+            raise TypeError("Identifier must be string")
+        self._identifier = identifier
+
     @property
     def donor_identifier(self) -> str:
         """Institutional ID of donor."""
         return self._donor_identifier
+
+    @donor_identifier.setter
+    def donor_identifier(self, donor_identifier: str):
+        if not isinstance(donor_identifier, str):
+            raise TypeError("Identifier must be string")
+        self._donor_identifier = donor_identifier
 
     @property
     def material_type(self) -> str:
@@ -57,6 +83,8 @@ class MoFSample:
 
     @material_type.setter
     def material_type(self, material_type: str):
+        if material_type not in MATERIAL_TYPE_CODES:
+            raise ValueError(f"Material type {material_type} is not valid. Valid values are: {MATERIAL_TYPE_CODES}")
         self._material_type = material_type
 
     @property
@@ -66,6 +94,8 @@ class MoFSample:
 
     @collected_datetime.setter
     def collected_datetime(self, collected_datetime: datetime):
+        if collected_datetime is not None and not isinstance(collected_datetime, datetime):
+            raise TypeError("Collected datetime must be a datetime object")
         self._collected_datetime = collected_datetime
 
     @property
@@ -75,6 +105,8 @@ class MoFSample:
 
     @body_site.setter
     def body_site(self, body_site: str):
+        if body_site is not None and not isinstance(body_site, str):
+            raise TypeError("Body site must be a string")
         self._body_site = body_site
 
     @property
@@ -84,15 +116,19 @@ class MoFSample:
 
     @body_site_system.setter
     def body_site_system(self, body_site_system: str):
+        if body_site_system is not None and not isinstance(body_site_system, str):
+            raise TypeError("Body site system must be a string")
         self._body_site_system = body_site_system
 
     @property
-    def storage_temperature(self) -> StorageTemperature:
+    def storage_temperature(self) -> MoFStorageTemperature:
         """Temperature at which the sample is stored."""
         return self._storage_temperature
 
     @storage_temperature.setter
-    def storage_temperature(self, storage_temperature: StorageTemperature):
+    def storage_temperature(self, storage_temperature: MoFStorageTemperature):
+        if storage_temperature is not None and not isinstance(storage_temperature, MoFStorageTemperature):
+            raise TypeError("Storage temperature must be a StorageTemperature object")
         self._storage_temperature = storage_temperature
 
     @property
@@ -102,6 +138,8 @@ class MoFSample:
 
     @use_restrictions.setter
     def use_restrictions(self, use_restrictions: str):
+        if use_restrictions is not None and not isinstance(use_restrictions, str):
+            raise TypeError("Use restrictions must be a string")
         self._use_restrictions = use_restrictions
 
     def to_fhir(self, subject_id: str = None):
@@ -114,6 +152,8 @@ class MoFSample:
         # TODO add url for the structure definition
         specimen.meta.profile = ["https://example.org/StructureDefinition/Specimen"]
         specimen.identifier = self.__create_fhir_identifier()
+        specimen.subject = FHIRReference()
+        specimen.subject.reference = f"Patient/{subject_id}"
         extensions: list[Extension] = []
         specimen.type = self.__create_specimen_type()
         if self.collected_datetime is not None or self.body_site is not None:
@@ -122,9 +162,6 @@ class MoFSample:
                 specimen.collection.collectedDateTime = self.collected_datetime
             if self.body_site is not None:
                 specimen.collection.bodySite = self.__create_body_site()
-        if subject_id is not None:
-            specimen.subject = FHIRReference()
-            specimen.subject.reference = f"Patient/{subject_id}"
         if self.storage_temperature is not None:
             extensions.append(self.__create_storage_temperature_extension())
         if self.use_restrictions is not None:

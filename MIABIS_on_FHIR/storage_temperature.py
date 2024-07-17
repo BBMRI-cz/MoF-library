@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class StorageTemperature(Enum):
+class MoFStorageTemperature(Enum):
     """Enum for expressing storage temperature of a sample:
     2 to 10 degrees Celsius
     -18 to -35 degrees Celsius
@@ -24,10 +24,10 @@ class StorageTemperature(Enum):
         return list(map(lambda c: c.name, cls))
 
 
-def parse_storage_temp_from_code(storage_temp_map: dict, code: str) -> StorageTemperature | None:
+def parse_storage_temp_from_code(storage_temp_map: dict, code: str) -> MoFStorageTemperature | None:
     if code not in storage_temp_map:
         return None
     storage_temp = storage_temp_map.get(code)
-    if storage_temp not in StorageTemperature.list():
+    if storage_temp not in MoFStorageTemperature.list():
         return None
-    return StorageTemperature[storage_temp]
+    return MoFStorageTemperature[storage_temp]
