@@ -2,24 +2,44 @@ from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.diagnosticreport import DiagnosticReport
 from fhirclient.models.fhirreference import FHIRReference
+from fhirclient.models.identifier import Identifier
 
 
 class MoFDiagnosisReport:
     """Class representing a diagnosis report in order to link a specimen to a Condition through this diagnosis report.
     as defined by the MIABIS on FHIR profile.
     :param sample_identifier: The identifier of the sample.
+    :param donor_identifier: The identifier of the donor.
     """
-    def __init__(self, sample_identifier: str, donor_identifier: str):
+    def __init__(self, sample_identifier: str, observations_identifiers: list[str]):
+        if not isinstance(sample_identifier, str):
+            raise TypeError("Sample identifier must be a string.")
         self._sample_identifier = sample_identifier
-        self._donor_identifier = donor_identifier
+        for observation_id in observations_identifiers:
+            if not isinstance(observation_id, str):
+                raise TypeError("Observation identifier must be a string.")
+        self._observations_identifiers = observations_identifiers
 
     @property
-    def sample_id(self) -> str:
+    def sample_identifier(self) -> str:
         return self._sample_identifier
 
+    @sample_identifier.setter
+    def sample_identifier(self, sample_id: str):
+        if not isinstance(sample_id, str):
+            raise TypeError("Sample identifier must be a string.")
+        self._sample_identifier = sample_id
+
     @property
-    def donor_id(self) -> str:
-        return self._donor_identifier
+    def observations_identifiers(self) -> list[str]:
+        return self._observations_identifiers
+
+    @observations_identifiers.setter
+    def observations_identifiers(self, observations_ids: list[str]):
+        for observation_id in observations_ids:
+            if not isinstance(observation_id, str):
+                raise TypeError("Observation identifier must be a string.")
+        self._observations_identifiers = observations_ids
 
     def to_fhir(self, sample_id: str, observation_ids: list[str]) -> DiagnosticReport:
         """Converts the diagnosis report to a FHIR object.
@@ -28,12 +48,22 @@ class MoFDiagnosisReport:
         :return: DiagnosticReport
         """
         diagnosis_report = DiagnosticReport()
+        diagnosis_report.identifier = [self.__create_identifier()]
         diagnosis_report.specimen = [self.__create_specimen_reference(sample_id)]
         diagnosis_report.status = "final"
         diagnosis_report.result = self._create_result_reference(observation_ids)
         diagnosis_report.code = self.__create_code_multiple_diagnosis_bool(len(observation_ids) > 1)
         return diagnosis_report
 
+    def __create_identifier(self,) -> Identifier:
+        """Creates a FHIR identifier for the diagnosis report.
+        :param sample_id: FHIR identifier of the sample.
+        :return: Identifier
+        """
+        identifier = Identifier()
+        identifier.system = "http://example.com/diagnosisReport"
+        identifier.value = self.sample_identifier
+        return identifier
     @staticmethod
     def __create_code_multiple_diagnosis_bool(multiple_diagnosis: bool):
         code = CodeableConcept()

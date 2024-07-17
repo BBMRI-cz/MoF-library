@@ -45,5 +45,3 @@ class TestObservation(unittest.TestCase):
         self.assertEqual("C51", obs_fhir.code.coding[0].code)
         self.assertEqual("sampleId", obs_fhir.identifier[0].value)
         self.assertEqual("final", obs_fhir.status)
-
-
