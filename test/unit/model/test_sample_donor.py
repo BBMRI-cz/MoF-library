@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 
 from MIABIS_on_FHIR.MoF_sample_donor import MoFSampleDonor
-from MIABIS_on_FHIR.gender import Gender
+from MIABIS_on_FHIR.gender import MoFGender
 
 
 class TestSampleDonor(unittest.TestCase):
@@ -20,10 +20,10 @@ class TestSampleDonor(unittest.TestCase):
     def test_sample_donor_set_gender_ok(self):
         donor = MoFSampleDonor("test")
         self.assertEqual(None, donor.gender)
-        donor.gender = Gender.MALE
-        self.assertEqual(Gender.MALE, donor.gender)
-        donor.gender = Gender.UNKNOWN
-        self.assertEqual(Gender.UNKNOWN, donor.gender)
+        donor.gender = MoFGender.MALE
+        self.assertEqual(MoFGender.MALE, donor.gender)
+        donor.gender = MoFGender.UNKNOWN
+        self.assertEqual(MoFGender.UNKNOWN, donor.gender)
 
     def test_sample_donor_init_invalid_gender(self):
         with self.assertRaises(TypeError):
@@ -67,12 +67,12 @@ class TestSampleDonor(unittest.TestCase):
         self.assertEqual("patientId", donor.to_fhir().identifier[0].value)
 
     def test_sample_donor_with_gender_ok(self):
-        donor = MoFSampleDonor("patientId", Gender.MALE)
+        donor = MoFSampleDonor("patientId", MoFGender.MALE)
         self.assertIsInstance(donor, MoFSampleDonor)
-        self.assertEqual(donor.gender, Gender.MALE)
+        self.assertEqual(donor.gender, MoFGender.MALE)
 
     def test_sample_donor_with_gender_to_fhir_ok(self):
-        donor = MoFSampleDonor("patientId", Gender.FEMALE)
+        donor = MoFSampleDonor("patientId", MoFGender.FEMALE)
         self.assertEqual("female", donor.to_fhir().gender)
 
     def test_sample_donor_with_birth_date_to_fhir_ok(self):
@@ -84,7 +84,7 @@ class TestSampleDonor(unittest.TestCase):
         self.assertEqual("Lifestyle", donor.to_fhir().extension[0].valueCodeableConcept.coding[0].code)
 
     def test_sample_donor_with_all_args_to_fhir_ok(self):
-        donor = MoFSampleDonor("patientId", Gender.FEMALE, datetime(year=2022, month=10, day=20), "Lifestyle")
+        donor = MoFSampleDonor("patientId", MoFGender.FEMALE, datetime(year=2022, month=10, day=20), "Lifestyle")
         donor_fhir = donor.to_fhir()
         self.assertEqual("patientId", donor_fhir.identifier[0].value)
         self.assertEqual("female", donor_fhir.gender)
