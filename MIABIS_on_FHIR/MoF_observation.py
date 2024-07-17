@@ -13,8 +13,10 @@ class MoFObservation:
         :param sample_identifier: identifier of the sample that this observation is related to
         """
         if not icd10.exists(icd10_code):
-            raise TypeError("The provided string is not a valid ICD-10 code.")
+            raise ValueError("The provided string is not a valid ICD-10 code.")
         self._icd10_code = icd10_code
+        if not isinstance(sample_identifier, str):
+            raise TypeError("Sample identifier must be a string.")
         self._sample_identifier = sample_identifier
 
     @property
@@ -24,7 +26,7 @@ class MoFObservation:
     @icd10_code.setter
     def icd10_code(self, icd10_code: str):
         if not icd10.exists(icd10_code):
-            raise TypeError("The provided string is not a valid ICD-10 code.")
+            raise ValueError("The provided string is not a valid ICD-10 code.")
         self._icd10_code = icd10_code
 
     @property
@@ -33,8 +35,9 @@ class MoFObservation:
 
     @sample_identifier.setter
     def sample_identifier(self, donor_identifier: str):
+        if not isinstance(donor_identifier, str):
+            raise TypeError("Sample identifier must be a string.")
         self._sample_identifier = donor_identifier
-
 
     def to_fhir(self) -> Observation:
         """Converts the observation to a FHIR object.
