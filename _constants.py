@@ -3,6 +3,9 @@ MATERIAL_TYPE_CODES = ["Blood", "DNA", "Faeces", "ImmortalizedCellLine", "Isolat
 
 STORAGE_TEMPERATURE_CODES = []
 
+DONOR_DATASET_TYPE = ["Lifestyle", "BiologicalSamples", "SurveyData", "ImagingData", "MedicalRecords",
+                      "NatinoalRegistries", "GenealogicalRecords", "PhysioBiochemicalData", "Other"]
+
 BIOBANK_INFRASTRUCTURAL_CAPABILITIES = ["SampleStorage", "DataStorage", "Biosafety"]
 
 BIOBANK_ORGANISATIONAL_CAPABILITIES = ["RecontactDonors", "ClinicalTrials", "ProspectiveCollections", "OmicsData",
