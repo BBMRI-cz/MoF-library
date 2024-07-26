@@ -34,6 +34,20 @@ class MoFBiobank():
         :param quality__management_standards: The standards that the biobank is certified or accredited for.
         Available values in the _constants.py file
         """
+        if not isinstance(identifier, str):
+            raise TypeError("Identifier must be a string.")
+        if not isinstance(name, str):
+            raise TypeError("Name must be a string.")
+        if not isinstance(alias, str):
+            raise TypeError("Alias must be a string.")
+        if not isinstance(country, str):
+            raise TypeError("Country must be a string.")
+        if not isinstance(contact_name, str):
+            raise TypeError("Contact name must be a string.")
+        if not isinstance(contact_surname, str):
+            raise TypeError("Contact surname must be a string.")
+        if not isinstance(contact_email, str):
+            raise TypeError("Contact email must be a string.")
         self._identifier = identifier
         self._name = name
         self._alias = alias
@@ -45,17 +59,17 @@ class MoFBiobank():
             for capability in infrastructural_capabilities:
                 if capability not in BIOBANK_INFRASTRUCTURAL_CAPABILITIES:
                     raise ValueError(f"{capability} is not a valid code for infrastructural capabilities")
-            self._infrastructural_capabilities = infrastructural_capabilities
+        self._infrastructural_capabilities = infrastructural_capabilities
         if organisational_capabilities is not None:
             for capability in organisational_capabilities:
                 if capability not in BIOBANK_ORGANISATIONAL_CAPABILITIES:
                     raise ValueError(f"{capability} is not a valid code for organisational capabilities")
-            self._organisational_capabilities = organisational_capabilities
+        self._organisational_capabilities = organisational_capabilities
         if bioprocessing_and_analysis_capabilities is not None:
             for capability in bioprocessing_and_analysis_capabilities:
                 if capability not in BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES:
                     raise ValueError(f"{capability} is not a valid code for bioprocessing and analysis capabilities")
-            self._bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
+        self._bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
         self._quality__management_standards = quality__management_standards
 
     @property
@@ -64,6 +78,8 @@ class MoFBiobank():
 
     @identifier.setter
     def identifier(self, identifier: str):
+        if not isinstance(identifier, str):
+            raise TypeError("Identifier must be a string.")
         self._identifier = identifier
 
     @property
@@ -72,6 +88,8 @@ class MoFBiobank():
 
     @name.setter
     def name(self, name: str):
+        if not isinstance(name, str):
+            raise TypeError("Name must be a string.")
         self._name = name
 
     @property
@@ -80,6 +98,8 @@ class MoFBiobank():
 
     @alias.setter
     def alias(self, alias: str):
+        if not isinstance(alias, str):
+            raise TypeError("Alias must be a string.")
         self._alias = alias
 
     @property
@@ -88,6 +108,8 @@ class MoFBiobank():
 
     @country.setter
     def country(self, country: str):
+        if not isinstance(country, str):
+            raise TypeError("Country must be a string.")
         self._country = country
 
     @property
@@ -96,6 +118,8 @@ class MoFBiobank():
 
     @contact_name.setter
     def contact_name(self, contact_name: str):
+        if not isinstance(contact_name, str):
+            raise TypeError("Contact name must be a string.")
         self._contact_name = contact_name
 
     @property
@@ -104,6 +128,8 @@ class MoFBiobank():
 
     @contact_surname.setter
     def contact_surname(self, contact_surname: str):
+        if not isinstance(contact_surname, str):
+            raise TypeError("Contact surname must be a string.")
         self._contact_surname = contact_surname
 
     @property
@@ -112,6 +138,8 @@ class MoFBiobank():
 
     @contact_email.setter
     def contact_email(self, contact_email: str):
+        if not isinstance(contact_email, str):
+            raise TypeError("Contact email must be a string.")
         self._contact_email = contact_email
 
     @property
@@ -120,6 +148,9 @@ class MoFBiobank():
 
     @infrastructural_capabilities.setter
     def infrastructural_capabilities(self, infrastructural_capabilities: list[str]):
+        for capability in infrastructural_capabilities:
+            if capability not in BIOBANK_INFRASTRUCTURAL_CAPABILITIES:
+                raise ValueError(f"{capability} is not a valid code for infrastructural capabilities")
         self._infrastructural_capabilities = infrastructural_capabilities
 
     @property
@@ -128,6 +159,9 @@ class MoFBiobank():
 
     @organisational_capabilities.setter
     def organisational_capabilities(self, organisational_capabilities: list[str]):
+        for capability in organisational_capabilities:
+            if capability not in BIOBANK_ORGANISATIONAL_CAPABILITIES:
+                raise ValueError(f"{capability} is not a valid code for organisational capabilities")
         self._organisational_capabilities = organisational_capabilities
 
     @property
@@ -136,6 +170,9 @@ class MoFBiobank():
 
     @bioprocessing_and_analysis_capabilities.setter
     def bioprocessing_and_analysis_capabilities(self, bioprocessing_and_analysis_capabilities: list[str]):
+        for capability in bioprocessing_and_analysis_capabilities:
+            if capability not in BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES:
+                raise ValueError(f"{capability} is not a valid code for bioprocessing and analysis capabilities")
         self._bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
 
     @property
