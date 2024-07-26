@@ -9,7 +9,7 @@ from fhirclient.models.meta import Meta
 class MoFCondition:
     """Class representing a patients medical condition as defined by the MIABIS on FHIR profile."""
 
-    def __init__(self,patient_identifier: str, icd_10_code: str = None):
+    def __init__(self, patient_identifier: str, icd_10_code: str = None):
         """
         :param icd_10_code: code of the diagnosis.
         THIS DIAGNOSIS REPRESENT CONDITION OF PATIENT THAT BIOBANK DOES NOT HAVE SPECIMEN FOR.
@@ -18,17 +18,30 @@ class MoFCondition:
         :param diagnosis_report_fhir_id: diagnosis report identifier given by the FHIR storage.
         """
         if icd_10_code is not None and not icd10.exists(icd_10_code):
-            raise TypeError(f"The provided string {icd_10_code} is not a valid ICD-10 code.")
+            raise ValueError(f"The provided string {icd_10_code} is not a valid ICD-10 code.")
         self._icd_10_code = icd_10_code
+        if not isinstance(patient_identifier, str):
+            raise TypeError("Patient identifier must be a string.")
         self._patient_identifier = patient_identifier
 
     @property
     def icd_10_code(self) -> str:
         return self._icd_10_code
 
+    @icd_10_code.setter
+    def icd_10_code(self, icd_10_code):
+        if icd_10_code is not None and not icd10.exists(icd_10_code):
+            raise ValueError(f"The provided string {icd_10_code} is not a valid ICD-10 code.")
+        self._icd_10_code = icd_10_code
     @property
     def patient_identifier(self) -> str:
         return self._patient_identifier
+
+    @patient_identifier.setter
+    def patient_identifier(self, patient_identifier: str):
+        if not isinstance(patient_identifier, str):
+            raise TypeError("Patient identifier must be a string.")
+        self._patient_identifier = patient_identifier
 
     def to_fhir(self, patient_id: str, diagnosis_report_ids: list[str]):
         """Return condition's representation as a FHIR resource.
@@ -47,6 +60,7 @@ class MoFCondition:
             condition.stage[0].assessment.append(self.__create_diagnostic_report_reference(diagnosis_report_id))
 
         return condition
+
     @staticmethod
     def __create_diagnostic_report_reference(diagnosis_report_id: str) -> FHIRReference:
         """Creates a reference to the diagnostic report.
