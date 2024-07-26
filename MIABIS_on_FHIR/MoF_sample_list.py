@@ -2,7 +2,7 @@ from fhirclient.models import list as fhir_list
 from fhirclient.models.fhirreference import FHIRReference
 
 
-class MoFSpecimenList:
+class MoFSampleList:
     """Class representing a list of specimens in a collection."""
     def __init__(self, collection_identifier: str, specimen_identifiers: list[str], name: str = None):
         """
@@ -10,6 +10,13 @@ class MoFSpecimenList:
         :param collection_identifier: Identifier of the collection
         :param specimens_ids: List of specimen identifiers
         """
+        if not isinstance(collection_identifier, str):
+            raise TypeError("Collection identifier must be a string.")
+        if not isinstance(specimen_identifiers, list):
+            raise TypeError("Specimen identifiers must be a list.")
+        for specimen_id in specimen_identifiers:
+            if not isinstance(specimen_id, str):
+                raise TypeError("Specimen identifiers must be strings.")
         self._name = name
         self._collection_identifier = collection_identifier
         self._specimen_identifiers = specimen_identifiers
@@ -19,11 +26,11 @@ class MoFSpecimenList:
         return self._name
 
     @property
-    def collection_id(self) -> str:
+    def collection_identifier(self) -> str:
         return self._collection_identifier
 
     @property
-    def specimens_ids(self) -> list[str]:
+    def samples_identifiers(self) -> list[str]:
         return self._specimen_identifiers
 
     def to_fhir(self, collection_id: str, specimen_ids: list[str]):
