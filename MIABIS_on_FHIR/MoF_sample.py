@@ -4,6 +4,7 @@ from fhirclient.models.annotation import Annotation
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.extension import Extension
+from fhirclient.models.fhirdate import FHIRDate
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
@@ -142,7 +143,7 @@ class MoFSample:
             raise TypeError("Use restrictions must be a string")
         self._use_restrictions = use_restrictions
 
-    def to_fhir(self, subject_id: str = None):
+    def to_fhir(self, subject_id: str):
         """return sample representation in FHIR format
         :param material_type_map: Mapping of material types to FHIR codes
         :param subject_id: FHIR ID of the subject to which the sample belongs"""
@@ -159,7 +160,8 @@ class MoFSample:
         if self.collected_datetime is not None or self.body_site is not None:
             specimen.collection = SpecimenCollection()
             if self.collected_datetime is not None:
-                specimen.collection.collectedDateTime = self.collected_datetime
+                specimen.collection.collectedDateTime = FHIRDate()
+                specimen.collection.collectedDateTime.date = self.collected_datetime.date()
             if self.body_site is not None:
                 specimen.collection.bodySite = self.__create_body_site()
         if self.storage_temperature is not None:

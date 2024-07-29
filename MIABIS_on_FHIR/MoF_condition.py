@@ -43,7 +43,7 @@ class MoFCondition:
             raise TypeError("Patient identifier must be a string.")
         self._patient_identifier = patient_identifier
 
-    def to_fhir(self, patient_id: str, diagnosis_report_ids: list[str]):
+    def to_fhir(self, patient_fhir_id: str, diagnosis_report_fhir_ids: list[str]):
         """Return condition's representation as a FHIR resource.
         @patient_id: FHIR Resource ID of the patient.
         @diagnosis_report_id: FHIR Resource ID of the diagnosis report."""
@@ -53,10 +53,10 @@ class MoFCondition:
         if self.icd_10_code is not None:
             condition.code = self.__create_icd_10_code()
         condition.subject = FHIRReference()
-        condition.subject.reference = f"Patient/{patient_id}"
+        condition.subject.reference = f"Patient/{patient_fhir_id}"
         condition.stage = [fhir_condition.ConditionStage()]
         condition.stage[0].assessment = []
-        for diagnosis_report_id in diagnosis_report_ids:
+        for diagnosis_report_id in diagnosis_report_fhir_ids:
             condition.stage[0].assessment.append(self.__create_diagnostic_report_reference(diagnosis_report_id))
 
         return condition

@@ -370,6 +370,7 @@ class MoFCollection:
     def __create_age_range_characteristic(self, age_low: int, age_high: int) -> GroupCharacteristic:
         # TODO add age range units
         age_range_characteristic = GroupCharacteristic()
+        age_range_characteristic.exclude = False
         age_range_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS", "Age")
         age_range_characteristic.valueRange = Range()
         age_range_characteristic.valueRange.low = Quantity()
@@ -380,6 +381,7 @@ class MoFCollection:
 
     def __create_sex_characteristic(self, code: str) -> GroupCharacteristic:
         sex_characteristic = GroupCharacteristic()
+        sex_characteristic.exclude = False
         sex_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS", "Sex")
         sex_characteristic.valueCodeableConcept = self.__create_codeable_concept("http://example.com/sexCS", code)
         return sex_characteristic
@@ -387,6 +389,7 @@ class MoFCollection:
     def __create_storage_temperature_characteristic(self,
                                                     storage_temperature: MoFStorageTemperature) -> GroupCharacteristic:
         storage_temperature_characteristic = GroupCharacteristic()
+        storage_temperature_characteristic.exclude = False
         storage_temperature_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS",
                                                                                  "StorageTemperature")
         storage_temperature_characteristic.valueCodeableConcept = self.__create_codeable_concept(
@@ -395,6 +398,7 @@ class MoFCollection:
 
     def __create_material_type_characteristic(self, material_type: str) -> GroupCharacteristic:
         material_type_characteristic = GroupCharacteristic()
+        material_type_characteristic.exclude = False
         material_type_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS",
                                                                            "MaterialType")
         material_type_characteristic.valueCodeableConcept = self.__create_codeable_concept(
@@ -403,6 +407,7 @@ class MoFCollection:
 
     def __create_diagnosis_characteristic(self, diagnosis: str) -> GroupCharacteristic:
         diagnosis_characteristic = GroupCharacteristic()
+        diagnosis_characteristic.exclude = False
         diagnosis_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS",
                                                                        "Diagnosis")
         diagnosis_characteristic.valueCodeableConcept = self.__create_codeable_concept("http://hl7.org/fhir/sid/icd-10",

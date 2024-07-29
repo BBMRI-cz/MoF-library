@@ -62,6 +62,7 @@ class MoFNetwork():
         network.identifier = [self.__create_identifier()]
         network.name = self._name
         network.active = True
+        network.actual = True
         network.type = "person"
         if self._common_collaboration_topics is not None:
             extensions = []

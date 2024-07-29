@@ -7,10 +7,12 @@ from fhirclient.models.observation import Observation
 
 class MoFObservation:
     """Class representing Observation containing an ICD-10 code of deasese as defined by the MIABIS on FHIR profile."""
+
     def __init__(self, icd10_code: str, sample_identifier: str):
         """
         :param icd10_code: icd10 code of the disease
         :param sample_identifier: identifier of the sample that this observation is related to
+        (this is used as an identifier for the observation)
         """
         if not icd10.exists(icd10_code):
             raise ValueError("The provided string is not a valid ICD-10 code.")
@@ -58,14 +60,14 @@ class MoFObservation:
         code.coding[0].system = "http://hl7.org/fhir/sid/icd-10"
         return code
 
-    def __diagnosis_with_period(self,) -> str:
+    def __diagnosis_with_period(self, ) -> str:
         """Returns icd-10 code with a period, e.g., C188 to C18.8"""
         code = self.icd10_code
         if len(code) == 4 and "." not in code:
             return code[:3] + '.' + code[3:]
         return code
 
-    def __create_fhir_identifier(self,sample_fhir_id: str) -> list[Identifier]:
+    def __create_fhir_identifier(self, sample_fhir_id: str) -> list[Identifier]:
         """Create fhir identifier."""
         fhir_identifier = Identifier()
         fhir_identifier.value = sample_fhir_id

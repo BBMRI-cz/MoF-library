@@ -8,7 +8,7 @@ from fhirclient.models.identifier import Identifier
 class MoFDiagnosisReport:
     """Class representing a diagnosis report in order to link a specimen to a Condition through this diagnosis report.
     as defined by the MIABIS on FHIR profile.
-    :param sample_identifier: The identifier of the sample.
+    :param sample_identifier: The identifier of the sample (this is used as a diagnosis report identifier).
     :param donor_identifier: The identifier of the donor.
     """
     def __init__(self, sample_identifier: str, observations_identifiers: list[str]):
@@ -41,18 +41,18 @@ class MoFDiagnosisReport:
                 raise TypeError("Observation identifier must be a string.")
         self._observations_identifiers = observations_ids
 
-    def to_fhir(self, sample_id: str, observation_ids: list[str]) -> DiagnosticReport:
+    def to_fhir(self, sample_fhir_id: str, observation_fhir_ids: list[str]) -> DiagnosticReport:
         """Converts the diagnosis report to a FHIR object.
-        :param sample_id: FHIR identifier of the sample (often given by the server).
-        :param observation_ids: List of FHIR observation identifiers.
+        :param sample_fhir_id: FHIR identifier of the sample (often given by the server).
+        :param observation_fhir_ids: List of FHIR observation identifiers.
         :return: DiagnosticReport
         """
         diagnosis_report = DiagnosticReport()
         diagnosis_report.identifier = [self.__create_identifier()]
-        diagnosis_report.specimen = [self.__create_specimen_reference(sample_id)]
+        diagnosis_report.specimen = [self.__create_specimen_reference(sample_fhir_id)]
         diagnosis_report.status = "final"
-        diagnosis_report.result = self._create_result_reference(observation_ids)
-        diagnosis_report.code = self.__create_code_multiple_diagnosis_bool(len(observation_ids) > 1)
+        diagnosis_report.result = self._create_result_reference(observation_fhir_ids)
+        diagnosis_report.code = self.__create_code_multiple_diagnosis_bool(len(observation_fhir_ids) > 1)
         return diagnosis_report
 
     def __create_identifier(self,) -> Identifier:

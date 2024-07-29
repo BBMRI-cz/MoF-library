@@ -33,10 +33,10 @@ class MoFSampleList:
     def samples_identifiers(self) -> list[str]:
         return self._specimen_identifiers
 
-    def to_fhir(self, collection_id: str, specimen_ids: list[str]):
+    def to_fhir(self, collection_fhir_id: str, specimen_fhir_ids: list[str]):
         """Return specimen list representation in FHIR
-        :param collection_id: FHIR Identifier of the collection
-        :param specimen_ids: List of FHIR specimen identifiers
+        :param collection_fhir_id: FHIR Identifier of the collection
+        :param specimen_fhir_ids: List of FHIR specimen identifiers
         """
         # TODO entry.deleted maybe not always false ? when deleting samples from storage, it could be used as a flag
         specimen_list = fhir_list.List()
@@ -44,9 +44,9 @@ class MoFSampleList:
         specimen_list.status = "current"
         specimen_list.mode = "working"
         specimen_list.subject = FHIRReference()
-        specimen_list.subject.reference = f"Group/{collection_id}"
+        specimen_list.subject.reference = f"Group/{collection_fhir_id}"
         specimen_list.entry = []
-        for specimen_id in specimen_ids:
+        for specimen_id in specimen_fhir_ids:
             entry = fhir_list.ListEntry()
             entry.item = FHIRReference()
             entry.deleted = False
