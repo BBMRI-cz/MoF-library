@@ -7,12 +7,22 @@ from fhirclient.models.list import List, ListEntry
 
 class MoFNetworkMembers():
     """Class representing actual members of a network."""
-    def __init__(self, title: str, network_id: str, members: list[str]):
+    def __init__(self,network_id: str, title: str, members: list[str]):
         """
         :param title: name of network this members belongs to
         :param network_id: network id this members belongs to
         :param members: ids of all the members that are part of this network
         """
+        if not isinstance(title, str):
+            raise TypeError("Title must be string")
+        if not isinstance(network_id, str):
+            raise TypeError("Network id must be string")
+        if not isinstance(members, list):
+            raise TypeError("Members must be a list")
+        for member in members:
+            if not isinstance(member, str):
+                raise TypeError("Members must be a list of strings")
+
         self._title = title
         self._network_id = network_id
         self._members = members
@@ -23,6 +33,8 @@ class MoFNetworkMembers():
 
     @title.setter
     def title(self, title: str):
+        if not isinstance(title, str):
+            raise TypeError("Title must be string")
         self._title = title
 
     @property
@@ -31,6 +43,8 @@ class MoFNetworkMembers():
 
     @network_id.setter
     def network_id(self, network_id: str):
+        if not isinstance(network_id, str):
+            raise TypeError("Network id must be string")
         self._network_id = network_id
 
     @property
@@ -39,9 +53,20 @@ class MoFNetworkMembers():
 
     @members.setter
     def members(self, members: list[str]):
+        if not isinstance(members, list):
+            raise TypeError("Members must be a list")
+        for member in members:
+            if not isinstance(member, str):
+                raise TypeError("Members must be a list of strings")
         self._members = members
 
     def to_fhir(self, network_fhir_id: str, member_collection_fhir_ids: list[str], member_biobanks_fhir_ids: list[str]) -> List:
+        """
+        :param network_fhir_id: FHIR id of the network this members belongs to
+        :param member_collection_fhir_ids: FHIR ids of all the collections that are part of this network
+        :param member_biobanks_fhir_ids: FHIR ids of all the biobanks that are part of this network
+        :return: List object representing the members of the network
+        """
         network_members = List()
         network_members.title = self._title
         network_members.status = "current"
