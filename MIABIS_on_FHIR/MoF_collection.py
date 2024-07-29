@@ -10,10 +10,10 @@ from fhirclient.models.organization import Organization
 from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
-from MIABIS_on_FHIR.gender import Gender
-from MIABIS_on_FHIR.storage_temperature import StorageTemperature
+from MIABIS_on_FHIR.gender import MoFGender
+from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
 from _constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, COLLECTION_SAMPLE_SOURCE, \
-    COLLECTION_DATASET_TYPE, COLLECTION_INCLUSION_CRITERIA, COLLECTION_USE_AND_ACCESS_CONDITIONS
+    COLLECTION_DATASET_TYPE, COLLECTION_INCLUSION_CRITERIA, COLLECTION_USE_AND_ACCESS_CONDITIONS, MATERIAL_TYPE_CODES
 
 
 class MoFCollection:
@@ -22,7 +22,7 @@ class MoFCollection:
     # TODO age range units
     def __init__(self, identifier: str, name: str, acronym: str, managing_biobank_id: str,
                  age_range_low: int,
-                 age_range_high: int, genders: list[Gender], storage_temperatures: list[StorageTemperature],
+                 age_range_high: int, genders: list[MoFGender], storage_temperatures: list[MoFStorageTemperature],
                  material_types: list[str], description: str = None, diagnoses: list[str] = None,
                  dataset_type: str = None,
                  sample_source: str = None,
@@ -51,6 +51,30 @@ class MoFCollection:
         :param inclusion_criteria: Inclusion criteria for the subjects in the collection.
         :param publications: Publications related to the collection.
         """
+        if not isinstance(identifier, str):
+            raise TypeError("Collection identifier must be a string.")
+        if not isinstance(name, str):
+            raise TypeError("Collection name must be a string.")
+        if not isinstance(acronym, str):
+            raise TypeError("Collection acronym must be a string.")
+        if description is not None and not isinstance(description, str):
+            raise TypeError("Collection description must be a string.")
+        if not isinstance(managing_biobank_id, str):
+            raise TypeError("Managing biobank identifier must be a string.")
+        if not isinstance(age_range_low, int):
+            raise TypeError("Age range low must be an integer.")
+        if not isinstance(age_range_high, int):
+            raise TypeError("Age range high must be an integer.")
+        for gender in genders:
+            if not isinstance(gender,MoFGender):
+                raise TypeError("Gender in the list must be an instance of MoFGender.")
+        for storage_temperature in storage_temperatures:
+            if not isinstance(storage_temperature, MoFStorageTemperature):
+                raise TypeError("Storage temperature in the list must be an instance of MoFStorageTemperature.")
+        for material_type in material_types:
+            if material_type not in MATERIAL_TYPE_CODES:
+                raise ValueError(f"{material_type} is not a valid code for material type")
+
         self._identifier: str = identifier
         self._name: str = name
         self._acronym: str = acronym
@@ -91,6 +115,8 @@ class MoFCollection:
                 if condition not in COLLECTION_USE_AND_ACCESS_CONDITIONS:
                     raise ValueError(f"{condition} is not a valid code for use and access conditions")
         self._use_and_access_conditions = use_and_access_conditions
+        if number_of_subjects is not None and not isinstance(number_of_subjects, int):
+            raise TypeError("Number of subjects must be an integer.")
         self._number_of_subjects = number_of_subjects
         if inclusion_criteria is not None:
             for inclusion in inclusion_criteria:
@@ -105,6 +131,8 @@ class MoFCollection:
 
     @identifier.setter
     def identifier(self, identifier: str):
+        if not isinstance(identifier, str):
+            raise TypeError("Collection identifier must be a string.")
         self._identifier = identifier
 
     @property
@@ -113,6 +141,8 @@ class MoFCollection:
 
     @name.setter
     def name(self, name: str):
+        if not isinstance(name, str):
+            raise TypeError("Collection name must be a string.")
         self._name = name
 
     @property
@@ -121,6 +151,8 @@ class MoFCollection:
 
     @acronym.setter
     def acronym(self, acronym: str):
+        if not isinstance(acronym, str):
+            raise TypeError("Collection acronym must be a string.")
         self._acronym = acronym
 
     @property
@@ -129,6 +161,8 @@ class MoFCollection:
 
     @description.setter
     def description(self, description: str):
+        if description is not None and not isinstance(description, str):
+            raise TypeError("Collection description must be a string.")
         self._description = description
 
     @property
@@ -137,6 +171,8 @@ class MoFCollection:
 
     @managing_biobank_id.setter
     def managing_biobank_id(self, managing_biobank_id: str):
+        if not isinstance(managing_biobank_id, str):
+            raise TypeError("Managing biobank identifier must be a string.")
         self._managing_biobank_id = managing_biobank_id
 
     @property
@@ -145,6 +181,8 @@ class MoFCollection:
 
     @age_range_low.setter
     def age_range_low(self, age_range_low: int):
+        if not isinstance(age_range_low, int):
+            raise TypeError("Age range low must be an integer.")
         self._age_range_low = age_range_low
 
     @property
@@ -153,22 +191,30 @@ class MoFCollection:
 
     @age_range_high.setter
     def age_range_high(self, age_range_high: int):
+        if not isinstance(age_range_high, int):
+            raise TypeError("Age range high must be an integer.")
         self._age_range_high = age_range_high
 
     @property
-    def genders(self) -> list[Gender]:
+    def genders(self) -> list[MoFGender]:
         return self._genders
 
     @genders.setter
-    def genders(self, genders: list[Gender]):
+    def genders(self, genders: list[MoFGender]):
+        for gender in genders:
+            if not isinstance(gender, MoFGender):
+                raise TypeError("Gender must be an MoFGender")
         self._genders = genders
 
     @property
-    def storage_temperatures(self) -> list[StorageTemperature]:
+    def storage_temperatures(self) -> list[MoFStorageTemperature]:
         return self._storage_temperatures
 
     @storage_temperatures.setter
-    def storage_temperatures(self, storage_temperatures: list[StorageTemperature]):
+    def storage_temperatures(self, storage_temperatures: list[MoFStorageTemperature]):
+        for storage_temperature in storage_temperatures:
+            if not isinstance(storage_temperature, MoFStorageTemperature):
+                raise TypeError("Storage temperature must be an MoFStorageTemperature")
         self._storage_temperatures = storage_temperatures
 
     @property
@@ -177,6 +223,9 @@ class MoFCollection:
 
     @material_types.setter
     def material_types(self, material_types: list[str]):
+        for material_type in material_types:
+           if material_type not in MATERIAL_TYPE_CODES:
+                raise ValueError(f"{material_type} is not a valid code for material type")
         self._material_types = material_types
 
     @property
@@ -185,6 +234,9 @@ class MoFCollection:
 
     @diagnoses.setter
     def diagnoses(self, diagnoses: list[str]):
+        for diagnosis in diagnoses:
+            if not icd10.exists(diagnosis):
+                raise ValueError("The provided string is not a valid ICD-10 code.")
         self._diagnoses = diagnoses
 
     @property
@@ -251,7 +303,7 @@ class MoFCollection:
     def publications(self, publications: list[str]):
         self._publications = publications
 
-    def to_fhir(self, managing_organization_fhir_id: str) -> Organization:
+    def to_fhir(self, managing_organization_fhir_id: str) -> Group:
         """Return collection representation in FHIR
         :param managing_organization_fhir_id: FHIR Identifier of the managing organization"""
         fhir_group = Group()
@@ -270,8 +322,9 @@ class MoFCollection:
             fhir_group.characteristic.append(self.__create_storage_temperature_characteristic(storage_temperature))
         for material in self.material_types:
             fhir_group.characteristic.append(self.__create_material_type_characteristic(material))
-        for diagnosis in self.diagnoses:
-            fhir_group.characteristic.append(self.__create_diagnosis_characteristic(diagnosis))
+        if self.diagnoses is not None:
+            for diagnosis in self.diagnoses:
+                fhir_group.characteristic.append(self.__create_diagnosis_characteristic(diagnosis))
         extensions = []
         if self.dataset_type is not None:
             extensions.append(self.__create_codeable_concept_extension(
@@ -290,11 +343,6 @@ class MoFCollection:
                 extensions.append(self.__create_codeable_concept_extension(
                     "https://example.com/StructureDefinition/collection-design-extension",
                     "http://example.com/collectionDesignCS", design))
-        if self.collection_design is not None:
-            for condition in self.use_and_access_conditions:
-                extensions.append(self.__create_codeable_concept_extension(
-                    "https://example.com/StructureDefinition/use-and-access-conditions-extension",
-                    "http://example.com/useAndAccessConditionsCS", condition))
         if self.use_and_access_conditions is not None:
             for condition in self.use_and_access_conditions:
                 extensions.append(self.__create_codeable_concept_extension(
@@ -337,12 +385,12 @@ class MoFCollection:
         return sex_characteristic
 
     def __create_storage_temperature_characteristic(self,
-                                                    storageTemperature: StorageTemperature) -> GroupCharacteristic:
+                                                    storage_temperature: MoFStorageTemperature) -> GroupCharacteristic:
         storage_temperature_characteristic = GroupCharacteristic()
         storage_temperature_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS",
                                                                                  "StorageTemperature")
         storage_temperature_characteristic.valueCodeableConcept = self.__create_codeable_concept(
-            "http://example.com/storageTemperatureCS", storageTemperature.value)
+            "http://example.com/storageTemperatureCS", storage_temperature.value)
         return storage_temperature_characteristic
 
     def __create_material_type_characteristic(self, material_type: str) -> GroupCharacteristic:
@@ -381,7 +429,8 @@ class MoFCollection:
         fhir_identifier.value = self._identifier
         return fhir_identifier
 
-    def __create_codeable_concept_extension(self, extension_url: str, codeable_concept_url: str,
+    @staticmethod
+    def __create_codeable_concept_extension(extension_url: str, codeable_concept_url: str,
                                             value: str) -> Extension:
         extension = Extension()
         extension.url = extension_url
@@ -391,13 +440,15 @@ class MoFCollection:
         extension.valueCodeableConcept.coding[0].system = codeable_concept_url
         return extension
 
-    def __create_integer_extension(self,extension_url, value) -> Extension:
+    @staticmethod
+    def __create_integer_extension(extension_url, value) -> Extension:
         extension = Extension()
         extension.url = extension_url
         extension.valueInteger = value
         return extension
 
-    def __create_string_extension(self,extension_url, value) -> Extension:
+    @staticmethod
+    def __create_string_extension(extension_url, value) -> Extension:
         extension = Extension()
         extension.url = extension_url
         extension.valueString = value
