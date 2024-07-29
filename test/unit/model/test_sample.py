@@ -83,10 +83,10 @@ class TestSample(unittest.TestCase):
 
     def test_sample_storage_temperature_ok(self):
         sample = MoFSample("sampleId", "donorId", "Blood", storage_temperature=MoFStorageTemperature.TEMPERATURE_GN)
-        self.assertEqual("temperatureGN", sample.storage_temperature)
+        self.assertEqual(MoFStorageTemperature.TEMPERATURE_GN, sample.storage_temperature)
 
     def test_sample_storage_temperature_invalid(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             sample = MoFSample("sampleId", "donorId", "Blood", storage_temperature="invalid")
 
     def test_sample_use_restrictions_ok(self):
