@@ -6,6 +6,13 @@ from MIABIS_on_FHIR.gender import MoFGender
 
 
 class TestSampleDonor(unittest.TestCase):
+    donor_json = {'meta': {'versionId': '1', 'lastUpdated': '2024-07-30T07:47:50.796Z',
+                           'profile': ['https://fhir.bbmri.de/StructureDefinition/Patient']}, 'birthDate': '2022-10-20',
+                  'resourceType': 'Patient', 'extension': [
+            {'url': 'https://example.org/StructureDefinition/datasetType',
+             'valueCodeableConcept': {'coding': [{'code': 'Other'}]}}], 'id': 'DEICTQNW6TXY6FFC',
+                  'identifier': [{'value': 'donorId'}], 'gender': 'male'}
+
     def test_sample_donor_init(self):
         patient = MoFSampleDonor("testId")
         self.assertIsInstance(patient, MoFSampleDonor)
@@ -90,3 +97,11 @@ class TestSampleDonor(unittest.TestCase):
         self.assertEqual("female", donor_fhir.gender)
         self.assertEqual("2022-10-20", donor_fhir.birthDate.date.isoformat())
         self.assertEqual("Lifestyle", donor_fhir.extension[0].valueCodeableConcept.coding[0].code)
+
+    def test_sample_donor_from_json(self):
+        donor = MoFSampleDonor.from_json(self.donor_json)
+        self.assertEqual("donorId", donor.identifier)
+        self.assertEqual(MoFGender.MALE,donor.gender)
+        self.assertEqual(datetime(year=2022, month=10, day=20), donor.date_of_birth)
+        self.assertEqual("Other", donor.dataset_type)
+

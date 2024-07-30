@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Self
 
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
@@ -11,9 +12,12 @@ from fhirclient.models.patient import Patient
 from MIABIS_on_FHIR.gender import MoFGender
 from _constants import DONOR_DATASET_TYPE
 
+
 class MoFSampleDonor:
     """Class representing a sample donor/patient as defined by the MIABIS on FHIR profile."""
-    def __init__(self, identifier: str, gender: MoFGender = None, birth_date: datetime = None, dataset_type: str = None):
+
+    def __init__(self, identifier: str, gender: MoFGender = None, birth_date: datetime = None,
+                 dataset_type: str = None):
         """
         :param identifier: Sample donor identifier
         :param gender: Gender of the donor
@@ -76,6 +80,29 @@ class MoFSampleDonor:
         if dataset_type not in DONOR_DATASET_TYPE:
             raise ValueError(f"bad dataset type: has to be one of the following: {DONOR_DATASET_TYPE}")
         self._dataset_type = dataset_type
+
+    @classmethod
+    def from_json(cls, donor_json: dict) -> Self:
+        """
+        Build MoFSampleDonor instance from json representation of this fhir resource
+        :param donor_json: json to be build from
+        :return: MoFSampleDonor instance
+        """
+        try:
+            patient_identifier = donor_json["identifier"][0]["value"]
+            gender = None
+            birth_date = None
+            dataset_type = None
+            if donor_json.get("gender") is not None:
+                gender = MoFGender.from_string(donor_json["gender"])
+            if donor_json.get("birthDate") is not None:
+                date_string = donor_json["birthDate"]
+                birth_date = datetime.strptime(date_string, "%Y-%m-%d")
+            if donor_json.get("extension") is not None:
+                dataset_type = donor_json["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
+            return cls(patient_identifier, gender, birth_date, dataset_type)
+        except KeyError:
+            print("invalid json format")
 
     def to_fhir(self) -> Patient:
         """Return sample donor representation in FHIR"""
