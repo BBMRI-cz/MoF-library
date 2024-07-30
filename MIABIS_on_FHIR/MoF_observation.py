@@ -1,3 +1,5 @@
+from typing import Self
+
 import icd10
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
@@ -40,6 +42,15 @@ class MoFObservation:
         if not isinstance(donor_identifier, str):
             raise TypeError("Sample identifier must be a string.")
         self._sample_identifier = donor_identifier
+
+    @classmethod
+    def from_json(cls, observation_json: dict) -> Self:
+        try:
+            icd10_code = observation_json["code"]["coding"][0]["code"]
+            identifier = observation_json["identifier"][0]["value"]
+            return cls(icd10_code, identifier)
+        except KeyError:
+            print("invalid json format")
 
     def to_fhir(self) -> Observation:
         """Converts the observation to a FHIR object.
