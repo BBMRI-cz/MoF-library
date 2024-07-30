@@ -6,6 +6,8 @@ from fhirclient.models.coding import Coding
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.observation import Observation
 
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+
 
 class MoFObservation:
     """Class representing Observation containing an ICD-10 code of deasese as defined by the MIABIS on FHIR profile."""
@@ -50,7 +52,7 @@ class MoFObservation:
             identifier = observation_json["identifier"][0]["value"]
             return cls(icd10_code, identifier)
         except KeyError:
-            print("invalid json format")
+            raise IncorrectJsonFormatException("Error occured when parsing json into the MoFObservation")
 
     def to_fhir(self) -> Observation:
         """Converts the observation to a FHIR object.

@@ -10,6 +10,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.patient import Patient
 
 from MIABIS_on_FHIR.gender import MoFGender
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from _constants import DONOR_DATASET_TYPE
 
 
@@ -102,7 +103,7 @@ class MoFSampleDonor:
                 dataset_type = donor_json["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
             return cls(patient_identifier, gender, birth_date, dataset_type)
         except KeyError:
-            print("invalid json format")
+            raise IncorrectJsonFormatException("Error occured when parsing json into the MoFSampleDonor")
 
     def to_fhir(self) -> Patient:
         """Return sample donor representation in FHIR"""

@@ -11,6 +11,7 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection
 
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
 from _constants import MATERIAL_TYPE_CODES
 
@@ -177,7 +178,7 @@ class MoFSample:
             return cls(identifier, donor_identifier, material_type, collected_datetime, body_site, body_site_system,
                        storage_temperature, use_restrictions)
         except KeyError:
-            print("invalid json format")
+            raise IncorrectJsonFormatException("Error occurred when parsing json into the MoFSample")
 
     def to_fhir(self, subject_fhir_id: str):
         """return sample representation in FHIR format
