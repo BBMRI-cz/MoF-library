@@ -101,7 +101,6 @@ class TestSampleDonor(unittest.TestCase):
     def test_sample_donor_from_json(self):
         donor = MoFSampleDonor.from_json(self.donor_json)
         self.assertEqual("donorId", donor.identifier)
-        self.assertEqual(MoFGender.MALE,donor.gender)
+        self.assertEqual(MoFGender.MALE, donor.gender)
         self.assertEqual(datetime(year=2022, month=10, day=20), donor.date_of_birth)
         self.assertEqual("Other", donor.dataset_type)
-
