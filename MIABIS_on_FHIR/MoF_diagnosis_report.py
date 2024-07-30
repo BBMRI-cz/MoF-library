@@ -1,8 +1,12 @@
+from typing import Self
+
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.diagnosticreport import DiagnosticReport
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.identifier import Identifier
+
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
 class MoFDiagnosisReport:
@@ -11,6 +15,7 @@ class MoFDiagnosisReport:
     :param sample_identifier: The identifier of the sample (this is used as a diagnosis report identifier).
     :param donor_identifier: The identifier of the donor.
     """
+
     def __init__(self, sample_identifier: str, observations_identifiers: list[str]):
         if not isinstance(sample_identifier, str):
             raise TypeError("Sample identifier must be a string.")
@@ -41,6 +46,14 @@ class MoFDiagnosisReport:
                 raise TypeError("Observation identifier must be a string.")
         self._observations_identifiers = observations_ids
 
+    @classmethod
+    def from_json(cls, diagnosis_report: dict, observations_identifiers: list[str]) -> Self:
+        try:
+            identifier = diagnosis_report["identifier"][0]["value"]
+            return cls(identifier, observations_identifiers)
+        except KeyError:
+            raise IncorrectJsonFormatException("Error occured when parsing json into the MoFDiagnosisReport")
+
     def to_fhir(self, sample_fhir_id: str, observation_fhir_ids: list[str]) -> DiagnosticReport:
         """Converts the diagnosis report to a FHIR object.
         :param sample_fhir_id: FHIR identifier of the sample (often given by the server).
@@ -55,7 +68,7 @@ class MoFDiagnosisReport:
         diagnosis_report.code = self.__create_code_multiple_diagnosis_bool(len(observation_fhir_ids) > 1)
         return diagnosis_report
 
-    def __create_identifier(self,) -> Identifier:
+    def __create_identifier(self, ) -> Identifier:
         """Creates a FHIR identifier for the diagnosis report.
         :param sample_id: FHIR identifier of the sample.
         :return: Identifier
@@ -64,6 +77,7 @@ class MoFDiagnosisReport:
         identifier.system = "http://example.com/diagnosisReport"
         identifier.value = self.sample_identifier
         return identifier
+
     @staticmethod
     def __create_code_multiple_diagnosis_bool(multiple_diagnosis: bool):
         code = CodeableConcept()
