@@ -1,3 +1,5 @@
+DEFINITION_BASE_URL = "http://example.com"
+
 MATERIAL_TYPE_CODES = ["Blood", "DNA", "Faeces", "ImmortalizedCellLine", "IsolatedPathogen", "Plasma", "RNA", "Saliva",
                        "Serum", "TissueFrozen", "TissueFFPE", "Urine", "Other"]
 

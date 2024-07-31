@@ -1,4 +1,6 @@
 """Module for handling SampleCollection operations"""
+from typing import Self
+
 import icd10
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
@@ -6,21 +8,23 @@ from fhirclient.models.extension import Extension
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.group import Group, GroupCharacteristic
 from fhirclient.models.identifier import Identifier
-from fhirclient.models.organization import Organization
+from fhirclient.models.meta import Meta
 from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
 from MIABIS_on_FHIR.gender import MoFGender
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
 from _constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, COLLECTION_SAMPLE_SOURCE, \
-    COLLECTION_DATASET_TYPE, COLLECTION_INCLUSION_CRITERIA, COLLECTION_USE_AND_ACCESS_CONDITIONS, MATERIAL_TYPE_CODES
+    COLLECTION_DATASET_TYPE, COLLECTION_INCLUSION_CRITERIA, COLLECTION_USE_AND_ACCESS_CONDITIONS, MATERIAL_TYPE_CODES, \
+    DEFINITION_BASE_URL
 
 
 class MoFCollection:
     """Sample Collection represents a set of samples with at least one common characteristic."""
 
     # TODO age range units
-    def __init__(self, identifier: str, name: str, acronym: str, managing_biobank_id: str,
+    def __init__(self, identifier: str, name: str, managing_biobank_id: str,
                  age_range_low: int,
                  age_range_high: int, genders: list[MoFGender], storage_temperatures: list[MoFStorageTemperature],
                  material_types: list[str], description: str = None, diagnoses: list[str] = None,
@@ -32,7 +36,6 @@ class MoFCollection:
         """
         :param identifier: Collection identifier same format as in the BBMRI-ERIC directory.
         :param name: Name of the collection.
-        :param acronym: Acronym of the collection.
         :param description: Description of the collection.
         :param managing_biobank_id: Identifier of the biobank managing the collection.
         :param age_range_low: Lower bound of the age range of the subjects in the collection.
@@ -55,8 +58,6 @@ class MoFCollection:
             raise TypeError("Collection identifier must be a string.")
         if not isinstance(name, str):
             raise TypeError("Collection name must be a string.")
-        if not isinstance(acronym, str):
-            raise TypeError("Collection acronym must be a string.")
         if description is not None and not isinstance(description, str):
             raise TypeError("Collection description must be a string.")
         if not isinstance(managing_biobank_id, str):
@@ -66,7 +67,7 @@ class MoFCollection:
         if not isinstance(age_range_high, int):
             raise TypeError("Age range high must be an integer.")
         for gender in genders:
-            if not isinstance(gender,MoFGender):
+            if not isinstance(gender, MoFGender):
                 raise TypeError("Gender in the list must be an instance of MoFGender.")
         for storage_temperature in storage_temperatures:
             if not isinstance(storage_temperature, MoFStorageTemperature):
@@ -77,7 +78,6 @@ class MoFCollection:
 
         self._identifier: str = identifier
         self._name: str = name
-        self._acronym: str = acronym
         self._description: str = description
         self._managing_biobank_id: str = managing_biobank_id
         self._age_range_low: int = age_range_low
@@ -144,16 +144,6 @@ class MoFCollection:
         if not isinstance(name, str):
             raise TypeError("Collection name must be a string.")
         self._name = name
-
-    @property
-    def acronym(self) -> str:
-        return self._acronym
-
-    @acronym.setter
-    def acronym(self, acronym: str):
-        if not isinstance(acronym, str):
-            raise TypeError("Collection acronym must be a string.")
-        self._acronym = acronym
 
     @property
     def description(self) -> str:
@@ -224,7 +214,7 @@ class MoFCollection:
     @material_types.setter
     def material_types(self, material_types: list[str]):
         for material_type in material_types:
-           if material_type not in MATERIAL_TYPE_CODES:
+            if material_type not in MATERIAL_TYPE_CODES:
                 raise ValueError(f"{material_type} is not a valid code for material type")
         self._material_types = material_types
 
@@ -303,10 +293,95 @@ class MoFCollection:
     def publications(self, publications: list[str]):
         self._publications = publications
 
+    @classmethod
+    def from_json(cls, collection_json: dict, managing_biobank_id) -> Self:
+        try:
+            identifier = collection_json["identifier"][0]["value"]
+            age_range_low = None
+            age_range_high = None
+            name = collection_json["name"]
+            genders = []
+            storage_temperatures = []
+            material_types = []
+            diagnoses = None
+            dataset_type = None
+            sample_source = None
+            sample_collection_setting = None
+            collection_design = None
+            use_and_access_conditions = None
+            number_of_subjects = None
+            inclusion_criteria = None
+            publications = None
+            description = None
+            for characteristic in collection_json["characteristic"]:
+                match characteristic["code"]["coding"][0]["code"]:
+                    case "Age":
+                        age_range_low = characteristic["valueRange"]["low"]["value"]
+                        age_range_high = characteristic["valueRange"]["high"]["value"]
+                    case "Sex":
+                        genders.append(
+                            MoFGender.from_string(characteristic["valueCodeableConcept"]["coding"][0]["code"]))
+                    case "StorageTemperature":
+                        storage_temperatures.append(MoFStorageTemperature(
+                            characteristic["valueCodeableConcept"]["coding"][0]["code"]))
+                    case "MaterialType":
+                        material_types.append(characteristic["valueCodeableConcept"]["coding"][0]["code"])
+                    case "Diagnosis":
+                        if diagnoses is None:
+                            diagnoses = []
+                        diagnoses.append(characteristic["valueCodeableConcept"]["coding"][0]["code"])
+                    case _:
+                        pass
+            if age_range_low is None or age_range_high is None:
+                raise IncorrectJsonFormatException("Age range is missing in the collection json.")
+
+            extension = collection_json.get("extension", [])
+            for ext in extension:
+                match ext["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
+                    case "dataset-type-extension":
+                        dataset_type = ext["valueCodeableConcept"]["coding"][0]["code"]
+                    case "sample-source-extension":
+                        sample_source = ext["valueCodeableConcept"]["coding"][0]["code"]
+                    case "sample-collection-setting-extension":
+                        sample_collection_setting = ext["valueCodeableConcept"]["coding"][0]["code"]
+                    case "collection-design-extension":
+                        if collection_design is None:
+                            collection_design = []
+                        collection_design.append(ext["valueCodeableConcept"]["coding"][0]["code"])
+                    case "use-and-access-conditions-extension":
+                        if use_and_access_conditions is None:
+                            use_and_access_conditions = []
+                        use_and_access_conditions.append(ext["valueCodeableConcept"]["coding"][0]["code"])
+                    case "number-of-subjects-extension":
+                        number_of_subjects = ext["valueInteger"]
+                    case "inclusion-criteria-extension":
+                        if inclusion_criteria is None:
+                            inclusion_criteria = []
+                        inclusion_criteria.append(ext["valueCodeableConcept"]["coding"][0]["code"])
+                    case "publication-extension":
+                        if publications is None:
+                            publications = []
+                        publications.append(ext["valueString"])
+                    case "description-extension":
+                        description = ext["valueString"]
+                    case _:
+                        pass
+            return cls(identifier, name, managing_biobank_id, age_range_low, age_range_high, genders,
+                       storage_temperatures, material_types, description, diagnoses, dataset_type, sample_source,
+                       sample_collection_setting, collection_design, use_and_access_conditions, number_of_subjects,
+                       inclusion_criteria, publications)
+
+
+
+        except KeyError:
+            raise IncorrectJsonFormatException("Error occured when parsing json into MoFCollection")
+
     def to_fhir(self, managing_organization_fhir_id: str) -> Group:
         """Return collection representation in FHIR
         :param managing_organization_fhir_id: FHIR Identifier of the managing organization"""
         fhir_group = Group()
+        fhir_group.meta = Meta()
+        fhir_group.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Collection"]
         fhir_group.identifier = [self.__create_fhir_identifier()]
         fhir_group.active = True
         fhir_group.actual = True
@@ -328,41 +403,43 @@ class MoFCollection:
         extensions = []
         if self.dataset_type is not None:
             extensions.append(self.__create_codeable_concept_extension(
-                "https://example.com/StructureDefinition/dataset-type-extension", "http://example.com/datasetTypeCS",
+                DEFINITION_BASE_URL + "/StructureDefinition/dataset-type-extension",
+                DEFINITION_BASE_URL + "/datasetTypeCS",
                 self.dataset_type))
         if self.sample_source is not None:
             extensions.append(self.__create_codeable_concept_extension(
-                "https://example.com/StructureDefinition/sample-source-extension", "http://example.com/sampleSourceCS",
+                DEFINITION_BASE_URL + "/StructureDefinition/sample-source-extension",
+                DEFINITION_BASE_URL + "/sampleSourceCS",
                 self.sample_source))
         if self.sample_collection_setting is not None:
             extensions.append(self.__create_codeable_concept_extension(
-                "https://example.com/StructureDefinition/sample-collection-setting-extension",
-                "http://example.com/sampleCollectionSettingCS", self.sample_collection_setting))
+                DEFINITION_BASE_URL + "/StructureDefinition/sample-collection-setting-extension",
+                DEFINITION_BASE_URL + "/sampleCollectionSettingCS", self.sample_collection_setting))
         if self.collection_design is not None:
             for design in self.collection_design:
                 extensions.append(self.__create_codeable_concept_extension(
-                    "https://example.com/StructureDefinition/collection-design-extension",
-                    "http://example.com/collectionDesignCS", design))
+                    DEFINITION_BASE_URL + "/StructureDefinition/collection-design-extension",
+                    DEFINITION_BASE_URL + "/collectionDesignCS", design))
         if self.use_and_access_conditions is not None:
             for condition in self.use_and_access_conditions:
                 extensions.append(self.__create_codeable_concept_extension(
-                    "https://example.com/StructureDefinition/use-and-access-conditions-extension",
-                    "http://example.com/useAndAccessConditionsCS", condition))
+                    DEFINITION_BASE_URL + "/StructureDefinition/use-and-access-conditions-extension",
+                    DEFINITION_BASE_URL + "/useAndAccessConditionsCS", condition))
         if self.number_of_subjects is not None:
             extensions.append(self.__create_integer_extension(
-                "https://example.com/StructureDefinition/number-of-subjects-extension", self.number_of_subjects))
+                DEFINITION_BASE_URL + "/StructureDefinition/number-of-subjects-extension", self.number_of_subjects))
         if self.inclusion_criteria is not None:
             for criteria in self.inclusion_criteria:
                 extensions.append(self.__create_codeable_concept_extension(
-                    "https://example.com/StructureDefinition/inclusion-criteria-extension",
-                    "http://example.com/inclusionCriteriaCS", criteria))
+                    DEFINITION_BASE_URL + "/StructureDefinition/inclusion-criteria-extension",
+                    DEFINITION_BASE_URL + "/inclusionCriteriaCS", criteria))
         if self.publications is not None:
             for publication in self.publications:
                 extensions.append(self.__create_string_extension(
-                    "https://example.com/StructureDefinition/publication-extension", publication))
+                    DEFINITION_BASE_URL + "/StructureDefinition/publication-extension", publication))
         if self.description is not None:
             extensions.append(self.__create_string_extension(
-                "https://example.com/StructureDefinition/description-extension", self.description))
+                DEFINITION_BASE_URL + "/StructureDefinition/description-extension", self.description))
         if extensions:
             fhir_group.extension = extensions
         return fhir_group
@@ -371,7 +448,7 @@ class MoFCollection:
         # TODO add age range units
         age_range_characteristic = GroupCharacteristic()
         age_range_characteristic.exclude = False
-        age_range_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS", "Age")
+        age_range_characteristic.code = self.__create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS", "Age")
         age_range_characteristic.valueRange = Range()
         age_range_characteristic.valueRange.low = Quantity()
         age_range_characteristic.valueRange.low.value = age_low
@@ -382,33 +459,34 @@ class MoFCollection:
     def __create_sex_characteristic(self, code: str) -> GroupCharacteristic:
         sex_characteristic = GroupCharacteristic()
         sex_characteristic.exclude = False
-        sex_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS", "Sex")
-        sex_characteristic.valueCodeableConcept = self.__create_codeable_concept("http://example.com/sexCS", code)
+        sex_characteristic.code = self.__create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS", "Sex")
+        sex_characteristic.valueCodeableConcept = self.__create_codeable_concept(DEFINITION_BASE_URL + "/sexCS", code)
         return sex_characteristic
 
     def __create_storage_temperature_characteristic(self,
                                                     storage_temperature: MoFStorageTemperature) -> GroupCharacteristic:
         storage_temperature_characteristic = GroupCharacteristic()
         storage_temperature_characteristic.exclude = False
-        storage_temperature_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS",
-                                                                                 "StorageTemperature")
+        storage_temperature_characteristic.code = self.__create_codeable_concept(
+            DEFINITION_BASE_URL + "/characteristicCS",
+            "StorageTemperature")
         storage_temperature_characteristic.valueCodeableConcept = self.__create_codeable_concept(
-            "http://example.com/storageTemperatureCS", storage_temperature.value)
+            DEFINITION_BASE_URL + "/storageTemperatureCS", storage_temperature.value)
         return storage_temperature_characteristic
 
     def __create_material_type_characteristic(self, material_type: str) -> GroupCharacteristic:
         material_type_characteristic = GroupCharacteristic()
         material_type_characteristic.exclude = False
-        material_type_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS",
+        material_type_characteristic.code = self.__create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS",
                                                                            "MaterialType")
         material_type_characteristic.valueCodeableConcept = self.__create_codeable_concept(
-            "http://example.com/materialTypeCS", material_type)
+            DEFINITION_BASE_URL + "/materialTypeCS", material_type)
         return material_type_characteristic
 
     def __create_diagnosis_characteristic(self, diagnosis: str) -> GroupCharacteristic:
         diagnosis_characteristic = GroupCharacteristic()
         diagnosis_characteristic.exclude = False
-        diagnosis_characteristic.code = self.__create_codeable_concept("http://example.com/characteristicCS",
+        diagnosis_characteristic.code = self.__create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS",
                                                                        "Diagnosis")
         diagnosis_characteristic.valueCodeableConcept = self.__create_codeable_concept("http://hl7.org/fhir/sid/icd-10",
                                                                                        diagnosis)
