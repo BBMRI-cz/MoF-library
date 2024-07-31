@@ -1,5 +1,6 @@
 import datetime
 import unittest
+import time
 
 import requests
 
@@ -30,6 +31,7 @@ class TestBlazeStore(unittest.TestCase):
         resp = requests.post(blaze_url + "/Patient", json=donor_json)
         self.assertEqual(resp.status_code, 201)
         get_response_json = requests.get(blaze_url + "/Patient" + f"?identifier={donor.identifier}").json()
+        time.sleep(0.1)
         # id = get_response_json["id"]
         # del_resp = requests.delete(blaze_url + "/Patient/" + id)
         # self.assertEqual(del_resp.status_code, 204)
@@ -37,12 +39,13 @@ class TestBlazeStore(unittest.TestCase):
     def test_upload_sample(self):
         get_response_json = requests.get(blaze_url + "/Patient?identifier=donorId").json()
         donor_fhir_id = get_response_json["entry"][0]["resource"]["id"]
-        sample = MoFSample("sampleId2", "donorId", "DNA", datetime.datetime(year=2022, month=10, day=20),
+        sample = MoFSample("sampleId", "donorId", "DNA", datetime.datetime(year=2022, month=10, day=20),
                            body_site="Arm", body_site_system="bsSystem",
                            storage_temperature=MoFStorageTemperature.TEMPERATURE_ROOM,use_restrictions="use_restric")
         sample_json = sample.to_fhir(donor_fhir_id).as_json()
         resp = requests.post(blaze_url + "/Specimen", json=sample_json)
         self.assertEqual(resp.status_code, 201)
+        time.sleep(0.1)
 
     def test_upload_full_condition_chain(self):
         sample_fhir_id = requests.get(blaze_url + "/Specimen" + f"?identifier=sampleId").json()["entry"][0]["resource"][
@@ -63,6 +66,7 @@ class TestBlazeStore(unittest.TestCase):
         condition_json = condition.to_fhir(donor_fhir_id, [diagnosis_report_fhir_id]).as_json()
         condition_response = requests.post(blaze_url + "/Condition", json=condition_json)
         self.assertEqual(condition_response.status_code, 201)
+        time.sleep(0.1)
 
     def test_upload_biobank(self):
         biobank = MoFBiobank("biobankId", "biobankName", "biobankAlias", "CZ", "Jozef", "Mrkva", "jozefmrkva@email.com",
@@ -71,11 +75,12 @@ class TestBlazeStore(unittest.TestCase):
         biobank_json = biobank.to_fhir().as_json()
         resp = requests.post(blaze_url + "/Organization", json=biobank_json)
         self.assertEqual(resp.status_code, 201)
+        time.sleep(0.1)
 
     def test_upload_collection(self):
         biobank_fhir_id = \
             requests.get(blaze_url + "/Organization" + f"?identifier=biobankId").json()["entry"][0]["resource"]["id"]
-        collection = MoFCollection("collectionId", "collectionName", "collectionAlias", "biobankId", 0, 0,
+        collection = MoFCollection("collectionId", "collectionName", "biobankId", 0, 0,
                                    [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_LN], ["DNA"], diagnoses=["C51"],
                                    dataset_type="Other", sample_source="Human", sample_collection_setting="Other",
                                    collection_design=["Other"], use_and_access_conditions=["CommercialUse"],
@@ -83,6 +88,7 @@ class TestBlazeStore(unittest.TestCase):
         collection_json = collection.to_fhir(biobank_fhir_id).as_json()
         resp = requests.post(blaze_url + "/Group", json=collection_json)
         self.assertEqual(resp.status_code, 201)
+        time.sleep(0.1)
 
     def test_upload_sample_list(self):
         collection_fhir_id = requests.get(blaze_url + "/Group?identifier=collectionId").json()["entry"][0]["resource"][
@@ -98,6 +104,7 @@ class TestBlazeStore(unittest.TestCase):
         network_json = network.to_fhir().as_json()
         resp = requests.post(blaze_url + "/Group", json=network_json)
         self.assertEqual(resp.status_code, 201)
+        time.sleep(0.1)
 
     def test_network_members(self):
         network_fhir_id = requests.get(blaze_url + "/Group?identifier=networkId").json()["entry"][0]["resource"]["id"]
