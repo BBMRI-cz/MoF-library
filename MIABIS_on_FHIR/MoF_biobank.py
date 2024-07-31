@@ -1,12 +1,18 @@
+from typing import Self
+
 from fhirclient.models.address import Address
+from fhirclient.models.codeableconcept import CodeableConcept
+from fhirclient.models.coding import Coding
 from fhirclient.models.contactpoint import ContactPoint
 from fhirclient.models.extension import Extension
 from fhirclient.models.humanname import HumanName
 from fhirclient.models.identifier import Identifier
+from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization, OrganizationContact
 
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from _constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
-    BIOBANK_ORGANISATIONAL_CAPABILITIES
+    BIOBANK_ORGANISATIONAL_CAPABILITIES, DEFINITION_BASE_URL
 
 
 class MoFBiobank():
@@ -183,9 +189,43 @@ class MoFBiobank():
     def quality__management_standards(self, quality__management_standards: list[str]):
         self._quality__management_standards = quality__management_standards
 
-    def to_fhir(self):
+    @classmethod
+    def from_json(cls, biobank_json: dict) -> Self:
+        try:
+            identifier = biobank_json["identifier"][0]["value"]
+            name = biobank_json["name"]
+            alias = biobank_json["alias"]
+            country = biobank_json["address"][0]["country"]
+            contact_name = biobank_json["contact"][0]["name"]["given"][0]
+            contact_surname = biobank_json["contact"][0]["name"]["family"]
+            contact_email = biobank_json["contact"][0]["telecom"][0]["value"]
+            infrastructural_capabilities = None
+            organisational_capabilities = None
+            bioprocessing = None
+            quality_standards = None
+            if biobank_json.get("extension") is not None:
+                for extension in biobank_json["extension"]:
+                    match extension["url"].lstrip(DEFINITION_BASE_URL + "/"):
+                        case "infrastructural-capabilities":
+                            infrastructural_capabilities = extension["valueCodeableConcept"]["coding"][0]["code"]
+                        case "organisational-capabilities":
+                            organisational_capabilities = extension["valueCodeableConcept"]["coding"][0]["code"]
+                        case "bioprocessing-and-analysis-capabilities":
+                            bioprocessing = extension["valueCodeableConcept"]["coding"][0]["code"]
+                        case "quality-management-standards":
+                            quality_standards = extension["valueString"]
+                        case _:
+                            pass
+            return cls(identifier, name, alias, country, contact_name, contact_surname, contact_email,
+                       infrastructural_capabilities, organisational_capabilities, bioprocessing, quality_standards)
+        except KeyError:
+            raise IncorrectJsonFormatException("Error occurred when parsing json into MoFBiobank")
+
+    def to_fhir(self) -> Organization:
         """Return biobank representation in FHIR"""
         fhir_organization = Organization()
+        fhir_organization.meta = Meta()
+        fhir_organization.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Biobank"]
         fhir_organization.identifier = [self.__create_fhir_identifier()]
         fhir_organization.name = self.name
         fhir_organization.alias = [self.alias]
@@ -194,25 +234,44 @@ class MoFBiobank():
         extensions = []
         if self.infrastructural_capabilities is not None:
             for capability in self.infrastructural_capabilities:
-                extensions.append(self._create_extension("http://example.com/infrastructural-capabilities", capability))
+                extensions.append(
+                    self._create_codeable_concept_extension(DEFINITION_BASE_URL + "/infrastructural-capabilities",
+                                                            DEFINITION_BASE_URL + "/infrastructural-capabilities-vs",
+                                                            capability))
         if self.organisational_capabilities is not None:
             for capability in self.organisational_capabilities:
-                extensions.append(self._create_extension("http://example.com/organisational-capabilities", capability))
+                extensions.append(
+                    self._create_codeable_concept_extension(DEFINITION_BASE_URL + "/organisational-capabilities",
+                                                            DEFINITION_BASE_URL + "/organisational-capabilities-vs",
+                                                            capability))
         if self.bioprocessing_and_analysis_capabilities is not None:
             for capability in self.bioprocessing_and_analysis_capabilities:
                 extensions.append(
-                    self._create_extension("http://example.com/bioprocessing-and-analysis-capabilities", capability))
+                    self._create_codeable_concept_extension(
+                        DEFINITION_BASE_URL + "/bioprocessing-and-analysis-capabilities",
+                        DEFINITION_BASE_URL + "/bioprocessing-and-analysis-capabilities-vs", capability))
         if self.quality__management_standards is not None:
             for standard in self.quality__management_standards:
-                extensions.append(self._create_extension("http://example.com/quality-management-standards", standard))
+                extensions.append(
+                    self._create_string_extension(DEFINITION_BASE_URL + "/quality-management-standards", standard))
         if extensions:
             fhir_organization.extension = extensions
         return fhir_organization
 
-    def _create_extension(self, url: str, value: str) -> Extension:
+    @staticmethod
+    def _create_string_extension(extension_url: str, value: str):
         extension = Extension()
-        extension.url = url
+        extension.url = extension_url
         extension.valueString = value
+
+    @staticmethod
+    def _create_codeable_concept_extension(extension_url: str, codeable_concept_url, value: str) -> Extension:
+        extension = Extension()
+        extension.url = extension_url
+        extension.valueCodeableConcept = CodeableConcept()
+        extension.valueCodeableConcept.coding = [Coding()]
+        extension.valueCodeableConcept.coding[0].system = codeable_concept_url
+        extension.valueCodeableConcept.coding[0].code = value
         return extension
 
     def __create_fhir_identifier(self) -> Identifier:
