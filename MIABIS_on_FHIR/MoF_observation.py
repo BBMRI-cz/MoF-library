@@ -4,9 +4,11 @@ import icd10
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.identifier import Identifier
+from fhirclient.models.meta import Meta
 from fhirclient.models.observation import Observation
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from _constants import DEFINITION_BASE_URL
 
 
 class MoFObservation:
@@ -60,6 +62,8 @@ class MoFObservation:
         :return: Observation
         """
         observation = Observation()
+        observation.meta = Meta()
+        observation.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Observation"]
         observation.identifier = self.__create_fhir_identifier(self._sample_identifier)
         observation.status = "final"
         observation.code = self.__create_icd_10_code()

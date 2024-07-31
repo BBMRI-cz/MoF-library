@@ -3,7 +3,9 @@ from fhirclient.models.coding import Coding
 from fhirclient.models.extension import Extension
 from fhirclient.models.group import Group
 from fhirclient.models.identifier import Identifier
-from _constants import NETWORK_COMMON_COLLAB_TOPICS
+from fhirclient.models.meta import Meta
+
+from _constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
 
 
 class MoFNetwork():
@@ -59,6 +61,8 @@ class MoFNetwork():
 
     def to_fhir(self) -> Group:
         network = Group()
+        network.meta = Meta()
+        network.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Network"]
         network.identifier = [self.__create_identifier()]
         network.name = self._name
         network.active = True
@@ -67,13 +71,13 @@ class MoFNetwork():
         if self._common_collaboration_topics is not None:
             extensions = []
             for topic in self._common_collaboration_topics:
-                extensions.append(self.__create_extension("http://example.com/common-collaboration-topics", topic))
+                extensions.append(self.__create_extension(DEFINITION_BASE_URL + "/common-collaboration-topics", topic))
             network.extension = extensions
         return network
 
     def __create_identifier(self):
         identifier = Identifier()
-        identifier.system = "http://example.com/network"
+        identifier.system = DEFINITION_BASE_URL + "/network"
         identifier.value = self._identifier
         return identifier
 
@@ -83,5 +87,5 @@ class MoFNetwork():
         extension.valueCodeableConcept = CodeableConcept()
         extension.valueCodeableConcept.coding = [Coding()]
         extension.valueCodeableConcept.coding[0].code = value
-        extension.valueCodeableConcept.coding[0].system = "http://example.com/common-collaboration-topics-vs"
+        extension.valueCodeableConcept.coding[0].system = DEFINITION_BASE_URL + "/common-collaboration-topics-vs"
         return extension

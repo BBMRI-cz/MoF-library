@@ -5,8 +5,10 @@ from fhirclient.models.coding import Coding
 from fhirclient.models.diagnosticreport import DiagnosticReport
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.identifier import Identifier
+from fhirclient.models.meta import Meta
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from _constants import DEFINITION_BASE_URL
 
 
 class MoFDiagnosisReport:
@@ -61,6 +63,8 @@ class MoFDiagnosisReport:
         :return: DiagnosticReport
         """
         diagnosis_report = DiagnosticReport()
+        diagnosis_report.meta = Meta()
+        diagnosis_report.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/DiagnosisReport"]
         diagnosis_report.identifier = [self.__create_identifier()]
         diagnosis_report.specimen = [self.__create_specimen_reference(sample_fhir_id)]
         diagnosis_report.status = "final"
@@ -74,7 +78,7 @@ class MoFDiagnosisReport:
         :return: Identifier
         """
         identifier = Identifier()
-        identifier.system = "http://example.com/diagnosisReport"
+        identifier.system = DEFINITION_BASE_URL + "/diagnosisReport"
         identifier.value = self.sample_identifier
         return identifier
 
@@ -83,7 +87,7 @@ class MoFDiagnosisReport:
         code = CodeableConcept()
         code.coding = [Coding()]
         code.coding[0].code = multiple_diagnosis.__str__()
-        code.coding[0].system = "http://example.com/multipleDiagnosis"
+        code.coding[0].system = DEFINITION_BASE_URL + "/multipleDiagnosis"
         return code
 
     @staticmethod

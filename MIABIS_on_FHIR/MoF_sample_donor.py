@@ -11,7 +11,7 @@ from fhirclient.models.patient import Patient
 
 from MIABIS_on_FHIR.gender import MoFGender
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from _constants import DONOR_DATASET_TYPE
+from _constants import DONOR_DATASET_TYPE, DEFINITION_BASE_URL
 
 
 class MoFSampleDonor:
@@ -109,7 +109,7 @@ class MoFSampleDonor:
         """Return sample donor representation in FHIR"""
         fhir_patient = Patient()
         fhir_patient.meta = Meta()
-        fhir_patient.meta.profile = ["https://fhir.bbmri.de/StructureDefinition/Patient"]
+        fhir_patient.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Patient"]
         fhir_patient.identifier = self.__create_fhir_identifier()
         extensions: list[Extension] = []
         if self.gender is not None:
@@ -131,7 +131,7 @@ class MoFSampleDonor:
 
     def __create_dataset_extension(self):
         fhir_dataset: Extension = Extension()
-        fhir_dataset.url = "https://example.org/StructureDefinition/datasetType"
+        fhir_dataset.url = DEFINITION_BASE_URL + "/StructureDefinition/datasetType"
         fhir_dataset.valueCodeableConcept = CodeableConcept()
         fhir_dataset.valueCodeableConcept.coding = [Coding()]
         fhir_dataset.valueCodeableConcept.coding[0].code = self.dataset_type

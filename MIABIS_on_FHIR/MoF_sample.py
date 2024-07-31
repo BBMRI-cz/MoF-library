@@ -13,7 +13,7 @@ from fhirclient.models.specimen import Specimen, SpecimenCollection
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
-from _constants import MATERIAL_TYPE_CODES
+from _constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
 
 
 class MoFSample:
@@ -188,7 +188,7 @@ class MoFSample:
         specimen = Specimen()
         specimen.meta = Meta()
         # TODO add url for the structure definition
-        specimen.meta.profile = ["https://example.org/StructureDefinition/Specimen"]
+        specimen.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Specimen"]
         specimen.identifier = self.__create_fhir_identifier()
         specimen.subject = FHIRReference()
         specimen.subject.reference = f"Patient/{subject_fhir_id}"
@@ -221,7 +221,7 @@ class MoFSample:
         specimen_type = CodeableConcept()
         specimen_type.coding = [Coding()]
         specimen_type.coding[0].code = self._material_type
-        specimen_type.coding[0].system = "http://example.org/ValueSet/miabis-material-type-VS"
+        specimen_type.coding[0].system = DEFINITION_BASE_URL + "/ValueSet/miabis-material-type-VS"
         return specimen_type
 
     def __create_body_site(self) -> CodeableConcept:
@@ -236,7 +236,7 @@ class MoFSample:
     def __create_storage_temperature_extension(self):
         """Create storage temperature extension."""
         storage_temperature_extension: Extension = Extension()
-        storage_temperature_extension.url = "https://example.org/StructureDefinition/StorageTemperature"
+        storage_temperature_extension.url = DEFINITION_BASE_URL + "/StructureDefinition/StorageTemperature"
         storage_temperature_extension.valueCodeableConcept = CodeableConcept()
         storage_temperature_extension.valueCodeableConcept.coding = [Coding()]
         storage_temperature_extension.valueCodeableConcept.coding[0].code = self.storage_temperature.value

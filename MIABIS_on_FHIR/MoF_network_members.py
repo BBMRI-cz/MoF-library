@@ -3,6 +3,9 @@ from datetime import datetime
 from fhirclient.models.fhirdate import FHIRDate
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.list import List, ListEntry
+from fhirclient.models.meta import Meta
+
+from _constants import DEFINITION_BASE_URL
 
 
 class MoFNetworkMembers():
@@ -68,6 +71,8 @@ class MoFNetworkMembers():
         :return: List object representing the members of the network
         """
         network_members = List()
+        network_members.meta = Meta()
+        network_members.meta = [DEFINITION_BASE_URL + "/StructureDefinition/NetworkMembers"]
         network_members.title = self._title
         network_members.status = "current"
         network_members.mode = "working"

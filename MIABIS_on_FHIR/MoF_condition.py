@@ -5,6 +5,8 @@ from fhirclient.models.coding import Coding
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 
+from _constants import DEFINITION_BASE_URL
+
 
 class MoFCondition:
     """Class representing a patients medical condition as defined by the MIABIS on FHIR profile."""
@@ -49,7 +51,7 @@ class MoFCondition:
         @diagnosis_report_id: FHIR Resource ID of the diagnosis report."""
         condition = fhir_condition.Condition()
         condition.meta = Meta()
-        condition.meta.profile = ["https://example.org/StructureDefinition/Condition"]
+        condition.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Condition"]
         if self.icd_10_code is not None:
             condition.code = self.__create_icd_10_code()
         condition.subject = FHIRReference()

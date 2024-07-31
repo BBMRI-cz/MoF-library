@@ -1,5 +1,8 @@
 from fhirclient.models import list as fhir_list
 from fhirclient.models.fhirreference import FHIRReference
+from fhirclient.models.meta import Meta
+
+from _constants import DEFINITION_BASE_URL
 
 
 class MoFSampleList:
@@ -40,6 +43,8 @@ class MoFSampleList:
         """
         # TODO entry.deleted maybe not always false ? when deleting samples from storage, it could be used as a flag
         specimen_list = fhir_list.List()
+        specimen_list.meta = Meta()
+        specimen_list.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/SampleList"]
         specimen_list.title = self._name
         specimen_list.status = "current"
         specimen_list.mode = "working"
