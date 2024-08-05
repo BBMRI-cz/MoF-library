@@ -194,26 +194,26 @@ class MoFBiobank():
         try:
             identifier = biobank_json["identifier"][0]["value"]
             name = biobank_json["name"]
-            alias = biobank_json["alias"]
+            alias = biobank_json["alias"][0]
             country = biobank_json["address"][0]["country"]
             contact_name = biobank_json["contact"][0]["name"]["given"][0]
             contact_surname = biobank_json["contact"][0]["name"]["family"]
             contact_email = biobank_json["contact"][0]["telecom"][0]["value"]
-            infrastructural_capabilities = None
-            organisational_capabilities = None
-            bioprocessing = None
-            quality_standards = None
+            infrastructural_capabilities = []
+            organisational_capabilities = []
+            bioprocessing = []
+            quality_standards = []
             if biobank_json.get("extension") is not None:
                 for extension in biobank_json["extension"]:
-                    match extension["url"].lstrip(DEFINITION_BASE_URL + "/"):
+                    match extension["url"].replace(f"{DEFINITION_BASE_URL}/", "", 1):
                         case "infrastructural-capabilities":
-                            infrastructural_capabilities = extension["valueCodeableConcept"]["coding"][0]["code"]
+                            infrastructural_capabilities.append(extension["valueCodeableConcept"]["coding"][0]["code"])
                         case "organisational-capabilities":
-                            organisational_capabilities = extension["valueCodeableConcept"]["coding"][0]["code"]
+                            organisational_capabilities.append(extension["valueCodeableConcept"]["coding"][0]["code"])
                         case "bioprocessing-and-analysis-capabilities":
-                            bioprocessing = extension["valueCodeableConcept"]["coding"][0]["code"]
+                            bioprocessing.append(extension["valueCodeableConcept"]["coding"][0]["code"])
                         case "quality-management-standards":
-                            quality_standards = extension["valueString"]
+                            quality_standards.append(extension["valueString"])
                         case _:
                             pass
             return cls(identifier, name, alias, country, contact_name, contact_surname, contact_email,

@@ -10,7 +10,8 @@ from _constants import DEFINITION_BASE_URL
 
 class MoFNetworkMembers():
     """Class representing actual members of a network."""
-    def __init__(self,network_id: str, title: str, members: list[str]):
+
+    def __init__(self, network_id: str, title: str, members: list[str]):
         """
         :param title: name of network this members belongs to
         :param network_id: network id this members belongs to
@@ -63,7 +64,8 @@ class MoFNetworkMembers():
                 raise TypeError("Members must be a list of strings")
         self._members = members
 
-    def to_fhir(self, network_fhir_id: str, member_collection_fhir_ids: list[str], member_biobanks_fhir_ids: list[str]) -> List:
+    def to_fhir(self, network_fhir_id: str, member_collection_fhir_ids: list[str],
+                member_biobanks_fhir_ids: list[str]) -> List:
         """
         :param network_fhir_id: FHIR id of the network this members belongs to
         :param member_collection_fhir_ids: FHIR ids of all the collections that are part of this network
@@ -72,7 +74,7 @@ class MoFNetworkMembers():
         """
         network_members = List()
         network_members.meta = Meta()
-        network_members.meta = [DEFINITION_BASE_URL + "/StructureDefinition/NetworkMembers"]
+        network_members.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/NetworkMembers"]
         network_members.title = self._title
         network_members.status = "current"
         network_members.mode = "working"
