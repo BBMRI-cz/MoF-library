@@ -1,3 +1,5 @@
+from typing import Self
+
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.extension import Extension
@@ -5,6 +7,7 @@ from fhirclient.models.group import Group
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from _constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
 
 
@@ -58,6 +61,24 @@ class MoFNetwork():
             if topic not in NETWORK_COMMON_COLLAB_TOPICS:
                 raise ValueError(f"{topic} is not a valid code for common collaboration")
         self._common_collaboration_topics = common_collaboration_topics
+
+
+    @classmethod
+    def from_json(cls, network_json: dict) -> Self:
+        try:
+            identifier = network_json["identifier"][0]["value"]
+            name = network_json["name"]
+            common_collaboration_topics = None
+            if "extension" in network_json:
+                common_collaboration_topics = []
+                for extension in network_json["extension"]:
+                    if extension["url"] == DEFINITION_BASE_URL + "/common-collaboration-topics":
+                        common_collaboration_topics.append(extension["valueCodeableConcept"]["coding"][0]["code"])
+            return cls(identifier, name, common_collaboration_topics)
+        except KeyError:
+            raise IncorrectJsonFormatException("Error occured when parsing json into the MoFNetwork")
+
+
 
     def to_fhir(self) -> Group:
         network = Group()

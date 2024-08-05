@@ -4,6 +4,13 @@ from MIABIS_on_FHIR.MoF_network import MoFNetwork
 
 
 class TestNetwork(unittest.TestCase):
+    network_json = {'meta': {'versionId': '3', 'lastUpdated': '2024-08-05T12:15:31.966Z',
+                             'profile': ['http://example.com/StructureDefinition/Network']}, 'name': 'networkName',
+                    'type': 'person', 'resourceType': 'Group', 'extension': [
+            {'url': 'http://example.com/common-collaboration-topics', 'valueCodeableConcept': {
+                'coding': [{'system': 'http://example.com/common-collaboration-topics-vs', 'code': 'SOP'}]}}],
+                    'active': True, 'id': 'DEJCO5LHXME7GMYA',
+                    'identifier': [{'system': 'http://example.com/network', 'value': 'networkId'}], 'actual': True}
 
     def test_network_init(self):
         network = MoFNetwork("networkId", "networkName", ["Charter"])
@@ -66,3 +73,9 @@ class TestNetwork(unittest.TestCase):
         self.assertEqual("networkName", network_fhir.name)
         self.assertEqual("Charter", network_fhir.extension[0].valueCodeableConcept.coding[0].code)
 
+    def test_network_from_json(self):
+        network = MoFNetwork.from_json(self.network_json)
+        self.assertIsInstance(network, MoFNetwork)
+        self.assertEqual("networkId", network.identifier)
+        self.assertEqual("networkName", network.name)
+        self.assertEqual(["SOP"], network.common_collaboration_topics)
