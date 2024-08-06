@@ -9,7 +9,7 @@ from fhirclient.models.fhirdate import FHIRDate
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
-from fhirclient.models.specimen import Specimen, SpecimenCollection
+from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
@@ -170,8 +170,8 @@ class MoFSample:
                 if collection.get("bodySite") is not None:
                     body_site = collection["bodySite"]["coding"][0]["code"]
                     body_site_system = collection["bodySite"]["coding"][0]["system"]
-            if sample_json.get("extension") is not None:
-                storage_temperature_string = sample_json["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
+            if sample_json.get("processing") is not None:
+                storage_temperature_string = sample_json["processing"][0]["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
                 storage_temperature = MoFStorageTemperature(storage_temperature_string)
             if sample_json.get("note") is not None:
                 use_restrictions = sample_json["note"][0]["text"]
@@ -202,12 +202,12 @@ class MoFSample:
             if self.body_site is not None:
                 specimen.collection.bodySite = self.__create_body_site()
         if self.storage_temperature is not None:
+            specimen.processing = [SpecimenProcessing()]
+            specimen.processing[0].extension = [self.__create_storage_temperature_extension()]
             extensions.append(self.__create_storage_temperature_extension())
         if self.use_restrictions is not None:
             specimen.note = [Annotation()]
             specimen.note[0].text = self.use_restrictions
-        if extensions:
-            specimen.extension = extensions
         return specimen
 
     def __create_fhir_identifier(self):
