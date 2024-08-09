@@ -14,6 +14,13 @@ class MoFGender(Enum):
         """List all possible gender values"""
         return list(map(lambda c: c.name, cls))
 
+    @classmethod
+    def from_string(cls, value: str):
+        try:
+            return cls[value.upper()]
+        except KeyError:
+            raise ValueError(f"'{value}' is not a valid gender")
+
 
 def get_gender_from_abbreviation(gender: str) -> MoFGender:
     match gender.upper():

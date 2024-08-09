@@ -4,6 +4,12 @@ from MIABIS_on_FHIR.MoF_diagnosis_report import MoFDiagnosisReport
 
 
 class TestDiagnosisReport(unittest.TestCase):
+    diagnosis_report_json = {'meta': {'versionId': '4', 'lastUpdated': '2024-07-30T07:48:07.463Z'},
+                             'specimen': [{'reference': 'Specimen/DEICTQWCFXQ47G23'}],
+                             'resourceType': 'DiagnosticReport', 'status': 'final',
+                             'result': [{'reference': 'Observation/DEICTRLPII7QE2LD'}], 'id': 'DEICTROJWFN3AWKG',
+                             'code': {'coding': [{'system': 'http://example.com/multipleDiagnosis', 'code': 'False'}]},
+                             'identifier': [{'system': 'http://example.com/diagnosisReport', 'value': 'sampleId'}]}
 
     def test_diagnosis_report_init(self):
         diagnosis_report = MoFDiagnosisReport("sampleId", ["obsId"])
@@ -58,3 +64,7 @@ class TestDiagnosisReport(unittest.TestCase):
         self.assertEqual("Observation/obsFhirId2", diagnosis_report_fhir.result[1].reference)
         self.assertEqual("final", diagnosis_report_fhir.status)
 
+    def test_diagnosis_report_from_json(self):
+        diagnosis_report = MoFDiagnosisReport.from_json(self.diagnosis_report_json, ["obsId", "obsId2"])
+        self.assertEqual("sampleId", diagnosis_report.sample_identifier)
+        self.assertEqual(["obsId", "obsId2"], diagnosis_report.observations_identifiers)

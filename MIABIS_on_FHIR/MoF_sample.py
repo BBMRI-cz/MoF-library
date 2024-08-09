@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Self
 
 from fhirclient.models.annotation import Annotation
 from fhirclient.models.codeableconcept import CodeableConcept
@@ -8,10 +9,11 @@ from fhirclient.models.fhirdate import FHIRDate
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
-from fhirclient.models.specimen import Specimen, SpecimenCollection
+from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
-from _constants import MATERIAL_TYPE_CODES
+from _constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
 
 
 class MoFSample:
@@ -143,18 +145,52 @@ class MoFSample:
             raise TypeError("Use restrictions must be a string")
         self._use_restrictions = use_restrictions
 
-    def to_fhir(self, subject_id: str):
+    @classmethod
+    def from_json(cls, sample_json: dict, donor_identifier: str) -> Self:
+        """
+        Build MoFSample from FHIR json representation
+        :param sample_json: json the sample should be build from
+        :param donor_identifier: organizational identifier of the donor (not the FHIR id!)
+        :return:
+        """
+        try:
+            identifier = sample_json["identifier"][0]["value"]
+            material_type = sample_json["type"]["coding"][0]["code"]
+            collected_datetime = None
+            body_site = None
+            body_site_system = None
+            storage_temperature = None
+            use_restrictions = None
+            collection = sample_json.get("collection")
+            if collection is not None:
+                if collection.get("collectedDateTime") is not None:
+                    datetime_string = sample_json["collection"]["collectedDateTime"]
+                    collected_datetime = datetime.strptime(datetime_string, "%Y-%m-%d")
+                if collection.get("bodySite") is not None:
+                    body_site = collection["bodySite"]["coding"][0]["code"]
+                    body_site_system = collection["bodySite"]["coding"][0]["system"]
+            if sample_json.get("processing") is not None:
+                storage_temperature_string = sample_json["processing"][0]["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
+                storage_temperature = MoFStorageTemperature(storage_temperature_string)
+            if sample_json.get("note") is not None:
+                use_restrictions = sample_json["note"][0]["text"]
+            return cls(identifier, donor_identifier, material_type, collected_datetime, body_site, body_site_system,
+                       storage_temperature, use_restrictions)
+        except KeyError:
+            raise IncorrectJsonFormatException("Error occurred when parsing json into the MoFSample")
+
+    def to_fhir(self, subject_fhir_id: str):
         """return sample representation in FHIR format
         :param material_type_map: Mapping of material types to FHIR codes
-        :param subject_id: FHIR ID of the subject to which the sample belongs"""
+        :param subject_fhir_id: FHIR ID of the subject to which the sample belongs"""
 
         specimen = Specimen()
         specimen.meta = Meta()
         # TODO add url for the structure definition
-        specimen.meta.profile = ["https://example.org/StructureDefinition/Specimen"]
+        specimen.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Specimen"]
         specimen.identifier = self.__create_fhir_identifier()
         specimen.subject = FHIRReference()
-        specimen.subject.reference = f"Patient/{subject_id}"
+        specimen.subject.reference = f"Patient/{subject_fhir_id}"
         extensions: list[Extension] = []
         specimen.type = self.__create_specimen_type()
         if self.collected_datetime is not None or self.body_site is not None:
@@ -165,12 +201,12 @@ class MoFSample:
             if self.body_site is not None:
                 specimen.collection.bodySite = self.__create_body_site()
         if self.storage_temperature is not None:
+            specimen.processing = [SpecimenProcessing()]
+            specimen.processing[0].extension = [self.__create_storage_temperature_extension()]
             extensions.append(self.__create_storage_temperature_extension())
         if self.use_restrictions is not None:
             specimen.note = [Annotation()]
             specimen.note[0].text = self.use_restrictions
-        if extensions:
-            specimen.extension = extensions
         return specimen
 
     def __create_fhir_identifier(self):
@@ -184,7 +220,7 @@ class MoFSample:
         specimen_type = CodeableConcept()
         specimen_type.coding = [Coding()]
         specimen_type.coding[0].code = self._material_type
-        specimen_type.coding[0].system = "http://example.org/ValueSet/miabis-material-type-VS"
+        specimen_type.coding[0].system = DEFINITION_BASE_URL + "/ValueSet/miabis-material-type-VS"
         return specimen_type
 
     def __create_body_site(self) -> CodeableConcept:
@@ -199,7 +235,7 @@ class MoFSample:
     def __create_storage_temperature_extension(self):
         """Create storage temperature extension."""
         storage_temperature_extension: Extension = Extension()
-        storage_temperature_extension.url = "https://example.org/StructureDefinition/StorageTemperature"
+        storage_temperature_extension.url = DEFINITION_BASE_URL + "/StructureDefinition/StorageTemperature"
         storage_temperature_extension.valueCodeableConcept = CodeableConcept()
         storage_temperature_extension.valueCodeableConcept.coding = [Coding()]
         storage_temperature_extension.valueCodeableConcept.coding[0].code = self.storage_temperature.value

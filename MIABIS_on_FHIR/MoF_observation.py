@@ -1,8 +1,14 @@
+from typing import Self
+
 import icd10
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.identifier import Identifier
+from fhirclient.models.meta import Meta
 from fhirclient.models.observation import Observation
+
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from _constants import DEFINITION_BASE_URL
 
 
 class MoFObservation:
@@ -41,18 +47,35 @@ class MoFObservation:
             raise TypeError("Sample identifier must be a string.")
         self._sample_identifier = donor_identifier
 
+    @classmethod
+    def from_json(cls, observation_json: dict) -> Self:
+        try:
+            icd10_code = observation_json["code"]["coding"][0]["code"]
+            identifier = observation_json["identifier"][0]["value"]
+            return cls(icd10_code, identifier)
+        except KeyError:
+            raise IncorrectJsonFormatException("Error occured when parsing json into the MoFObservation")
+
     def to_fhir(self) -> Observation:
         """Converts the observation to a FHIR object.
         :param sample_fhir_id: FHIR identifier of the sample (often given by the server).
         :return: Observation
         """
         observation = Observation()
+        observation.meta = Meta()
+        observation.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Observation"]
         observation.identifier = self.__create_fhir_identifier(self._sample_identifier)
         observation.status = "final"
-        observation.code = self.__create_icd_10_code()
-        # observation.valueCodeableConcept = self.__create_icd_10_code()
+        observation.code = self.__create_sample_diangosis_code()
+        observation.valueCodeableConcept = self.__create_icd_10_code()
         return observation
 
+    def __create_sample_diangosis_code(self):
+        code = CodeableConcept()
+        code.coding = [Coding()]
+        code.coding[0].code = "sample_diagnosis"
+        code.coding[0].system = DEFINITION_BASE_URL + "/observationName"
+        return code
     def __create_icd_10_code(self):
         code = CodeableConcept()
         code.coding = [Coding()]

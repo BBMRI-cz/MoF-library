@@ -5,6 +5,8 @@ from fhirclient.models.coding import Coding
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 
+from _constants import DEFINITION_BASE_URL
+
 
 class MoFCondition:
     """Class representing a patients medical condition as defined by the MIABIS on FHIR profile."""
@@ -15,7 +17,6 @@ class MoFCondition:
         THIS DIAGNOSIS REPRESENT CONDITION OF PATIENT THAT BIOBANK DOES NOT HAVE SPECIMEN FOR.
         It could be for example diabetes, which was not diagnosed by the biobank.
         :param patient_identifier: patient identifier given by the organization.
-        :param diagnosis_report_fhir_id: diagnosis report identifier given by the FHIR storage.
         """
         if icd_10_code is not None and not icd10.exists(icd_10_code):
             raise ValueError(f"The provided string {icd_10_code} is not a valid ICD-10 code.")
@@ -49,7 +50,7 @@ class MoFCondition:
         @diagnosis_report_id: FHIR Resource ID of the diagnosis report."""
         condition = fhir_condition.Condition()
         condition.meta = Meta()
-        condition.meta.profile = ["https://example.org/StructureDefinition/Condition"]
+        condition.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Condition"]
         if self.icd_10_code is not None:
             condition.code = self.__create_icd_10_code()
         condition.subject = FHIRReference()

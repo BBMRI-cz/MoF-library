@@ -6,6 +6,23 @@ from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
 
 
 class TestSample(unittest.TestCase):
+    sample_json = {'meta': {'versionId': '2', 'lastUpdated': '2024-08-06T08:14:08.062Z',
+                            'profile': ['http://example.com/StructureDefinition/Specimen']},
+                   'processing': [{
+                       'extension': [
+                           {
+                               'url': 'http://example.com/StructureDefinition/StorageTemperature',
+                               'valueCodeableConcept': {
+                                   'coding': [
+                                       {
+                                           'code': 'temperatureRoom'}]}}]}],
+                   'type': {
+                       'coding': [{'system': 'http://example.com/ValueSet/miabis-material-type-VS', 'code': 'DNA'}]},
+                   'resourceType': 'Specimen', 'note': [{'text': 'use_restric'}], 'id': 'DEJGYCYLDDUJKNVW',
+                   'identifier': [{'value': 'sampleId'}], 'collection': {'collectedDateTime': '2022-10-20',
+                                                                         'bodySite': {'coding': [
+                                                                             {'system': 'bsSystem', 'code': 'Arm'}]}},
+                   'subject': {'reference': 'Patient/DEJGYCPFDABXEMWV'}}
 
     def test_sample_necessary_args(self):
         sample = MoFSample("sampleId", "donorId", "Blood")
@@ -111,5 +128,16 @@ class TestSample(unittest.TestCase):
         self.assertEqual("sampleId", sample_fhir.identifier[0].value)
         self.assertEqual("Patient/donorFhirId", sample_fhir.subject.reference)
         self.assertEqual("Blood", sample_fhir.type.coding[0].code)
-        self.assertEqual("temperatureGN", sample_fhir.extension[0].valueCodeableConcept.coding[0].code)
+        self.assertEqual("temperatureGN", sample_fhir.processing[0].extension[0].valueCodeableConcept.coding[0].code)
         self.assertEqual("No restrictions", sample_fhir.note[0].text)
+
+    def test_sample_from_json(self):
+        sample = MoFSample.from_json(self.sample_json, "donorId")
+        self.assertEqual("sampleId", sample.identifier)
+        self.assertEqual("donorId", sample.donor_identifier)
+        self.assertEqual("DNA", sample.material_type)
+        self.assertEqual(datetime(year=2022, month=10, day=20), sample.collected_datetime)
+        self.assertEqual("Arm", sample.body_site)
+        self.assertEqual("bsSystem", sample.body_site_system)
+        self.assertEqual(MoFStorageTemperature.TEMPERATURE_ROOM, sample.storage_temperature)
+        self.assertEqual("use_restric", sample.use_restrictions)
