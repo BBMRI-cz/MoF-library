@@ -17,7 +17,6 @@ class MoFCondition:
         THIS DIAGNOSIS REPRESENT CONDITION OF PATIENT THAT BIOBANK DOES NOT HAVE SPECIMEN FOR.
         It could be for example diabetes, which was not diagnosed by the biobank.
         :param patient_identifier: patient identifier given by the organization.
-        :param diagnosis_report_fhir_id: diagnosis report identifier given by the FHIR storage.
         """
         if icd_10_code is not None and not icd10.exists(icd_10_code):
             raise ValueError(f"The provided string {icd_10_code} is not a valid ICD-10 code.")

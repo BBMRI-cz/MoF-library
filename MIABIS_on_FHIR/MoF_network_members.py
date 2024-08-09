@@ -8,7 +8,7 @@ from fhirclient.models.meta import Meta
 from _constants import DEFINITION_BASE_URL
 
 
-class MoFNetworkMembers():
+class MoFNetworkMembers:
     """Class representing actual members of a network."""
 
     def __init__(self, network_id: str, title: str, members: list[str]):

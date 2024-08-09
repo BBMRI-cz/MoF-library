@@ -295,6 +295,12 @@ class MoFCollection:
 
     @classmethod
     def from_json(cls, collection_json: dict, managing_biobank_id) -> Self:
+        """
+        Parse a JSON object into a MoFCollection object.
+        :param collection_json: json object representing the collection.
+        :param managing_biobank_id: id of managing biobank usually given by the institution (not a FHIR id!)
+        :return: MoFCollection object
+        """
         try:
             identifier = collection_json["identifier"][0]["value"]
             age_range_low = None

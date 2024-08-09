@@ -66,10 +66,16 @@ class MoFObservation:
         observation.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Observation"]
         observation.identifier = self.__create_fhir_identifier(self._sample_identifier)
         observation.status = "final"
-        observation.code = self.__create_icd_10_code()
-        # observation.valueCodeableConcept = self.__create_icd_10_code()
+        observation.code = self.__create_sample_diangosis_code()
+        observation.valueCodeableConcept = self.__create_icd_10_code()
         return observation
 
+    def __create_sample_diangosis_code(self):
+        code = CodeableConcept()
+        code.coding = [Coding()]
+        code.coding[0].code = "sample_diagnosis"
+        code.coding[0].system = DEFINITION_BASE_URL + "/observationName"
+        return code
     def __create_icd_10_code(self):
         code = CodeableConcept()
         code.coding = [Coding()]

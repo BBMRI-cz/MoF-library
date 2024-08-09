@@ -15,7 +15,7 @@ from _constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, BIOBAN
     BIOBANK_ORGANISATIONAL_CAPABILITIES, DEFINITION_BASE_URL
 
 
-class MoFBiobank():
+class MoFBiobank:
     """Class representing a biobank as defined by the MIABIS on FHIR profile."""
 
     def __init__(self, identifier: str, name: str, alias: str, country: str, contact_name: str, contact_surname: str,
@@ -191,6 +191,11 @@ class MoFBiobank():
 
     @classmethod
     def from_json(cls, biobank_json: dict) -> Self:
+        """
+        Parse a json into a MoFBiobank object.
+        :param biobank_json: json representation of the biobank.
+        :return: MoFBiobank object.
+        """
         try:
             identifier = biobank_json["identifier"][0]["value"]
             name = biobank_json["name"]
@@ -203,19 +208,19 @@ class MoFBiobank():
             organisational_capabilities = []
             bioprocessing = []
             quality_standards = []
-            if biobank_json.get("extension") is not None:
-                for extension in biobank_json["extension"]:
-                    match extension["url"].replace(f"{DEFINITION_BASE_URL}/", "", 1):
-                        case "infrastructural-capabilities":
-                            infrastructural_capabilities.append(extension["valueCodeableConcept"]["coding"][0]["code"])
-                        case "organisational-capabilities":
-                            organisational_capabilities.append(extension["valueCodeableConcept"]["coding"][0]["code"])
-                        case "bioprocessing-and-analysis-capabilities":
-                            bioprocessing.append(extension["valueCodeableConcept"]["coding"][0]["code"])
-                        case "quality-management-standards":
-                            quality_standards.append(extension["valueString"])
-                        case _:
-                            pass
+            extensions = biobank_json.get("extension", [])
+            for extension in extensions:
+                match extension["url"].replace(f"{DEFINITION_BASE_URL}/", "", 1):
+                    case "infrastructural-capabilities":
+                        infrastructural_capabilities.append(extension["valueCodeableConcept"]["coding"][0]["code"])
+                    case "organisational-capabilities":
+                        organisational_capabilities.append(extension["valueCodeableConcept"]["coding"][0]["code"])
+                    case "bioprocessing-and-analysis-capabilities":
+                        bioprocessing.append(extension["valueCodeableConcept"]["coding"][0]["code"])
+                    case "quality-management-standards":
+                        quality_standards.append(extension["valueString"])
+                    case _:
+                        pass
             return cls(identifier, name, alias, country, contact_name, contact_surname, contact_email,
                        infrastructural_capabilities, organisational_capabilities, bioprocessing, quality_standards)
         except KeyError:

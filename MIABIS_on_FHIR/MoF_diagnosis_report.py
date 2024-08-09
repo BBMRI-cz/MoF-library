@@ -14,11 +14,13 @@ from _constants import DEFINITION_BASE_URL
 class MoFDiagnosisReport:
     """Class representing a diagnosis report in order to link a specimen to a Condition through this diagnosis report.
     as defined by the MIABIS on FHIR profile.
-    :param sample_identifier: The identifier of the sample (this is used as a diagnosis report identifier).
-    :param donor_identifier: The identifier of the donor.
     """
 
     def __init__(self, sample_identifier: str, observations_identifiers: list[str]):
+        """
+        :param sample_identifier: The identifier of the sample (this is used as a diagnosis report identifier).
+        :param observations_identifiers: List of identifiers of the observations that are related to this diagnosis report.f
+        """
         if not isinstance(sample_identifier, str):
             raise TypeError("Sample identifier must be a string.")
         self._sample_identifier = sample_identifier
@@ -50,6 +52,12 @@ class MoFDiagnosisReport:
 
     @classmethod
     def from_json(cls, diagnosis_report: dict, observations_identifiers: list[str]) -> Self:
+        """
+        parse the json into the MoFDiagnosisReport object.
+        :param diagnosis_report: json representing the diagnosis report.
+        :param observations_identifiers: observations_identifiers (not FHIR ids) that are related to this diagnosis report.
+        :return: MoFDiagnosisReport object.
+        """
         try:
             identifier = diagnosis_report["identifier"][0]["value"]
             return cls(identifier, observations_identifiers)

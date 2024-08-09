@@ -19,7 +19,8 @@ class MoFNetwork:
         """
         :param identifier: network organizational identifier
         :param name: name of the network
-        :param managing_biobank_id: biobank which is managing this Network ( for the purposes of having a contact person for this network)
+        :param managing_biobank_id: biobank which is managing this Network
+        ( for the purposes of having a contact person for this network)
         :param common_collaboration_topics: Topics that the network partners collaborate on.
         """
         if not isinstance(identifier, str):
