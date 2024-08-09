@@ -112,7 +112,7 @@ class TestBlazeStore(unittest.TestCase):
             "id"]
         collection_fhir_id = requests.get(blaze_url + "/Group?identifier=collectionId").json()["entry"][0]["resource"][
             "id"]
-        network_members = MoFNetworkMembers("networkId", "networkmemb", ["collectionId", "biobankId"])
+        network_members = MoFNetworkMembers("networkId", "networkmembers", ["collectionId", "biobankId"])
         network_members_json = network_members.to_fhir(network_fhir_id, [collection_fhir_id],
                                                        [biobank_fhir_id]).as_json()
         resp = requests.post(blaze_url + "/List", json=network_members_json)
