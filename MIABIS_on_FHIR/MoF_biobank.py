@@ -22,7 +22,7 @@ class MoFBiobank:
                  contact_email: str, infrastructural_capabilities: list[str] = None,
                  organisational_capabilities: list[str] = None,
                  bioprocessing_and_analysis_capabilities: list[str] = None,
-                 quality__management_standards: list[str] = None):
+                 quality__management_standards: list[str] = None, juristic_person: str = None):
         """
         :param identifier: Biobank identifier same format as in the BBMRI-ERIC directory.
         :param name: name of the biobank
@@ -38,6 +38,7 @@ class MoFBiobank:
         :param bioprocessing_and_analysis_capabilities: The bioprocessing and analytical services
         that the biobank can offer to the clients. Available values in the _constants.py file
         :param quality__management_standards: The standards that the biobank is certified or accredited for.
+        :param juristic_person: The legal entity that is responsible for the biobank.
         Available values in the _constants.py file
         """
         if not isinstance(identifier, str):
@@ -61,6 +62,8 @@ class MoFBiobank:
         self._contact_name = contact_name
         self._contact_surname = contact_surname
         self._contact_email = contact_email
+        self._juristic_person = juristic_person
+        self._quality__management_standards = quality__management_standards
         if infrastructural_capabilities is not None:
             for capability in infrastructural_capabilities:
                 if capability not in BIOBANK_INFRASTRUCTURAL_CAPABILITIES:
@@ -76,7 +79,12 @@ class MoFBiobank:
                 if capability not in BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES:
                     raise ValueError(f"{capability} is not a valid code for bioprocessing and analysis capabilities")
         self._bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
-        self._quality__management_standards = quality__management_standards
+        if quality__management_standards is not None:
+            self._quality__management_standards = quality__management_standards
+        if juristic_person is not None:
+            if not isinstance(juristic_person, str):
+                raise TypeError("Juristic person must be a string.")
+            self._juristic_person = juristic_person
 
     @property
     def identifier(self) -> str:
@@ -189,6 +197,16 @@ class MoFBiobank:
     def quality__management_standards(self, quality__management_standards: list[str]):
         self._quality__management_standards = quality__management_standards
 
+    @property
+    def juristic_person(self) -> str:
+        return self._juristic_person
+
+    @juristic_person.setter
+    def juristic_person(self, juristic_person: str):
+        if not isinstance(juristic_person, str):
+            raise TypeError("Juristic person must be a string.")
+        self._juristic_person = juristic_person
+
     @classmethod
     def from_json(cls, biobank_json: dict) -> Self:
         """
@@ -219,6 +237,8 @@ class MoFBiobank:
                         bioprocessing.append(extension["valueCodeableConcept"]["coding"][0]["code"])
                     case "quality-management-standards":
                         quality_standards.append(extension["valueString"])
+                    case "juristic-person":
+                        juristic_person = extension["valueString"]
                     case _:
                         pass
             return cls(identifier, name, alias, country, contact_name, contact_surname, contact_email,
@@ -259,6 +279,9 @@ class MoFBiobank:
             for standard in self.quality__management_standards:
                 extensions.append(
                     self._create_string_extension(DEFINITION_BASE_URL + "/quality-management-standards", standard))
+        if self.juristic_person is not None:
+            extensions.append(
+                self._create_string_extension(DEFINITION_BASE_URL + "/juristic-person", self.juristic_person))
         if extensions:
             fhir_organization.extension = extensions
         return fhir_organization
