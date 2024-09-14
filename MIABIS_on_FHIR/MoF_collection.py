@@ -15,52 +15,39 @@ from fhirclient.models.range import Range
 from MIABIS_on_FHIR.gender import MoFGender
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
-from _constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, COLLECTION_SAMPLE_SOURCE, \
-    COLLECTION_DATASET_TYPE, COLLECTION_INCLUSION_CRITERIA, COLLECTION_USE_AND_ACCESS_CONDITIONS, MATERIAL_TYPE_CODES, \
-    DEFINITION_BASE_URL
+from _constants import COLLECTION_INCLUSION_CRITERIA, MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
 
 
 class MoFCollection:
     """Sample Collection represents a set of samples with at least one common characteristic."""
 
     # TODO age range units
-    def __init__(self, identifier: str, name: str, managing_biobank_id: str,
+    def __init__(self, identifier: str, name: str, managing_collection_org_id: str,
                  age_range_low: int,
                  age_range_high: int, genders: list[MoFGender], storage_temperatures: list[MoFStorageTemperature],
-                 material_types: list[str], description: str = None, diagnoses: list[str] = None,
-                 dataset_type: str = None,
-                 sample_source: str = None,
-                 sample_collection_setting: str = None, collection_design: list[str] = None,
-                 use_and_access_conditions: list[str] = None,
-                 number_of_subjects: int = None, inclusion_criteria: list[str] = None, publications: list[str] = None):
+                 material_types: list[str], diagnoses: list[str] = None, number_of_subjects: int = None,
+                 inclusion_criteria: list[str] = None, sample_ids: list[str] = None, ):
         """
         :param identifier: Collection identifier same format as in the BBMRI-ERIC directory.
         :param name: Name of the collection.
         :param description: Description of the collection.
-        :param managing_biobank_id: Identifier of the biobank managing the collection.
+        :param managing_biobank_id: Identifier of the collection-organization resource.
         :param age_range_low: Lower bound of the age range of the subjects in the collection.
         :param age_range_high: Upper bound of the age range of the subjects in the collection.
         :param genders: List of genders of the subjects in the collection.
         :param storage_temperatures: List of storage temperatures of the samples in the collection.
         :param material_types: List of material types of the samples in the collection.
         :param diagnoses: List of diagnoses of the subjects in the collection.
-        :param dataset_type: Type of the dataset. Available values in the _constants.py file
-        :param sample_source: Source of the samples. Available values in the _constants.py file
-        :param sample_collection_setting: Setting of the sample collection. Available values in the _constants.py file
-        :param collection_design: Design of the collection. Available values in the _constants.py file
-        :param use_and_access_conditions: Conditions for use and access of the collection.
          Available values in the _constants.py file
         :param number_of_subjects: Number of subjects in the collection.
         :param inclusion_criteria: Inclusion criteria for the subjects in the collection.
-        :param publications: Publications related to the collection.
+        :param sample_ids: List of sample identifiers belonging to the collection.
         """
         if not isinstance(identifier, str):
             raise TypeError("Collection identifier must be a string.")
         if not isinstance(name, str):
             raise TypeError("Collection name must be a string.")
-        if description is not None and not isinstance(description, str):
-            raise TypeError("Collection description must be a string.")
-        if not isinstance(managing_biobank_id, str):
+        if not isinstance(managing_collection_org_id, str):
             raise TypeError("Managing biobank identifier must be a string.")
         if not isinstance(age_range_low, int):
             raise TypeError("Age range low must be an integer.")
@@ -75,55 +62,36 @@ class MoFCollection:
         for material_type in material_types:
             if material_type not in MATERIAL_TYPE_CODES:
                 raise ValueError(f"{material_type} is not a valid code for material type")
+        if sample_ids is not None:
+            for sample_id in sample_ids:
+                if not isinstance(sample_id, str):
+                    raise TypeError("Sample id must be a string.")
 
-        self._identifier: str = identifier
-        self._name: str = name
-        self._description: str = description
-        self._managing_biobank_id: str = managing_biobank_id
-        self._age_range_low: int = age_range_low
-        self._age_range_high: int = age_range_high
-        self._genders = genders
-        self._storage_temperatures = storage_temperatures
-        self._material_types = material_types
         if diagnoses is not None:
             for diagnosis in diagnoses:
                 if not icd10.exists(diagnosis):
                     raise TypeError("The provided string is not a valid ICD-10 code.")
-        self._diagnoses = diagnoses
 
-        if dataset_type is not None and dataset_type not in COLLECTION_DATASET_TYPE:
-            raise ValueError(f"{dataset_type} is not a valid code for dataset type")
-        self._dataset_type = dataset_type
-
-        if sample_source is not None and sample_source not in COLLECTION_SAMPLE_SOURCE:
-            raise ValueError(f"{sample_source} is not a valid code for sample source")
-        self._sample_source = sample_source
-
-        if sample_collection_setting is not None and sample_collection_setting \
-                not in COLLECTION_SAMPLE_COLLECTION_SETTING:
-            raise ValueError(f"{sample_collection_setting} is not a valid code for sample collection setting")
-        self._sample_collection_setting = sample_collection_setting
-
-        if collection_design is not None:
-            for design in collection_design:
-                if design not in COLLECTION_DESIGN:
-                    raise ValueError(f"{design} is not a valid code for collection design")
-        self._collection_design = collection_design
-
-        if use_and_access_conditions is not None:
-            for condition in use_and_access_conditions:
-                if condition not in COLLECTION_USE_AND_ACCESS_CONDITIONS:
-                    raise ValueError(f"{condition} is not a valid code for use and access conditions")
-        self._use_and_access_conditions = use_and_access_conditions
         if number_of_subjects is not None and not isinstance(number_of_subjects, int):
             raise TypeError("Number of subjects must be an integer.")
-        self._number_of_subjects = number_of_subjects
+
         if inclusion_criteria is not None:
             for inclusion in inclusion_criteria:
                 if inclusion not in COLLECTION_INCLUSION_CRITERIA:
                     raise ValueError(f"{inclusion} is not a valid code for inclusion criteria")
+
+        self._identifier: str = identifier
+        self._name: str = name
+        self._managing_collection_org_id: str = managing_collection_org_id
+        self._age_range_low: int = age_range_low
+        self._age_range_high: int = age_range_high
+        self._genders = genders
+        self._storage_temperatures = storage_temperatures
+        self._diagnoses = diagnoses
+        self._material_types = material_types
+        self._number_of_subjects = number_of_subjects
+        self._sample_ids = sample_ids
         self._inclusion_criteria = inclusion_criteria
-        self._publications = publications
 
     @property
     def identifier(self) -> str:
@@ -146,24 +114,14 @@ class MoFCollection:
         self._name = name
 
     @property
-    def description(self) -> str:
-        return self._description
+    def managing_collection_org_id(self) -> str:
+        return self._managing_collection_org_id
 
-    @description.setter
-    def description(self, description: str):
-        if description is not None and not isinstance(description, str):
-            raise TypeError("Collection description must be a string.")
-        self._description = description
-
-    @property
-    def managing_biobank_id(self) -> str:
-        return self._managing_biobank_id
-
-    @managing_biobank_id.setter
-    def managing_biobank_id(self, managing_biobank_id: str):
-        if not isinstance(managing_biobank_id, str):
+    @managing_collection_org_id.setter
+    def managing_collection_org_id(self, managing_collection_org_id: str):
+        if not isinstance(managing_collection_org_id, str):
             raise TypeError("Managing biobank identifier must be a string.")
-        self._managing_biobank_id = managing_biobank_id
+        self._managing_collection_org_id= managing_collection_org_id
 
     @property
     def age_range_low(self) -> int:
@@ -230,46 +188,6 @@ class MoFCollection:
         self._diagnoses = diagnoses
 
     @property
-    def dataset_type(self) -> str:
-        return self._dataset_type
-
-    @dataset_type.setter
-    def dataset_type(self, dataset_type: str):
-        self._dataset_type = dataset_type
-
-    @property
-    def sample_source(self) -> str:
-        return self._sample_source
-
-    @sample_source.setter
-    def sample_source(self, sample_source: str):
-        self._sample_source = sample_source
-
-    @property
-    def sample_collection_setting(self) -> str:
-        return self._sample_collection_setting
-
-    @sample_collection_setting.setter
-    def sample_collection_setting(self, sample_collection_setting: str):
-        self._sample_collection_setting = sample_collection_setting
-
-    @property
-    def collection_design(self) -> list[str]:
-        return self._collection_design
-
-    @collection_design.setter
-    def collection_design(self, collection_design: list[str]):
-        self._collection_design = collection_design
-
-    @property
-    def use_and_access_conditions(self) -> list[str]:
-        return self._use_and_access_conditions
-
-    @use_and_access_conditions.setter
-    def use_and_access_conditions(self, use_and_access_conditions: list[str]):
-        self._use_and_access_conditions = use_and_access_conditions
-
-    @property
     def number_of_subjects(self) -> int:
         return self._number_of_subjects
 
@@ -286,19 +204,23 @@ class MoFCollection:
         self._inclusion_criteria = inclusion_criteria
 
     @property
-    def publications(self) -> list[str]:
-        return self._publications
+    def sample_ids(self) -> list[str]:
+        return self._sample_ids
 
-    @publications.setter
-    def publications(self, publications: list[str]):
-        self._publications = publications
+    @sample_ids.setter
+    def sample_ids(self, sample_ids: list[str]):
+        for sample_id in sample_ids:
+            if not isinstance(sample_id, str):
+                raise TypeError("Sample id must be a string.")
+        self._sample_ids = sample_ids
 
     @classmethod
-    def from_json(cls, collection_json: dict, managing_biobank_id) -> Self:
+    def from_json(cls, collection_json: dict, managing_collection_organization_id: str, sample_ids: list[str]) -> Self:
         """
         Parse a JSON object into a MoFCollection object.
         :param collection_json: json object representing the collection.
-        :param managing_biobank_id: id of managing biobank usually given by the institution (not a FHIR id!)
+        :param managing_collection_organization_id: id of collection-organization usually given by the institution (not a FHIR id!)
+        :param sample_ids: list of sample ids belonging to the collection, given by the institution (not FHIR ids!)
         :return: MoFCollection object
         """
         try:
@@ -310,15 +232,8 @@ class MoFCollection:
             storage_temperatures = []
             material_types = []
             diagnoses = None
-            dataset_type = None
-            sample_source = None
-            sample_collection_setting = None
-            collection_design = None
-            use_and_access_conditions = None
             number_of_subjects = None
             inclusion_criteria = None
-            publications = None
-            description = None
             for characteristic in collection_json["characteristic"]:
                 match characteristic["code"]["coding"][0]["code"]:
                     case "Age":
@@ -344,47 +259,24 @@ class MoFCollection:
             extension = collection_json.get("extension", [])
             for ext in extension:
                 match ext["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
-                    case "dataset-type-extension":
-                        dataset_type = ext["valueCodeableConcept"]["coding"][0]["code"]
-                    case "sample-source-extension":
-                        sample_source = ext["valueCodeableConcept"]["coding"][0]["code"]
-                    case "sample-collection-setting-extension":
-                        sample_collection_setting = ext["valueCodeableConcept"]["coding"][0]["code"]
-                    case "collection-design-extension":
-                        if collection_design is None:
-                            collection_design = []
-                        collection_design.append(ext["valueCodeableConcept"]["coding"][0]["code"])
-                    case "use-and-access-conditions-extension":
-                        if use_and_access_conditions is None:
-                            use_and_access_conditions = []
-                        use_and_access_conditions.append(ext["valueCodeableConcept"]["coding"][0]["code"])
                     case "number-of-subjects-extension":
                         number_of_subjects = ext["valueInteger"]
                     case "inclusion-criteria-extension":
                         if inclusion_criteria is None:
                             inclusion_criteria = []
                         inclusion_criteria.append(ext["valueCodeableConcept"]["coding"][0]["code"])
-                    case "publication-extension":
-                        if publications is None:
-                            publications = []
-                        publications.append(ext["valueString"])
-                    case "description-extension":
-                        description = ext["valueString"]
                     case _:
                         pass
-            return cls(identifier, name, managing_biobank_id, age_range_low, age_range_high, genders,
-                       storage_temperatures, material_types, description, diagnoses, dataset_type, sample_source,
-                       sample_collection_setting, collection_design, use_and_access_conditions, number_of_subjects,
-                       inclusion_criteria, publications)
-
-
-
+            return cls(identifier, name, managing_collection_organization_id, age_range_low, age_range_high, genders,
+                       storage_temperatures, material_types, diagnoses, number_of_subjects, inclusion_criteria,
+                       sample_ids)
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into MoFCollection")
 
-    def to_fhir(self, managing_organization_fhir_id: str) -> Group:
+    def to_fhir(self, managing_organization_fhir_id: str, sample_fhir_ids: list[str]) -> Group:
         """Return collection representation in FHIR
-        :param managing_organization_fhir_id: FHIR Identifier of the managing organization"""
+        :param managing_organization_fhir_id: FHIR Identifier of the managing organization
+        :param sample_fhir_ids: List of FHIR identifiers of the samples in the collection"""
         fhir_group = Group()
         fhir_group.meta = Meta()
         fhir_group.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Collection"]
@@ -407,30 +299,6 @@ class MoFCollection:
             for diagnosis in self.diagnoses:
                 fhir_group.characteristic.append(self.__create_diagnosis_characteristic(diagnosis))
         extensions = []
-        if self.dataset_type is not None:
-            extensions.append(self.__create_codeable_concept_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/dataset-type-extension",
-                DEFINITION_BASE_URL + "/datasetTypeCS",
-                self.dataset_type))
-        if self.sample_source is not None:
-            extensions.append(self.__create_codeable_concept_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/sample-source-extension",
-                DEFINITION_BASE_URL + "/sampleSourceCS",
-                self.sample_source))
-        if self.sample_collection_setting is not None:
-            extensions.append(self.__create_codeable_concept_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/sample-collection-setting-extension",
-                DEFINITION_BASE_URL + "/sampleCollectionSettingCS", self.sample_collection_setting))
-        if self.collection_design is not None:
-            for design in self.collection_design:
-                extensions.append(self.__create_codeable_concept_extension(
-                    DEFINITION_BASE_URL + "/StructureDefinition/collection-design-extension",
-                    DEFINITION_BASE_URL + "/collectionDesignCS", design))
-        if self.use_and_access_conditions is not None:
-            for condition in self.use_and_access_conditions:
-                extensions.append(self.__create_codeable_concept_extension(
-                    DEFINITION_BASE_URL + "/StructureDefinition/use-and-access-conditions-extension",
-                    DEFINITION_BASE_URL + "/useAndAccessConditionsCS", condition))
         if self.number_of_subjects is not None:
             extensions.append(self.__create_integer_extension(
                 DEFINITION_BASE_URL + "/StructureDefinition/number-of-subjects-extension", self.number_of_subjects))
@@ -439,16 +307,19 @@ class MoFCollection:
                 extensions.append(self.__create_codeable_concept_extension(
                     DEFINITION_BASE_URL + "/StructureDefinition/inclusion-criteria-extension",
                     DEFINITION_BASE_URL + "/inclusionCriteriaCS", criteria))
-        if self.publications is not None:
-            for publication in self.publications:
-                extensions.append(self.__create_string_extension(
-                    DEFINITION_BASE_URL + "/StructureDefinition/publication-extension", publication))
-        if self.description is not None:
-            extensions.append(self.__create_string_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/description-extension", self.description))
+        for sample_fhir_id in sample_fhir_ids:
+            extensions.append(self.__create_member_extension(sample_fhir_id))
         if extensions:
             fhir_group.extension = extensions
         return fhir_group
+
+
+    def __create_member_extension(self, sample_fhir_id: str):
+        extension = Extension()
+        extension.url = "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity"
+        extension.valueReference = FHIRReference()
+        extension.valueReference.reference = f"Specimen/{sample_fhir_id}"
+        return extension
 
     def __create_age_range_characteristic(self, age_low: int, age_high: int) -> GroupCharacteristic:
         # TODO add age range units

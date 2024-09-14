@@ -9,36 +9,46 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from _constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
+from _constants import DEFINITION_BASE_URL
 
 
 class MoFNetwork:
     """Class representing a group of interconnected biobanks or collections with defined common governance"""
 
-    def __init__(self, identifier: str, name: str, managing_biobank_id: str, common_collaboration_topics: list[str] = None):
+    def __init__(self, identifier: str, name: str, network_org_id: str, members_collections_ids: list[str] = None,
+                 members_biobanks_ids: list[str] = None):
         """
         :param identifier: network organizational identifier
         :param name: name of the network
-        :param managing_biobank_id: biobank which is managing this Network
+        :param network_org_id: biobank which is managing this Network
         ( for the purposes of having a contact person for this network)
-        :param common_collaboration_topics: Topics that the network partners collaborate on.
+        :param members_collections_ids: ids of all the collections (given by the organization) that are part of this network
+        :param members_biobanks_ids: ids of all the biobanks (given by the organization) that are part of this network
         """
         if not isinstance(identifier, str):
             raise TypeError("Identifier must be string")
         if not isinstance(name, str):
             raise TypeError("Name must be string")
-        if not isinstance(managing_biobank_id, str):
+        if not isinstance(network_org_id, str):
             raise TypeError("Managing biobank id must be string")
+        if members_collections_ids is not None:
+            if not isinstance(members_collections_ids, list):
+                raise TypeError("Members collections ids must be a list")
+            for member in members_collections_ids:
+                if not isinstance(member, str):
+                    raise TypeError("Members collections ids must be a list of strings")
+        if members_biobanks_ids is not None:
+            if not isinstance(members_biobanks_ids, list):
+                raise TypeError("Members biobanks ids must be a list")
+            for member in members_biobanks_ids:
+                if not isinstance(member, str):
+                    raise TypeError("Members biobanks ids must be a list of strings")
         self._identifier = identifier
         self._name = name
-        self._managing_biobank_id = managing_biobank_id
-        if common_collaboration_topics is not None:
-            if not isinstance(common_collaboration_topics, list):
-                raise TypeError("Common collaboration topics must be a list")
-            for topic in common_collaboration_topics:
-                if topic not in NETWORK_COMMON_COLLAB_TOPICS:
-                    raise ValueError(f"{topic} is not a valid code for common collaboration topics")
-        self._common_collaboration_topics = common_collaboration_topics
+        self._managing_biobank_id = network_org_id
+        self._members_collections_ids = members_collections_ids
+        self._members_biobanks_ids = members_biobanks_ids
+
 
     @property
     def identifier(self) -> str:
@@ -71,34 +81,43 @@ class MoFNetwork:
         self._managing_biobank_id = managing_biobank_id
 
     @property
-    def common_collaboration_topics(self) -> list[str]:
-        return self._common_collaboration_topics
+    def members_collections_ids(self) -> list[str]:
+        return self._members_collections_ids
 
-    @common_collaboration_topics.setter
-    def common_collaboration_topics(self, common_collaboration_topics: list[str]):
-        if not isinstance(common_collaboration_topics, list):
-            raise TypeError("Common collaboration topics must be a list")
-        for topic in common_collaboration_topics:
-            if topic not in NETWORK_COMMON_COLLAB_TOPICS:
-                raise ValueError(f"{topic} is not a valid code for common collaboration")
-        self._common_collaboration_topics = common_collaboration_topics
+    @members_collections_ids.setter
+    def members_collections_ids(self, members_collections_ids: list[str]):
+        if not isinstance(members_collections_ids, list):
+            raise TypeError("Members collections ids must be a list")
+        for member in members_collections_ids:
+            if not isinstance(member, str):
+                raise TypeError("Members collections ids must be a list of strings")
+        self._members_collections_ids = members_collections_ids
+
+    @property
+    def members_biobanks_ids(self) -> list[str]:
+        return self._members_biobanks_ids
+
+    @members_biobanks_ids.setter
+    def members_biobanks_ids(self, members_biobanks_ids: list[str]):
+        if not isinstance(members_biobanks_ids, list):
+            raise TypeError("Members biobanks ids must be a list")
+        for member in members_biobanks_ids:
+            if not isinstance(member, str):
+                raise TypeError("Members biobanks ids must be a list of strings")
+        self._members_biobanks_ids = members_biobanks_ids
 
     @classmethod
     def from_json(cls, network_json: dict, managing_biobank_id: str) -> Self:
         try:
             identifier = network_json["identifier"][0]["value"]
             name = network_json["name"]
-            common_collaboration_topics = None
             if "extension" in network_json:
                 common_collaboration_topics = []
-                for extension in network_json["extension"]:
-                    if extension["url"] == DEFINITION_BASE_URL + "/common-collaboration-topics":
-                        common_collaboration_topics.append(extension["valueCodeableConcept"]["coding"][0]["code"])
-            return cls(identifier, name, managing_biobank_id,common_collaboration_topics)
+            return cls(identifier, name, managing_biobank_id)
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFNetwork")
 
-    def to_fhir(self, managing_biobank_fhir_id: str) -> Group:
+    def to_fhir(self, network_organization_fhir_id: str,member_collection_fhir_ids, member_biobank_fhir_ids) -> Group:
         network = Group()
         network.meta = Meta()
         network.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Network"]
@@ -108,12 +127,12 @@ class MoFNetwork:
         network.actual = True
         network.type = "person"
         network.managingEntity = FHIRReference()
-        network.managingEntity.reference = f"Organization/{managing_biobank_fhir_id}"
-        if self._common_collaboration_topics is not None:
-            extensions = []
-            for topic in self._common_collaboration_topics:
-                extensions.append(self.__create_extension(DEFINITION_BASE_URL + "/common-collaboration-topics", topic))
-            network.extension = extensions
+        network.managingEntity.reference = f"Organization/{network_organization_fhir_id}"
+        network.extension = []
+        for member_collection_fhir_id in member_collection_fhir_ids:
+            network.extension.append(self.__create_member_extension("Group", member_collection_fhir_id))
+        for member_biobank_fhir_id in member_biobank_fhir_ids:
+            network.extension.append(self.__create_member_extension("Organization", member_biobank_fhir_id))
         return network
 
     def __create_identifier(self):
@@ -121,6 +140,13 @@ class MoFNetwork:
         identifier.system = DEFINITION_BASE_URL + "/network"
         identifier.value = self._identifier
         return identifier
+
+    def __create_member_extension(self, member_type: str, member_fhir_id: str):
+        extension = Extension()
+        extension.url = "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity"
+        extension.valueReference = FHIRReference()
+        extension.valueReference.reference = f"{member_type}/{member_fhir_id}"
+        return extension
 
     def __create_extension(self, url: str, value: str):
         extension = Extension()
