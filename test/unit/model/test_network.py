@@ -13,27 +13,29 @@ class TestNetwork(unittest.TestCase):
                     'identifier': [{'system': 'http://example.com/network', 'value': 'networkId'}], 'actual': True}
 
     def test_network_init(self):
-        network = MoFNetwork("networkId", "networkName", "biobankId", ["Charter"])
+        network = MoFNetwork("networkId", "networkName", "biobankId", ["collMemID1, collemMemID2"],
+                             ["bioMemID1, bioMemID2"])
         self.assertIsInstance(network, MoFNetwork)
         self.assertEqual("networkId", network.identifier)
         self.assertEqual("networkName", network.name)
-        self.assertEqual(["Charter"], network.common_collaboration_topics)
+        self.assertEqual(["collMemID1, collemMemID2"], network.members_collections_ids)
+        self.assertEqual(["bioMemID1, bioMemID2"], network.members_biobanks_ids)
 
     def test_network_invalid_identifier_type_innit(self):
         with self.assertRaises(TypeError):
-            network = MoFNetwork(37, "networkName", "biobankId", ["Charter"])
+            network = MoFNetwork(37, "networkName", "biobankId")
 
     def test_network_invalid_name_type_innit(self):
         with self.assertRaises(TypeError):
-            network = MoFNetwork("networkId", 22, "biobankId", ["Charter"])
+            network = MoFNetwork("networkId", 22, "biobankId")
 
-    def test_network_invalid_common_collaboration_topics_type_innit(self):
+    def test_network_members_collection_ids_invalid_type(self):
         with self.assertRaises(TypeError):
-            network = MoFNetwork("networkId", "networkName", "biobankId", 22)
+            network = MoFNetwork("networkId", "networkName", "biobankId", [5])
 
-    def test_network_common_collaboration_topics_invalid(self):
-        with self.assertRaises(ValueError):
-            network = MoFNetwork("networkId", "networkName", "biobankId", ["invalid"])
+    def test_network_members_biobanks_ids_invalid_type(self):
+        with self.assertRaises(TypeError):
+            network = MoFNetwork("networkId", "networkName", "biobankId", ["collid"], [5])
 
     def test_network_set_identifier_ok(self):
         network = MoFNetwork("networkId", "networkName", "biobankId", ["Charter"])
@@ -41,42 +43,45 @@ class TestNetwork(unittest.TestCase):
         self.assertEqual("newId", network.identifier)
 
     def test_network_set_identifier_invalid(self):
-        network = MoFNetwork("networkId", "networkName", "biobankId", ["Charter"])
+        network = MoFNetwork("networkId", "networkName", "biobankId", ["collid"])
         with self.assertRaises(TypeError):
             network.identifier = 37
 
     def test_network_set_name_ok(self):
-        network = MoFNetwork("networkId", "networkName", "biobankId", ["Charter"])
+        network = MoFNetwork("networkId", "networkName", "biobankId", ["collid"])
         network.name = "newName"
         self.assertEqual("newName", network.name)
 
     def test_network_set_name_invalid(self):
-        network = MoFNetwork("networkId", "networkName", "biobankId", ["Charter"])
+        network = MoFNetwork("networkId", "networkName", "biobankId", ["collid"])
         with self.assertRaises(TypeError):
             network.name = 37
 
-    def test_network_set_common_collaboration_topics_ok(self):
-        network = MoFNetwork("networkId", "networkName", "biobankId", ["Charter"])
+    def test_network_set_collection_ids_valid(self):
+        network = MoFNetwork("networkId", "networkName", "biobankId", ["cllid"])
         network.common_collaboration_topics = ["SOP"]
         self.assertEqual(["SOP"], network.common_collaboration_topics)
 
-    def test_network_set_common_collaboration_topics_invalid(self):
-        network = MoFNetwork("networkId", "networkName", "biobankId", ["Charter"])
-        with self.assertRaises(ValueError):
-            network.common_collaboration_topics = ["invalid"]
+    def test_network_set_collection_ids_invalid(self):
+        network = MoFNetwork("networkId", "networkName", "biobankId", ["collId"])
+        with self.assertRaises(TypeError):
+            network.members_collections_ids = [5]
 
     def test_network_to_fhir(self):
-        network = MoFNetwork("networkId", "networkName", "biobankId", ["Charter"])
-        network_fhir = network.to_fhir("biobankFhirId")
+        network = MoFNetwork("networkId", "networkName", "biobankId", ["collid"])
+        network_fhir = network.to_fhir("biobankFhirId",["collfhirid1", "collfhirid2"], ["biobankFhirId1", "biobankFhirId2"])
         self.assertTrue(network_fhir.active)
         self.assertEqual("person", network_fhir.type)
         self.assertEqual("networkName", network_fhir.name)
-        self.assertEqual("Charter", network_fhir.extension[0].valueCodeableConcept.coding[0].code)
         self.assertEqual("Organization/biobankFhirId", network_fhir.managingEntity.reference)
+        self.assertEqual("Group/collfhirid1", network_fhir.extension[0].valueReference.reference)
+        self.assertEqual("Group/collfhirid2", network_fhir.extension[1].valueReference.reference)
+        self.assertEqual("Organization/biobankFhirId1", network_fhir.extension[2].valueReference.reference)
+        self.assertEqual("Organization/biobankFhirId2", network_fhir.extension[3].valueReference.reference)
+
 
     def test_network_from_json(self):
         network = MoFNetwork.from_json(self.network_json, "biobankId")
         self.assertIsInstance(network, MoFNetwork)
         self.assertEqual("networkId", network.identifier)
         self.assertEqual("networkName", network.name)
-        self.assertEqual(["SOP"], network.common_collaboration_topics)
