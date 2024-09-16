@@ -78,7 +78,6 @@ class MoFCollectionOrganization:
                 if not isinstance(publication, str):
                     raise TypeError("Publications must be a list of strings.")
 
-
         self._identifier: str = identifier
         self._name: str = name
         self._description: str = description
@@ -304,6 +303,7 @@ class MoFCollectionOrganization:
             contact_name = None
             contact_surname = None
             contact_email = None
+            country = None
             dataset_type = None
             sample_source = None
             sample_collection_setting = None
@@ -319,6 +319,7 @@ class MoFCollectionOrganization:
                 contact_name = collection_json["contact"][0]["name"]["given"][0]
                 contact_surname = collection_json["contact"][0]["name"]["family"]
                 contact_email = collection_json["contact"][0]["telecom"][0]["value"]
+                country = collection_json["contact"][0]["address"]["country"]
             extension = collection_json.get("extension", [])
             for ext in extension:
                 match ext["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
@@ -344,10 +345,9 @@ class MoFCollectionOrganization:
                         description = ext["valueString"]
                     case _:
                         pass
-            return cls(identifier, name, managing_biobank_id, contact_name, contact_surname, contact_email, alias, url,
-                       description,
-                       dataset_type, sample_source,
-                       sample_collection_setting, collection_design, use_and_access_conditions)
+            return cls(identifier, name, managing_biobank_id, contact_name, contact_surname, contact_email, country,
+                       alias, url, description, dataset_type, sample_source, sample_collection_setting,
+                       collection_design, use_and_access_conditions, publications)
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into MoFCollection")
 
