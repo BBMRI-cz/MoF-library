@@ -1,11 +1,11 @@
-import icd10
+import simple_icd_10 as icd10
 import fhirclient.models.condition as fhir_condition
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 
-from _constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
 
 
 class MoFCondition:
@@ -18,7 +18,7 @@ class MoFCondition:
         It could be for example diabetes, which was not diagnosed by the biobank.
         :param patient_identifier: patient identifier given by the organization.
         """
-        if icd_10_code is not None and not icd10.exists(icd_10_code):
+        if icd_10_code is not None and not icd10.is_valid_item(icd_10_code):
             raise ValueError(f"The provided string {icd_10_code} is not a valid ICD-10 code.")
         self._icd_10_code = icd_10_code
         if not isinstance(patient_identifier, str):
@@ -31,7 +31,7 @@ class MoFCondition:
 
     @icd_10_code.setter
     def icd_10_code(self, icd_10_code):
-        if icd_10_code is not None and not icd10.exists(icd_10_code):
+        if icd_10_code is not None and not icd10.is_valid_item(icd_10_code):
             raise ValueError(f"The provided string {icd_10_code} is not a valid ICD-10 code.")
         self._icd_10_code = icd_10_code
     @property

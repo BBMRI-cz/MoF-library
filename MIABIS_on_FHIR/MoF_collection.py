@@ -1,7 +1,7 @@
 """Module for handling SampleCollection operations"""
 from typing import Self
 
-import icd10
+import simple_icd_10 as icd10
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.extension import Extension
@@ -15,7 +15,7 @@ from fhirclient.models.range import Range
 from MIABIS_on_FHIR.gender import MoFGender
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
-from _constants import COLLECTION_INCLUSION_CRITERIA, MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._constants import COLLECTION_INCLUSION_CRITERIA, MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
 
 
 class MoFCollection:
@@ -69,7 +69,7 @@ class MoFCollection:
 
         if diagnoses is not None:
             for diagnosis in diagnoses:
-                if not icd10.exists(diagnosis):
+                if not icd10.is_valid_item(diagnosis):
                     raise TypeError("The provided string is not a valid ICD-10 code.")
 
         if number_of_subjects is not None and not isinstance(number_of_subjects, int):
@@ -183,7 +183,7 @@ class MoFCollection:
     @diagnoses.setter
     def diagnoses(self, diagnoses: list[str]):
         for diagnosis in diagnoses:
-            if not icd10.exists(diagnosis):
+            if not icd10.is_valid_item(diagnosis):
                 raise ValueError("The provided string is not a valid ICD-10 code.")
         self._diagnoses = diagnoses
 
