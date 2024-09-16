@@ -94,6 +94,16 @@ class TestBiobank(unittest.TestCase):
             biobank = MoFBiobank("biobankId", "biobankName", "biobankAlias", "CZ", "ContactName", "ContactSurname",
                                  "email", bioprocessing_and_analysis_capabilities=["Genomics", "Invalid"])
 
+    def test_biobank_juristic_person(self):
+        biobank = MoFBiobank("biobankId", "biobankName", "biobankAlias", "CZ", "ContactName", "ContactSurname",
+                             "email", juristic_person="JuristicPerson")
+        self.assertEqual("JuristicPerson", biobank.juristic_person)
+
+    def test_biobank_juristic_person_invalid(self):
+        with self.assertRaises(TypeError):
+            bio = MoFBiobank("biobankId", "biobankName", "biobankAlias", "CZ", "ContactName", "ContactSurname",
+                             "email",juristic_person=47)
+
     def test_biobank_to_fhir_no_optional_args(self):
         biobank = MoFBiobank("biobankId", "biobankName", "biobankAlias", "CZ", "ContactName", "ContactSurname",
                              "email")

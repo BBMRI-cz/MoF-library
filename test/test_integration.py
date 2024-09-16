@@ -6,10 +6,12 @@ import requests
 
 from MIABIS_on_FHIR.MoF_biobank import MoFBiobank
 from MIABIS_on_FHIR.MoF_collection import MoFCollection
+from MIABIS_on_FHIR.MoF_collection_organization import MoFCollectionOrganization
 from MIABIS_on_FHIR.MoF_condition import MoFCondition
 from MIABIS_on_FHIR.MoF_diagnosis_report import MoFDiagnosisReport
 from MIABIS_on_FHIR.MoF_network import MoFNetwork
 from MIABIS_on_FHIR.MoF_network_members import MoFNetworkMembers
+from MIABIS_on_FHIR.MoF_network_organization import MoFNetworkOrganization
 from MIABIS_on_FHIR.MoF_observation import MoFObservation
 from MIABIS_on_FHIR.MoF_sample import MoFSample
 from MIABIS_on_FHIR.MoF_sample_donor import MoFSampleDonor
@@ -41,7 +43,7 @@ class TestBlazeStore(unittest.TestCase):
         donor_fhir_id = get_response_json["entry"][0]["resource"]["id"]
         sample = MoFSample("sampleId", "donorId", "DNA", datetime.datetime(year=2022, month=10, day=20),
                            body_site="Arm", body_site_system="bsSystem",
-                           storage_temperature=MoFStorageTemperature.TEMPERATURE_ROOM,use_restrictions="use_restric")
+                           storage_temperature=MoFStorageTemperature.TEMPERATURE_ROOM, use_restrictions="use_restric")
         sample_json = sample.to_fhir(donor_fhir_id).as_json()
         resp = requests.post(blaze_url + "/Specimen", json=sample_json)
         self.assertEqual(resp.status_code, 201)
@@ -77,15 +79,31 @@ class TestBlazeStore(unittest.TestCase):
         self.assertEqual(resp.status_code, 201)
         time.sleep(0.1)
 
-    def test_upload_collection(self):
+    def test_upload_collection_organization(self):
         biobank_fhir_id = \
             requests.get(blaze_url + "/Organization" + f"?identifier=biobankId").json()["entry"][0]["resource"]["id"]
-        collection = MoFCollection("collectionId", "collectionName", "biobankId", 0, 0,
-                                   [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_LN], ["DNA"], diagnoses=["C51"],
-                                   dataset_type="Other", sample_source="Human", sample_collection_setting="Other",
-                                   collection_design=["Other"], use_and_access_conditions=["CommercialUse"],
-                                   number_of_subjects=10, inclusion_criteria=["Sex"])
-        collection_json = collection.to_fhir(biobank_fhir_id).as_json()
+        collection_org = MoFCollectionOrganization("collectionId", "collectionName", "biobankId", "Jozef", "Mrkva",
+                                                   "jozefmrkva@email.com", "cz", "collectionAlias", "url",
+                                                   "description", dataset_type="Other", sample_source="Human",
+                                                   sample_collection_setting="Other",
+                                                   collection_design=["Other"],
+                                                   use_and_access_conditions=["CommercialUse"],
+                                                   publications=["publication"])
+        collection_org_json = collection_org.to_fhir(biobank_fhir_id).as_json()
+        resp = requests.post(blaze_url + "/Organization", json=collection_org_json)
+        self.assertEqual(resp.status_code, 201)
+
+    def test_upload_collection(self):
+        biobank_fhir_id = \
+            requests.get(blaze_url + "/Organization" + f"?identifier=collectionId").json()["entry"][0]["resource"]["id"]
+        sample_fhir_id = requests.get(blaze_url + "/Specimen" + f"?identifier=sampleId").json()["entry"][0]["resource"][
+            "id"]
+        collection = MoFCollection("collectionId", "collectionName", "biobankId", 0, 100,
+                                   [MoFGender.MALE, MoFGender.FEMALE],
+                                   [MoFStorageTemperature.TEMPERATURE_GN, MoFStorageTemperature.TEMPERATURE_ROOM],
+                                   ["Urine"], ["C50", "C51"], 2, inclusion_criteria=["HealthStatus"],
+                                   sample_ids=["sampleId"])
+        collection_json = collection.to_fhir(biobank_fhir_id, [sample_fhir_id]).as_json()
         resp = requests.post(blaze_url + "/Group", json=collection_json)
         self.assertEqual(resp.status_code, 201)
         time.sleep(0.1)
@@ -99,9 +117,25 @@ class TestBlazeStore(unittest.TestCase):
         resp = requests.post(blaze_url + "/List", json=sample_list_json)
         self.assertEqual(resp.status_code, 201)
 
+    def test_upload_network_organization(self):
+        biobank_fhir_id = \
+            requests.get(blaze_url + "/Organization" + f"?identifier=collectionId").json()["entry"][0]["resource"]["id"]
+
+        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
+                                             "contactSurname", "contactEmail", "country", ["Charter"], "juristicPerson")
+        network_org_fhir = network_org.to_fhir(biobank_fhir_id).as_json()
+        resp = requests.post(blaze_url + "/Organization", json=network_org_fhir)
+        self.assertEqual(resp.status_code, 201)
+
     def test_upload_network(self):
-        network = MoFNetwork("networkId", "networkName", ["SOP"])
-        network_json = network.to_fhir().as_json()
+        biobank_fhir_id = \
+            requests.get(blaze_url + "/Organization" + f"?identifier=biobankId").json()["entry"][0]["resource"]["id"]
+        collection_fhir_id = \
+            requests.get(blaze_url + "/Group" + f"?identifier=collectionId").json()["entry"][0]["resource"]["id"]
+        network_org_fhir_id = \
+            requests.get(blaze_url + "/Organization" + f"?identifier=networkOrgId").json()["entry"][0]["resource"]["id"]
+        network = MoFNetwork("networkId", "networkName", "networkOrgId", ["collectionId"], ["biobankId"])
+        network_json = network.to_fhir(network_org_fhir_id, [collection_fhir_id], [biobank_fhir_id]).as_json()
         resp = requests.post(blaze_url + "/Group", json=network_json)
         self.assertEqual(resp.status_code, 201)
         time.sleep(0.1)

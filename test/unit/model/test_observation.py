@@ -46,7 +46,7 @@ class TestObservation(unittest.TestCase):
     def test_observation_to_fhir_ok(self):
         observation = MoFObservation("C51", "sampleId")
         obs_fhir = observation.to_fhir()
-        self.assertEqual("C51", obs_fhir.code.coding[0].code)
+        self.assertEqual("C51", obs_fhir.valueCodeableConcept.coding[0].code)
         self.assertEqual("sampleId", obs_fhir.identifier[0].value)
         self.assertEqual("final", obs_fhir.status)
 
