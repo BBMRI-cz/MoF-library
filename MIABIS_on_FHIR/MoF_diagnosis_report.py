@@ -8,7 +8,7 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from _constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
 
 
 class MoFDiagnosisReport:

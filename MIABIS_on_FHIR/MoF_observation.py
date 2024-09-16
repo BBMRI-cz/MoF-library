@@ -1,6 +1,6 @@
 from typing import Self
 
-import icd10
+import simple_icd_10 as icd10
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.identifier import Identifier
@@ -8,7 +8,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.observation import Observation
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from _constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
 
 
 class MoFObservation:
@@ -20,7 +20,7 @@ class MoFObservation:
         :param sample_identifier: identifier of the sample that this observation is related to
         (this is used as an identifier for the observation)
         """
-        if not icd10.exists(icd10_code):
+        if not icd10.is_valid_item(icd10_code):
             raise ValueError("The provided string is not a valid ICD-10 code.")
         self._icd10_code = icd10_code
         if not isinstance(sample_identifier, str):
@@ -33,7 +33,7 @@ class MoFObservation:
 
     @icd10_code.setter
     def icd10_code(self, icd10_code: str):
-        if not icd10.exists(icd10_code):
+        if not icd10.is_valid_item(icd10_code):
             raise ValueError("The provided string is not a valid ICD-10 code.")
         self._icd10_code = icd10_code
 

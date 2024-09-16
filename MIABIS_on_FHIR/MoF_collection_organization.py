@@ -13,7 +13,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization, OrganizationContact
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from _constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, COLLECTION_SAMPLE_SOURCE, \
+from MIABIS_on_FHIR._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, COLLECTION_SAMPLE_SOURCE, \
     COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS, DEFINITION_BASE_URL
 
 

@@ -1,4 +1,3 @@
-icd10-cm
-fhirclient~=4.1.0
-glom
+simple-icd-10
+fhirclient~=4.2.0
 requests~=2.32.3

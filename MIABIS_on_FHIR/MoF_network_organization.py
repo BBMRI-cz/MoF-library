@@ -12,7 +12,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization, OrganizationContact
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from _constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
 
 
 class MoFNetworkOrganization:

@@ -5,7 +5,7 @@ from fhirclient.models.annotation import Annotation
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.extension import Extension
-from fhirclient.models.fhirdate import FHIRDate
+from fhirclient.models.fhirdatetime import FHIRDateTime
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
@@ -13,7 +13,7 @@ from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenPro
 
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
-from _constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
 
 
 class MoFSample:
@@ -196,7 +196,7 @@ class MoFSample:
         if self.collected_datetime is not None or self.body_site is not None:
             specimen.collection = SpecimenCollection()
             if self.collected_datetime is not None:
-                specimen.collection.collectedDateTime = FHIRDate()
+                specimen.collection.collectedDateTime = FHIRDateTime()
                 specimen.collection.collectedDateTime.date = self.collected_datetime.date()
             if self.body_site is not None:
                 specimen.collection.bodySite = self.__create_body_site()

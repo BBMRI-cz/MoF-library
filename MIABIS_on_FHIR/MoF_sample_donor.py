@@ -11,7 +11,7 @@ from fhirclient.models.patient import Patient
 
 from MIABIS_on_FHIR.gender import MoFGender
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from _constants import DONOR_DATASET_TYPE, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._constants import DONOR_DATASET_TYPE, DEFINITION_BASE_URL
 
 
 class MoFSampleDonor:

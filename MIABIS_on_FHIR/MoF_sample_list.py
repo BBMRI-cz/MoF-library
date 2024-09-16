@@ -2,7 +2,7 @@ from fhirclient.models import list as fhir_list
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 
-from _constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
 
 
 class MoFSampleList:
