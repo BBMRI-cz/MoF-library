@@ -192,13 +192,6 @@ class TestCollection(unittest.TestCase):
                                    [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"])
         with self.assertRaises(ValueError):
             collection.material_types = [37]
-
-    # def test_collection_optional_args_description(self):
-    #     collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-    #                                [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                description="description")
-    #     self.assertEqual("description", collection.description)
-
     def test_collection_optional_args_description_invalid(self):
         with self.assertRaises(TypeError):
             collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0,
@@ -217,71 +210,6 @@ class TestCollection(unittest.TestCase):
                                        100,
                                        [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
                                        diagnoses=["C11111"])
-
-    # def test_collection_optional_args_dataset_type(self):
-    #     collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-    #                                [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                dataset_type="Genomic")
-    #     self.assertEqual("Genomic", collection.dataset_type)
-
-    # def test_collection_optional_args_dataset_type_invalid(self):
-    #     with self.assertRaises(ValueError):
-    #         collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0,
-    #                                    100,
-    #                                    [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                    dataset_type="Invalid")
-
-    # def test_collection_optional_args_sample_source(self):
-    #     collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-    #                                [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                sample_source="Human")
-    #     self.assertEqual("Human", collection.sample_source)
-
-    # def test_collection_optional_args_sample_source_invalid(self):
-    #     with self.assertRaises(ValueError):
-    #         collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0,
-    #                                    100,
-    #                                    [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                    sample_source="Invalid")
-    #
-    # def test_collection_optional_args_sample_collection_setting(self):
-    #     collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-    #                                [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                sample_collection_setting="Environment")
-    #     self.assertEqual("Environment", collection.sample_collection_setting)
-    #
-    # def test_collection_optional_args_sample_collection_setting_invalid(self):
-    #     with self.assertRaises(ValueError):
-    #         collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0,
-    #                                    100,
-    #                                    [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                    sample_collection_setting="Invalid")
-
-    # def test_collection_optional_args_collection_design(self):
-    #     collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-    #                                [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                collection_design=["CaseControl"])
-    #     self.assertEqual(["CaseControl"], collection.collection_design)
-
-    # def test_collection_optional_args_collection_design_invalid(self):
-    #     with self.assertRaises(ValueError):
-    #         collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0,
-    #                                    100,
-    #                                    [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                    collection_design=["Invalid"])
-
-    # def test_collection_optional_args_use_and_access_conditions(self):
-    #     collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-    #                                [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                use_and_access_conditions=["CommercialUse"])
-    #     self.assertEqual(["CommercialUse"], collection.use_and_access_conditions)
-    #
-    # def test_collection_optional_args_use_and_access_conditions_invalid(self):
-    #     with self.assertRaises(ValueError):
-    #         collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0,
-    #                                    100,
-    #                                    [MoFGender.MALE], [MoFStorageTemperature.TEMPERATURE_GN], ["DNA"],
-    #                                    use_and_access_conditions=["Invalid"])
 
     def test_collection_optional_args_inclusion_criteria(self):
         collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0, 100,

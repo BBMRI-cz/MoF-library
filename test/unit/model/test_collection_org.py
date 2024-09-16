@@ -4,6 +4,30 @@ from MIABIS_on_FHIR.MoF_collection_organization import MoFCollectionOrganization
 
 
 class TestCollectionOrganization(unittest.TestCase):
+    coll_org_json = {'meta': {'versionId': '7', 'lastUpdated': '2024-09-16T07:19:31.673Z',
+                              'profile': ['http://example.com/StructureDefinition/Collection']},
+                     'name': 'collectionName',
+                     'type': [{'coding': [{'system': 'http://example.com/organizationTypeCS', 'code': 'Collection'}]}],
+                     'resourceType': 'Organization', 'extension': [
+            {'url': 'http://example.com/StructureDefinition/dataset-type-extension',
+             'valueCodeableConcept': {'coding': [{'system': 'http://example.com/datasetTypeCS', 'code': 'Other'}]}},
+            {'url': 'http://example.com/StructureDefinition/sample-source-extension',
+             'valueCodeableConcept': {'coding': [{'system': 'http://example.com/sampleSourceCS', 'code': 'Human'}]}},
+            {'url': 'http://example.com/StructureDefinition/sample-collection-setting-extension',
+             'valueCodeableConcept': {
+                 'coding': [{'system': 'http://example.com/sampleCollectionSettingCS', 'code': 'Other'}]}},
+            {'url': 'http://example.com/StructureDefinition/collection-design-extension', 'valueCodeableConcept': {
+                'coding': [{'system': 'http://example.com/collectionDesignCS', 'code': 'Other'}]}},
+            {'url': 'http://example.com/StructureDefinition/use-and-access-conditions-extension',
+             'valueCodeableConcept': {
+                 'coding': [{'system': 'http://example.com/useAndAccessConditionsCS', 'code': 'CommercialUse'}]}},
+            {'url': 'http://example.com/StructureDefinition/publication-extension', 'valueString': 'publication'},
+            {'url': 'http://example.com/StructureDefinition/description-extension', 'valueString': 'description'}],
+                     'alias': ['collectionAlias'], 'active': True, 'id': 'DEPZWNXFPHMA5NLM',
+                     'identifier': [{'value': 'collectionId'}], 'telecom': [{'system': 'url', 'value': 'url'}],
+                     'partOf': {'reference': 'Organization/DEPZWNPN6CSOKEOC'}, 'contact': [
+            {'address': {'country': 'cz'}, 'name': {'family': 'Mrkva', 'given': ['Jozef']},
+             'telecom': [{'system': 'email', 'value': 'jozefmrkva@email.com'}]}]}
 
     def test_collection_org_init_required_params(self):
         collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
@@ -41,7 +65,6 @@ class TestCollectionOrganization(unittest.TestCase):
         self.assertEqual(["CommercialUse"], collection_org.use_and_access_conditions)
         self.assertEqual(["publication"], collection_org.publications)
 
-
     def test_collection_org_invalid_identifier_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = MoFCollectionOrganization(37, "collectionOrgName", "biobankId", "contactName",
@@ -64,62 +87,76 @@ class TestCollectionOrganization(unittest.TestCase):
 
     def test_collection_org_invalid_contact_surname_type_innit(self):
         with self.assertRaises(TypeError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        22, "contactEmail", "cz")
 
     def test_collection_org_invalid_contact_email_type_innit(self):
         with self.assertRaises(TypeError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        "contactSurname", 22, "cz")
 
     def test_collection_org_invalid_country_type_innit(self):
         with self.assertRaises(TypeError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        "contactSurname", "contactEmail", 22)
 
     def test_collection_org_invalid_alias_type_innit(self):
         with self.assertRaises(TypeError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        "contactSurname", "contactEmail", "cz", 22)
 
     def test_collection_org_invalid_url_type_innit(self):
         with self.assertRaises(TypeError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        "contactSurname", "contactEmail", "cz", url=22)
 
     def test_collection_org_invalid_description_type_innit(self):
         with self.assertRaises(TypeError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        "contactSurname", "contactEmail", "cz", description=22)
 
     def test_collection_org_invalid_dataset_type_type_innit(self):
         with self.assertRaises(ValueError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        "contactSurname", "contactEmail", "cz", dataset_type=22)
 
     def test_collection_org_invalid_sample_source_type_innit(self):
         with self.assertRaises(ValueError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        "contactSurname", "contactEmail", "cz", sample_source=22)
 
     def test_collection_org_invalid_sample_collection_setting_type_innit(self):
         with self.assertRaises(ValueError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                       "contactSurname", "contactEmail", "cz", sample_collection_setting=22)
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
+                                                       "contactSurname", "contactEmail", "cz",
+                                                       sample_collection_setting=22)
 
     def test_collection_org_invalid_collection_design_type_innit(self):
         with self.assertRaises(TypeError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        "contactSurname", "contactEmail", "cz", collection_design=22)
 
     def test_collection_org_invalid_use_and_access_conditions_type_innit(self):
         with self.assertRaises(TypeError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                       "contactSurname", "contactEmail", "cz", use_and_access_conditions=22)
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
+                                                       "contactSurname", "contactEmail", "cz",
+                                                       use_and_access_conditions=22)
 
     def test_collection_org_invalid_publications_type_innit(self):
         with self.assertRaises(TypeError):
-            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
+            collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                       "contactName",
                                                        "contactSurname", "contactEmail", "cz", publications=22)
 
     def test_collection_org_set_identifier_ok(self):
@@ -268,40 +305,45 @@ class TestCollectionOrganization(unittest.TestCase):
 
     def test_collection_org_set_sample_collection_setting_ok(self):
         collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                   "contactSurname", "contactEmail", "cz", sample_collection_setting="Environment")
+                                                   "contactSurname", "contactEmail", "cz",
+                                                   sample_collection_setting="Environment")
         collection_org.sample_collection_setting = "Unknown"
         self.assertEqual("Unknown", collection_org.sample_collection_setting)
 
     def test_collection_org_set_sample_collection_setting_invalid(self):
         collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                   "contactSurname", "contactEmail", "cz", sample_collection_setting="Environment")
+                                                   "contactSurname", "contactEmail", "cz",
+                                                   sample_collection_setting="Environment")
         with self.assertRaises(ValueError):
             collection_org.sample_collection_setting = "Invalid"
 
     def test_collection_org_set_collection_design_ok(self):
         collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                   "contactSurname", "contactEmail", "cz", collection_design=["CaseControl"])
+                                                   "contactSurname", "contactEmail", "cz",
+                                                   collection_design=["CaseControl"])
         collection_org.collection_design = ["CrossSectional"]
         self.assertEqual(["CrossSectional"], collection_org.collection_design)
 
     def test_collection_org_set_collection_design_invalid(self):
         collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                   "contactSurname", "contactEmail", "cz", collection_design=["CaseControl"])
+                                                   "contactSurname", "contactEmail", "cz",
+                                                   collection_design=["CaseControl"])
         with self.assertRaises(ValueError):
             collection_org.collection_design = ["Invalid"]
 
     def test_collection_org_set_use_and_access_conditions_ok(self):
         collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                   "contactSurname", "contactEmail", "cz", use_and_access_conditions=["CommercialUse"])
+                                                   "contactSurname", "contactEmail", "cz",
+                                                   use_and_access_conditions=["CommercialUse"])
         collection_org.use_and_access_conditions = ["Xenograft"]
         self.assertEqual(["Xenograft"], collection_org.use_and_access_conditions)
 
     def test_collection_org_set_use_and_access_conditions_invalid(self):
         collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                   "contactSurname", "contactEmail", "cz", use_and_access_conditions=["CommercialUse"])
+                                                   "contactSurname", "contactEmail", "cz",
+                                                   use_and_access_conditions=["CommercialUse"])
         with self.assertRaises(ValueError):
             collection_org.use_and_access_conditions = ["Invalid"]
-
 
     def test_collection_org_set_publications_ok(self):
         collection_org = MoFCollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
@@ -346,9 +388,23 @@ class TestCollectionOrganization(unittest.TestCase):
         self.assertEqual("publication", collection_org_fhir.extension[5].valueString)
         self.assertEqual("description", collection_org_fhir.extension[6].valueString)
 
-
-
-
-
-
+    def test_collection_org_from_json(self):
+        collection_org = MoFCollectionOrganization.from_json(self.coll_org_json,"biobankId")
+        self.assertEqual("collectionId", collection_org.identifier)
+        self.assertEqual("collectionName", collection_org.name)
+        self.assertEqual("biobankId", collection_org.managing_biobank_id)
+        self.assertEqual("Jozef", collection_org.contact_name)
+        self.assertEqual("Mrkva", collection_org.contact_surname)
+        self.assertEqual("jozefmrkva@email.com", collection_org.contact_email)
+        self.assertEqual("cz", collection_org.country)
+        self.assertEqual("collectionAlias", collection_org.alias)
+        self.assertEqual("url", collection_org.url)
+        self.assertEqual("description", collection_org.description)
+        self.assertEqual("Other", collection_org.dataset_type)
+        self.assertEqual("Human", collection_org.sample_source)
+        self.assertEqual("Other", collection_org.sample_collection_setting)
+        self.assertEqual(["Other"], collection_org.collection_design)
+        self.assertEqual(["CommercialUse"], collection_org.use_and_access_conditions)
+        self.assertEqual(["publication"], collection_org.publications)
+        self.assertEqual("description", collection_org.description)
 
