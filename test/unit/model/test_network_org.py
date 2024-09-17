@@ -1,6 +1,6 @@
 import unittest
 
-from MIABIS_on_FHIR.MoF_network_organization import NetworkOrganization
+from MIABIS_on_FHIR.network_organization import NetworkOrganization
 
 
 class TestNetworkOrganization(unittest.TestCase):
@@ -193,7 +193,7 @@ class TestNetworkOrganization(unittest.TestCase):
         self.assertEqual("contactName", network_org_fhir.contact[0].name.given[0])
         self.assertEqual("contactSurname", network_org_fhir.contact[0].name.family)
         self.assertEqual("contactEmail", network_org_fhir.contact[0].telecom[0].value)
-        self.assertEqual("country", network_org_fhir.contact[0].address.country)
+        self.assertEqual("country", network_org_fhir.address.country)
         self.assertEqual("Charter", network_org_fhir.extension[0].valueCodeableConcept.coding[0].code)
         self.assertEqual("juristicPerson", network_org_fhir.extension[1].valueString)
 

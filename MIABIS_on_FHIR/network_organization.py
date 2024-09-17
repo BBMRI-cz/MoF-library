@@ -1,17 +1,12 @@
 from typing import Self
 
-from fhirclient.models.address import Address
-from fhirclient.models.codeableconcept import CodeableConcept
-from fhirclient.models.coding import Coding
-from fhirclient.models.contactpoint import ContactPoint
-from fhirclient.models.extension import Extension
 from fhirclient.models.fhirreference import FHIRReference
-from fhirclient.models.humanname import HumanName
-from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
-from fhirclient.models.organization import Organization, OrganizationContact
+from fhirclient.models.organization import Organization
 
 from MIABIS_on_FHIR._constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._util import create_fhir_identifier, create_contact, create_country_of_residence, \
+    create_codeable_concept_extension, create_string_extension
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
@@ -188,58 +183,23 @@ class NetworkOrganization:
         network = Organization()
         network.meta = Meta()
         network.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Network"]
-        network.identifier = [self.__create_identifier()]
+        network.identifier = [create_fhir_identifier(self.identifier)]
         network.name = self._name
         network.active = True
         network.partOf = FHIRReference()
         network.partOf.reference = f"Organization/{managing_biobank_fhir_id}"
-        network.contact = [self.__create_contact()]
+        network.contact = [create_contact(self._contact_name, self._contact_surname, self._contact_email)]
+        network.address = create_country_of_residence(self._country)
         extensions = []
         if self._common_collaboration_topics is not None:
             for topic in self._common_collaboration_topics:
                 extensions.append(
-                    self.__create_codaeble_concept_extension(
+                    create_codeable_concept_extension(
                         DEFINITION_BASE_URL + "/StructureDefinition/common-collaboration-topics",
-                        DEFINITION_BASE_URL + "/common-collaboration-topics-vs",
-                        topic))
+                        DEFINITION_BASE_URL + "/common-collaboration-topics-vs", topic))
         if self._juristic_person is not None:
             extensions.append(
-                self.__create_string_extension(DEFINITION_BASE_URL + "/StructureDefinition/juristic-person",
-                                               self._juristic_person))
+                create_string_extension(DEFINITION_BASE_URL + "/StructureDefinition/juristic-person",
+                                        self._juristic_person))
         network.extension = extensions
         return network
-
-    def __create_contact(self):
-        contact = OrganizationContact()
-        contact.name = HumanName()
-        contact.name.given = [self._contact_name]
-        contact.name.family = self._contact_surname
-        contact.telecom = [ContactPoint()]
-        contact.telecom[0].system = "email"
-        contact.telecom[0].value = self._contact_email
-        contact.address = Address()
-        contact.address.country = self._country
-        return contact
-
-    def __create_identifier(self):
-        identifier = Identifier()
-        identifier.system = DEFINITION_BASE_URL + "/network"
-        identifier.value = self._identifier
-        return identifier
-
-    @staticmethod
-    def __create_string_extension(url: str, value: str):
-        extension = Extension()
-        extension.url = url
-        extension.valueString = value
-        return extension
-
-    @staticmethod
-    def __create_codaeble_concept_extension(extension_url: str, codeable_concept_url: str, value: str, ):
-        extension = Extension()
-        extension.url = extension_url
-        extension.valueCodeableConcept = CodeableConcept()
-        extension.valueCodeableConcept.coding = [Coding()]
-        extension.valueCodeableConcept.coding[0].code = value
-        extension.valueCodeableConcept.coding[0].system = DEFINITION_BASE_URL + "/common-collaboration-topics-vs"
-        return extension
