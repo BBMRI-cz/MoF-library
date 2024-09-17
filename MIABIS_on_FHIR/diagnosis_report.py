@@ -4,10 +4,10 @@ from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.diagnosticreport import DiagnosticReport
 from fhirclient.models.fhirreference import FHIRReference
-from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR._util import create_fhir_identifier
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
@@ -73,22 +73,12 @@ class DiagnosisReport:
         diagnosis_report = DiagnosticReport()
         diagnosis_report.meta = Meta()
         diagnosis_report.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/DiagnosisReport"]
-        diagnosis_report.identifier = [self.__create_identifier()]
+        diagnosis_report.identifier = [create_fhir_identifier(self.sample_identifier)]
         diagnosis_report.specimen = [self.__create_specimen_reference(sample_fhir_id)]
         diagnosis_report.status = "final"
         diagnosis_report.result = self._create_result_reference(observation_fhir_ids)
         diagnosis_report.code = self.__create_code_multiple_diagnosis_bool(len(observation_fhir_ids) > 1)
         return diagnosis_report
-
-    def __create_identifier(self, ) -> Identifier:
-        """Creates a FHIR identifier for the diagnosis report.
-        :param sample_id: FHIR identifier of the sample.
-        :return: Identifier
-        """
-        identifier = Identifier()
-        identifier.system = DEFINITION_BASE_URL + "/diagnosisReport"
-        identifier.value = self.sample_identifier
-        return identifier
 
     @staticmethod
     def __create_code_multiple_diagnosis_bool(multiple_diagnosis: bool):

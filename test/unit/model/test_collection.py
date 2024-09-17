@@ -2,7 +2,7 @@ import unittest
 
 from fhirclient.models.group import Group
 
-from MIABIS_on_FHIR.MoF_collection import MoFCollection
+from MIABIS_on_FHIR.collection import MoFCollection
 from MIABIS_on_FHIR.gender import Gender
 from MIABIS_on_FHIR.storage_temperature import StorageTemperature
 

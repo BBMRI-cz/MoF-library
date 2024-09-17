@@ -1,6 +1,6 @@
 import unittest
 
-from MIABIS_on_FHIR.MoF_condition import Condition
+from MIABIS_on_FHIR.condition import Condition
 
 
 class TestCondition(unittest.TestCase):

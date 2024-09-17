@@ -4,14 +4,13 @@ from typing import Self
 from fhirclient.models.annotation import Annotation
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
-from fhirclient.models.extension import Extension
 from fhirclient.models.fhirdatetime import FHIRDateTime
 from fhirclient.models.fhirreference import FHIRReference
-from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
 from MIABIS_on_FHIR._constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._util import create_fhir_identifier, create_codeable_concept, create_codeable_concept_extension
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import StorageTemperature
 
@@ -171,7 +170,7 @@ class Sample:
                     body_site_system = collection["bodySite"]["coding"][0]["system"]
             if sample_json.get("processing") is not None:
                 storage_temperature_string = \
-                sample_json["processing"][0]["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
+                    sample_json["processing"][0]["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
                 storage_temperature = StorageTemperature(storage_temperature_string)
             if sample_json.get("note") is not None:
                 use_restrictions = sample_json["note"][0]["text"]
@@ -189,11 +188,11 @@ class Sample:
         specimen.meta = Meta()
         # TODO add url for the structure definition
         specimen.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Specimen"]
-        specimen.identifier = self.__create_fhir_identifier()
+        specimen.identifier = [create_fhir_identifier(self.identifier)]
         specimen.subject = FHIRReference()
         specimen.subject.reference = f"Patient/{subject_fhir_id}"
-        extensions: list[Extension] = []
-        specimen.type = self.__create_specimen_type()
+        specimen.type = create_codeable_concept(DEFINITION_BASE_URL + "/ValueSet/miabis-material-type-VS",
+                                                self.material_type)
         if self.collected_datetime is not None or self.body_site is not None:
             specimen.collection = SpecimenCollection()
             if self.collected_datetime is not None:
@@ -203,26 +202,14 @@ class Sample:
                 specimen.collection.bodySite = self.__create_body_site()
         if self.storage_temperature is not None:
             specimen.processing = [SpecimenProcessing()]
-            specimen.processing[0].extension = [self.__create_storage_temperature_extension()]
-            extensions.append(self.__create_storage_temperature_extension())
+            specimen.processing[0].extension = [
+                create_codeable_concept_extension(
+                    DEFINITION_BASE_URL + "/StructureDefinition/miabis-sample-storage-temperature-extension",
+                    DEFINITION_BASE_URL + "/StorageTemperatureCS", self.storage_temperature.value)]
         if self.use_restrictions is not None:
             specimen.note = [Annotation()]
             specimen.note[0].text = self.use_restrictions
         return specimen
-
-    def __create_fhir_identifier(self):
-        """Create fhir identifier."""
-        fhir_identifier = Identifier()
-        fhir_identifier.value = self.identifier
-        return [fhir_identifier]
-
-    def __create_specimen_type(self) -> CodeableConcept:
-        """Create specimen type codeable concept."""
-        specimen_type = CodeableConcept()
-        specimen_type.coding = [Coding()]
-        specimen_type.coding[0].code = self._material_type
-        specimen_type.coding[0].system = DEFINITION_BASE_URL + "/ValueSet/miabis-material-type-VS"
-        return specimen_type
 
     def __create_body_site(self) -> CodeableConcept:
         """Create body site codeable concept."""
@@ -232,12 +219,3 @@ class Sample:
         if self.body_site_system is not None:
             body_site.coding[0].system = self.body_site_system
         return body_site
-
-    def __create_storage_temperature_extension(self):
-        """Create storage temperature extension."""
-        storage_temperature_extension: Extension = Extension()
-        storage_temperature_extension.url = DEFINITION_BASE_URL + "/StructureDefinition/StorageTemperature"
-        storage_temperature_extension.valueCodeableConcept = CodeableConcept()
-        storage_temperature_extension.valueCodeableConcept.coding = [Coding()]
-        storage_temperature_extension.valueCodeableConcept.coding[0].code = self.storage_temperature.value
-        return storage_temperature_extension
