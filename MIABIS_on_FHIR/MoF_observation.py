@@ -1,17 +1,17 @@
 from typing import Self
 
+import fhirclient.models.observation as fhir_observation
 import simple_icd_10 as icd10
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
-from fhirclient.models.observation import Observation
 
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
-class MoFObservation:
+class Observation:
     """Class representing Observation containing an ICD-10 code of deasese as defined by the MIABIS on FHIR profile."""
 
     def __init__(self, icd10_code: str, sample_identifier: str):
@@ -56,12 +56,12 @@ class MoFObservation:
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFObservation")
 
-    def to_fhir(self) -> Observation:
+    def to_fhir(self) -> fhir_observation.Observation:
         """Converts the observation to a FHIR object.
         :param sample_fhir_id: FHIR identifier of the sample (often given by the server).
         :return: Observation
         """
-        observation = Observation()
+        observation = fhir_observation.Observation()
         observation.meta = Meta()
         observation.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Observation"]
         observation.identifier = self.__create_fhir_identifier(self._sample_identifier)
@@ -76,6 +76,7 @@ class MoFObservation:
         code.coding[0].code = "sample_diagnosis"
         code.coding[0].system = DEFINITION_BASE_URL + "/observationName"
         return code
+
     def __create_icd_10_code(self):
         code = CodeableConcept()
         code.coding = [Coding()]

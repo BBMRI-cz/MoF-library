@@ -14,5 +14,20 @@ This Python package provides a set of classes that can be used to create, read, 
 This package aims to allow developers to easily work with MIABIS on FHIR resources in Python, while ensuring that the resources are compliant with the MIABIS on FHIR profile.
 
 ## Installation
-
+```bash 
+pip install MIABIS_on_FHIR
+```
 ## How to use
+Here is how you can create a MIABIS on FHIR sample resource:
+
+```python
+from MIABIS_on_FHIR.MoF_sample import Sample
+from MIABIS_on_FHIR.storage_temperature import StorageTemperature
+
+sample = Sample("sampleId", "donorId", "Blood", storage_temperature=StorageTemperature.TEMPERATURE_GN,
+                use_restrictions="No restrictions")
+# Convert the MoFSample object to a FHIR resource
+sample_resource = sample.to_fhir("donorId")
+# Convert the FHIR resource to a JSON string
+sample_json = sample_resource.to_json()
+```

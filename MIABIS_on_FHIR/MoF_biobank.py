@@ -10,12 +10,13 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization, OrganizationContact
 
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from MIABIS_on_FHIR._constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
+from MIABIS_on_FHIR._constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
+    BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
     BIOBANK_ORGANISATIONAL_CAPABILITIES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
-class MoFBiobank:
+class Biobank:
     """Class representing a biobank as defined by the MIABIS on FHIR profile."""
 
     def __init__(self, identifier: str, name: str, alias: str, country: str, contact_name: str, contact_surname: str,

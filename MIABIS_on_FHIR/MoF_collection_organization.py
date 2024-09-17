@@ -12,12 +12,12 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization, OrganizationContact
 
+from MIABIS_on_FHIR._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, \
+    COLLECTION_SAMPLE_SOURCE, COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS, DEFINITION_BASE_URL
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from MIABIS_on_FHIR._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, COLLECTION_SAMPLE_SOURCE, \
-    COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS, DEFINITION_BASE_URL
 
 
-class MoFCollectionOrganization:
+class CollectionOrganization:
     """Sample Collection represents a set of samples with at least one common characteristic."""
 
     # TODO age range units

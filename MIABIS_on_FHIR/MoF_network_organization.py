@@ -11,12 +11,13 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization, OrganizationContact
 
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR._constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
-class MoFNetworkOrganization:
-    """Network Organization represent a formal part of a network member, like ist name, contact information, url, etc."""
+class NetworkOrganization:
+    """Network Organization represent a formal part of a network member,
+     like ist name, contact information, url, etc."""
 
     def __init__(self, identifier: str, name: str, managing_biobank_id: str,
                  contact_name: str = None, contact_surname: str = None, contact_email: str = None, country: str = None,

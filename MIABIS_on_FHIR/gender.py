@@ -2,7 +2,7 @@
 from enum import Enum
 
 
-class MoFGender(Enum):
+class Gender(Enum):
     """Enum for expressing patient's gender"""
     MALE = 1
     FEMALE = 2
@@ -22,13 +22,13 @@ class MoFGender(Enum):
             raise ValueError(f"'{value}' is not a valid gender")
 
 
-def get_gender_from_abbreviation(gender: str) -> MoFGender:
+def get_gender_from_abbreviation(gender: str) -> Gender:
     match gender.upper():
         case "F":
-            return MoFGender.FEMALE
+            return Gender.FEMALE
         case "M":
-            return MoFGender.MALE
+            return Gender.MALE
         case "O":
-            return MoFGender.OTHER
+            return Gender.OTHER
         case _:
-            return MoFGender.UNKNOWN
+            return Gender.UNKNOWN
