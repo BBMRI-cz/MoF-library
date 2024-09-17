@@ -4,10 +4,10 @@ import fhirclient.models.observation as fhir_observation
 import simple_icd_10 as icd10
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
-from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR._util import create_fhir_identifier
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
@@ -64,7 +64,7 @@ class Observation:
         observation = fhir_observation.Observation()
         observation.meta = Meta()
         observation.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Observation"]
-        observation.identifier = self.__create_fhir_identifier(self._sample_identifier)
+        observation.identifier = [create_fhir_identifier(self._sample_identifier)]
         observation.status = "final"
         observation.code = self.__create_sample_diangosis_code()
         observation.valueCodeableConcept = self.__create_icd_10_code()
@@ -90,9 +90,3 @@ class Observation:
         if len(code) == 4 and "." not in code:
             return code[:3] + '.' + code[3:]
         return code
-
-    def __create_fhir_identifier(self, sample_fhir_id: str) -> list[Identifier]:
-        """Create fhir identifier."""
-        fhir_identifier = Identifier()
-        fhir_identifier.value = sample_fhir_id
-        return [fhir_identifier]

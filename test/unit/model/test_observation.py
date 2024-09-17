@@ -1,6 +1,6 @@
 import unittest
 
-from MIABIS_on_FHIR.MoF_observation import Observation
+from MIABIS_on_FHIR.observation import Observation
 
 
 class TestObservation(unittest.TestCase):
