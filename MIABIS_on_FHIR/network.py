@@ -1,14 +1,12 @@
 from typing import Self
 
-from fhirclient.models.codeableconcept import CodeableConcept
-from fhirclient.models.coding import Coding
 from fhirclient.models.extension import Extension
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.group import Group
-from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR._util import create_fhir_identifier
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
@@ -48,7 +46,6 @@ class Network:
         self._managing_biobank_id = network_org_id
         self._members_collections_ids = members_collections_ids
         self._members_biobanks_ids = members_biobanks_ids
-
 
     @property
     def identifier(self) -> str:
@@ -117,11 +114,11 @@ class Network:
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFNetwork")
 
-    def to_fhir(self, network_organization_fhir_id: str,member_collection_fhir_ids, member_biobank_fhir_ids) -> Group:
+    def to_fhir(self, network_organization_fhir_id: str, member_collection_fhir_ids, member_biobank_fhir_ids) -> Group:
         network = Group()
         network.meta = Meta()
         network.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Network"]
-        network.identifier = [self.__create_identifier()]
+        network.identifier = [create_fhir_identifier(self.identifier)]
         network.name = self._name
         network.active = True
         network.actual = True
@@ -135,24 +132,10 @@ class Network:
             network.extension.append(self.__create_member_extension("Organization", member_biobank_fhir_id))
         return network
 
-    def __create_identifier(self):
-        identifier = Identifier()
-        identifier.system = DEFINITION_BASE_URL + "/network"
-        identifier.value = self._identifier
-        return identifier
-
-    def __create_member_extension(self, member_type: str, member_fhir_id: str):
+    @staticmethod
+    def __create_member_extension(member_type: str, member_fhir_id: str):
         extension = Extension()
         extension.url = "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity"
         extension.valueReference = FHIRReference()
         extension.valueReference.reference = f"{member_type}/{member_fhir_id}"
-        return extension
-
-    def __create_extension(self, url: str, value: str):
-        extension = Extension()
-        extension.url = url
-        extension.valueCodeableConcept = CodeableConcept()
-        extension.valueCodeableConcept.coding = [Coding()]
-        extension.valueCodeableConcept.coding[0].code = value
-        extension.valueCodeableConcept.coding[0].system = DEFINITION_BASE_URL + "/common-collaboration-topics-vs"
         return extension
