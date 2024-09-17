@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from MIABIS_on_FHIR.MoF_sample import Sample
+from MIABIS_on_FHIR.sample import Sample
 from MIABIS_on_FHIR.storage_temperature import StorageTemperature
 
 
