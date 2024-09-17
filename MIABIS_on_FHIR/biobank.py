@@ -1,14 +1,7 @@
 from typing import Self
 
-from fhirclient.models.address import Address
-from fhirclient.models.codeableconcept import CodeableConcept
-from fhirclient.models.coding import Coding
-from fhirclient.models.contactpoint import ContactPoint
-from fhirclient.models.extension import Extension
-from fhirclient.models.humanname import HumanName
-from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
-from fhirclient.models.organization import Organization, OrganizationContact
+from fhirclient.models.organization import Organization
 
 from MIABIS_on_FHIR._constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
     BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
