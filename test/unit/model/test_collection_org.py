@@ -1,6 +1,6 @@
 import unittest
 
-from MIABIS_on_FHIR.MoF_collection_organization import CollectionOrganization
+from MIABIS_on_FHIR.collection_organization import CollectionOrganization
 
 
 class TestCollectionOrganization(unittest.TestCase):
@@ -369,7 +369,7 @@ class TestCollectionOrganization(unittest.TestCase):
         self.assertEqual("contactName", collection_org_fhir.contact[0].name.given[0])
         self.assertEqual("contactSurname", collection_org_fhir.contact[0].name.family)
         self.assertEqual("contactEmail", collection_org_fhir.contact[0].telecom[0].value)
-        self.assertEqual("cz", collection_org_fhir.contact[0].address.country)
+        self.assertEqual("cz", collection_org_fhir.address.country)
 
     def test_collection_org_to_fhir_optional_params_ok(self):
         collection_org = CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",

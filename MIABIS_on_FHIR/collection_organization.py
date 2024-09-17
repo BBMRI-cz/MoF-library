@@ -1,19 +1,15 @@
 """Module for handling SampleCollection operations"""
 from typing import Self
 
-from fhirclient.models.address import Address
-from fhirclient.models.codeableconcept import CodeableConcept
-from fhirclient.models.coding import Coding
 from fhirclient.models.contactpoint import ContactPoint
-from fhirclient.models.extension import Extension
 from fhirclient.models.fhirreference import FHIRReference
-from fhirclient.models.humanname import HumanName
-from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
-from fhirclient.models.organization import Organization, OrganizationContact
+from fhirclient.models.organization import Organization
 
 from MIABIS_on_FHIR._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, \
     COLLECTION_SAMPLE_SOURCE, COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._util import create_country_of_residence, create_contact, create_codeable_concept_extension, \
+    create_string_extension, create_fhir_identifier, create_codeable_concept
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
@@ -40,6 +36,7 @@ class CollectionOrganization:
         :param contact_name: Name of the contact person for the collection.
         :param contact_surname: Surname of the contact person for the collection.
         :param contact_email: Email of the contact person for the collection.
+        :param country: Country of the collection.
         :param alias: Alias of the collection.
         :param url: URL of the collection.
         :param description: Description of the collection.
@@ -357,8 +354,8 @@ class CollectionOrganization:
         fhir_org = Organization()
         fhir_org.meta = Meta()
         fhir_org.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Collection"]
-        fhir_org.identifier = [self.__create_fhir_identifier()]
-        fhir_org.type = [self.__create_codeable_concept(DEFINITION_BASE_URL + "/organizationTypeCS", "Collection")]
+        fhir_org.identifier = [create_fhir_identifier(self.identifier)]
+        fhir_org.type = [create_codeable_concept(DEFINITION_BASE_URL + "/organizationTypeCS", "Collection")]
         fhir_org.active = True
         fhir_org.name = self.name
         if self.alias is not None:
@@ -366,103 +363,54 @@ class CollectionOrganization:
         if self.url is not None:
             fhir_org.telecom = [self.create_url(self.url)]
         if self.contact_name or self.contact_surname or self.contact_email:
-            fhir_org.contact = [self.__create_contact()]
+            fhir_org.contact = [create_contact(self.contact_name, self._contact_surname, self._contact_email)]
+            fhir_org.address = create_country_of_residence(self.country)
         fhir_org.partOf = self.__create_managing_entity_reference(managing_organization_fhir_id)
         extensions = []
         if self.dataset_type is not None:
-            extensions.append(self.__create_codeable_concept_extension(
+            extensions.append(create_codeable_concept_extension(
                 DEFINITION_BASE_URL + "/StructureDefinition/dataset-type-extension",
                 DEFINITION_BASE_URL + "/datasetTypeCS",
                 self.dataset_type))
         if self.sample_source is not None:
-            extensions.append(self.__create_codeable_concept_extension(
+            extensions.append(create_codeable_concept_extension(
                 DEFINITION_BASE_URL + "/StructureDefinition/sample-source-extension",
                 DEFINITION_BASE_URL + "/sampleSourceCS",
                 self.sample_source))
         if self.sample_collection_setting is not None:
-            extensions.append(self.__create_codeable_concept_extension(
+            extensions.append(create_codeable_concept_extension(
                 DEFINITION_BASE_URL + "/StructureDefinition/sample-collection-setting-extension",
                 DEFINITION_BASE_URL + "/sampleCollectionSettingCS", self.sample_collection_setting))
         if self.collection_design is not None:
             for design in self.collection_design:
-                extensions.append(self.__create_codeable_concept_extension(
+                extensions.append(create_codeable_concept_extension(
                     DEFINITION_BASE_URL + "/StructureDefinition/collection-design-extension",
                     DEFINITION_BASE_URL + "/collectionDesignCS", design))
         if self.use_and_access_conditions is not None:
             for condition in self.use_and_access_conditions:
-                extensions.append(self.__create_codeable_concept_extension(
+                extensions.append(create_codeable_concept_extension(
                     DEFINITION_BASE_URL + "/StructureDefinition/use-and-access-conditions-extension",
                     DEFINITION_BASE_URL + "/useAndAccessConditionsCS", condition))
         if self.publications is not None:
             for publication in self.publications:
-                extensions.append(self.__create_string_extension(
+                extensions.append(create_string_extension(
                     DEFINITION_BASE_URL + "/StructureDefinition/publication-extension", publication))
         if self.description is not None:
-            extensions.append(self.__create_string_extension(
+            extensions.append(create_string_extension(
                 DEFINITION_BASE_URL + "/StructureDefinition/description-extension", self.description))
         if extensions:
             fhir_org.extension = extensions
         return fhir_org
 
-    def create_url(self, url: str) -> ContactPoint:
+    @staticmethod
+    def create_url(url: str) -> ContactPoint:
         contact_point = ContactPoint()
         contact_point.system = "url"
         contact_point.value = url
         return contact_point
 
-    def __create_contact(self) -> OrganizationContact:
-        contact = OrganizationContact()
-        contact.name = HumanName()
-        contact.name.given = [self.contact_name]
-        contact.name.family = self.contact_surname
-        contact.telecom = [ContactPoint()]
-        contact.telecom[0].system = "email"
-        contact.telecom[0].value = self.contact_email
-        contact.address = Address()
-        contact.address.country = self._country
-        return contact
-
     @staticmethod
-    def __create_codeable_concept(url: str, code: str):
-        codeable_concept = CodeableConcept()
-        codeable_concept.coding = [Coding()]
-        codeable_concept.coding[0].code = code
-        codeable_concept.coding[0].system = url
-        return codeable_concept
-
-    @staticmethod
-    def __create_managing_entity_reference(managing_ogranization_fhir_id: str) -> FHIRReference:
+    def __create_managing_entity_reference(managing_organization_fhir_id: str) -> FHIRReference:
         entity_reference = FHIRReference()
-        entity_reference.reference = f"Organization/{managing_ogranization_fhir_id}"
+        entity_reference.reference = f"Organization/{managing_organization_fhir_id}"
         return entity_reference
-
-    def __create_fhir_identifier(self) -> Identifier:
-        """Create fhir identifier."""
-        fhir_identifier = Identifier()
-        fhir_identifier.value = self._identifier
-        return fhir_identifier
-
-    @staticmethod
-    def __create_codeable_concept_extension(extension_url: str, codeable_concept_url: str,
-                                            value: str) -> Extension:
-        extension = Extension()
-        extension.url = extension_url
-        extension.valueCodeableConcept = CodeableConcept()
-        extension.valueCodeableConcept.coding = [Coding()]
-        extension.valueCodeableConcept.coding[0].code = value
-        extension.valueCodeableConcept.coding[0].system = codeable_concept_url
-        return extension
-
-    @staticmethod
-    def __create_integer_extension(extension_url, value) -> Extension:
-        extension = Extension()
-        extension.url = extension_url
-        extension.valueInteger = value
-        return extension
-
-    @staticmethod
-    def __create_string_extension(extension_url, value) -> Extension:
-        extension = Extension()
-        extension.url = extension_url
-        extension.valueString = value
-        return extension
