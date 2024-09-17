@@ -1,15 +1,13 @@
 from datetime import datetime
 from typing import Self
 
-from fhirclient.models.codeableconcept import CodeableConcept
-from fhirclient.models.coding import Coding
 from fhirclient.models.extension import Extension
 from fhirclient.models.fhirdate import FHIRDate
-from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.patient import Patient
 
 from MIABIS_on_FHIR._constants import DONOR_DATASET_TYPE, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._util import create_fhir_identifier, create_codeable_concept_extension
 from MIABIS_on_FHIR.gender import Gender
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
@@ -110,7 +108,7 @@ class SampleDonor:
         fhir_patient = Patient()
         fhir_patient.meta = Meta()
         fhir_patient.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Patient"]
-        fhir_patient.identifier = self.__create_fhir_identifier()
+        fhir_patient.identifier = [create_fhir_identifier(self.identifier)]
         extensions: list[Extension] = []
         if self.gender is not None:
             fhir_patient.gender = self._gender.name.lower()
@@ -118,21 +116,9 @@ class SampleDonor:
             fhir_patient.birthDate = FHIRDate()
             fhir_patient.birthDate.date = self.date_of_birth.date()
         if self.dataset_type is not None:
-            extensions.append(self.__create_dataset_extension())
+            extensions.append(
+                create_codeable_concept_extension(DEFINITION_BASE_URL + "/StructureDefinition/dataset-type-extension",
+                                                  DEFINITION_BASE_URL + "/dataset-type-vs", self.dataset_type))
         if extensions:
             fhir_patient.extension = extensions
         return fhir_patient
-
-    def __create_fhir_identifier(self):
-        """Create fhir identifier"""
-        fhir_identifier = Identifier()
-        fhir_identifier.value = self.identifier
-        return [fhir_identifier]
-
-    def __create_dataset_extension(self):
-        fhir_dataset: Extension = Extension()
-        fhir_dataset.url = DEFINITION_BASE_URL + "/StructureDefinition/datasetType"
-        fhir_dataset.valueCodeableConcept = CodeableConcept()
-        fhir_dataset.valueCodeableConcept.coding = [Coding()]
-        fhir_dataset.valueCodeableConcept.coding[0].code = self.dataset_type
-        return fhir_dataset
