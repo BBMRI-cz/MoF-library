@@ -1,6 +1,6 @@
 import unittest
 
-from MIABIS_on_FHIR.MoF_network_organization import MoFNetworkOrganization
+from MIABIS_on_FHIR.MoF_network_organization import NetworkOrganization
 
 
 class TestNetworkOrganization(unittest.TestCase):
@@ -16,16 +16,16 @@ class TestNetworkOrganization(unittest.TestCase):
                         'resourceType': 'Organization'}
 
     def test_network_org_required_params_init(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
-        self.assertIsInstance(network_org, MoFNetworkOrganization)
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        self.assertIsInstance(network_org, NetworkOrganization)
         self.assertEqual("networkOrgId", network_org.identifier)
         self.assertEqual("networkOrgName", network_org.name)
         self.assertEqual("biobankId", network_org.managing_biobank_id)
 
     def test_network_org_optional_params_init(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
                                              "contactSurname", "contactEmail", "country", ["Charter"], "juristicPerson")
-        self.assertIsInstance(network_org, MoFNetworkOrganization)
+        self.assertIsInstance(network_org, NetworkOrganization)
         self.assertEqual("networkOrgId", network_org.identifier)
         self.assertEqual("networkOrgName", network_org.name)
         self.assertEqual("biobankId", network_org.managing_biobank_id)
@@ -38,153 +38,153 @@ class TestNetworkOrganization(unittest.TestCase):
 
     def test_network_org_invalid_identifier_type_innit(self):
         with self.assertRaises(TypeError):
-            network_org = MoFNetworkOrganization(37, "networkOrgName", "biobankId")
+            network_org = NetworkOrganization(37, "networkOrgName", "biobankId")
 
     def test_network_org_invalid_name_type_innit(self):
         with self.assertRaises(TypeError):
-            network_org = MoFNetworkOrganization("networkOrgId", 22, "biobankId")
+            network_org = NetworkOrganization("networkOrgId", 22, "biobankId")
 
     def test_network_org_invalid_managing_biobank_id_type_innit(self):
         with self.assertRaises(TypeError):
-            network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", 22)
+            network_org = NetworkOrganization("networkOrgId", "networkOrgName", 22)
 
     def test_network_org_invalid_contact_name_type_innit(self):
         with self.assertRaises(TypeError):
-            network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", 22)
+            network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", 22)
 
     def test_network_org_invalid_contact_surname_type_innit(self):
         with self.assertRaises(TypeError):
-            network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName", 22)
+            network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName", 22)
 
     def test_network_org_invalid_contact_email_type_innit(self):
         with self.assertRaises(TypeError):
-            network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
+            network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
                                                  "contactSurname", 22)
 
     def test_network_org_invalid_country_type_innit(self):
         with self.assertRaises(TypeError):
-            network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
+            network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
                                                  "contactSurname", "contactEmail", 22)
 
     def test_network_org_invalid_common_collaboration_topics_type_innit(self):
         with self.assertRaises(TypeError):
-            network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
+            network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
                                                  "contactSurname", "contactEmail", "country", 22)
 
     def test_network_org_invalid_common_collaboration_topics_value_innit(self):
         with self.assertRaises(ValueError):
-            network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
+            network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
                                                  "contactSurname", "contactEmail", "country", ["invalidTopic"])
 
     def test_network_org_invalid_juristic_person_type_innit(self):
         with self.assertRaises(TypeError):
-            network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
+            network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
                                                  "contactSurname", "contactEmail", "country", ["Charter"], 22)
 
     def test_network_org_set_identifier_ok(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org.identifier = "newId"
         self.assertEqual("newId", network_org.identifier)
 
     def test_network_org_set_identifier_invalid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(TypeError):
             network_org.identifier = 37
 
     def test_network_org_set_name_ok(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org.name = "newName"
         self.assertEqual("newName", network_org.name)
 
     def test_network_org_set_name_invalid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(TypeError):
             network_org.name = 37
 
     def test_network_org_set_managing_biobank_id_ok(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org.managing_biobank_id = "newId"
         self.assertEqual("newId", network_org.managing_biobank_id)
 
     def test_network_org_set_managing_biobank_id_invalid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(TypeError):
             network_org.managing_biobank_id = 37
 
     def test_network_org_set_contact_name_ok(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org.contact_name = "newName"
         self.assertEqual("newName", network_org.contact_name)
 
     def test_network_org_set_contact_name_invalid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(TypeError):
             network_org.contact_name = 37
 
     def test_network_org_set_contact_surname_ok(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org.contact_surname = "newName"
         self.assertEqual("newName", network_org.contact_surname)
 
     def test_network_org_set_contact_surname_invalid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(TypeError):
             network_org.contact_surname = 37
 
     def test_network_org_set_contact_email_ok(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org.contact_email = "newName"
         self.assertEqual("newName", network_org.contact_email)
 
     def test_network_org_set_contact_email_invalid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(TypeError):
             network_org.contact_email = 37
 
     def test_network_org_set_country_ok(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org.country = "newName"
         self.assertEqual("newName", network_org.country)
 
     def test_network_org_set_country_invalid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(TypeError):
             network_org.country = 37
 
     def test_network_org_set_common_collaboration_topics_valid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org.common_collaboration_topics = ["SOP"]
         self.assertEqual(["SOP"], network_org.common_collaboration_topics)
 
     def test_network_org_set_common_collaboration_topics_invalid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(TypeError):
             network_org.common_collaboration_topics = 33
 
     def test_network_org_set_common_collaboration_topics_invalid_value(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(ValueError):
             network_org.common_collaboration_topics = ["invalidTopic"]
 
     def test_network_org_set_juristic_person_ok(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org.juristic_person = "newName"
         self.assertEqual("newName", network_org.juristic_person)
 
     def test_network_org_set_juristic_person_invalid(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         with self.assertRaises(TypeError):
             network_org.juristic_person = 37
 
     def test_network_org_to_fhir(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         network_org_fhir = network_org.to_fhir("biobankFhirId")
         self.assertEqual("networkOrgId", network_org_fhir.identifier[0].value)
         self.assertEqual("networkOrgName", network_org_fhir.name)
         self.assertEqual("Organization/biobankFhirId", network_org_fhir.partOf.reference)
 
     def test_network_org_to_fhir_optional_params(self):
-        network_org = MoFNetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
+        network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
                                              "contactSurname", "contactEmail", "country", ["Charter"], "juristicPerson")
         network_org_fhir = network_org.to_fhir("biobankFhirId")
         self.assertEqual("networkOrgId", network_org_fhir.identifier[0].value)
@@ -198,7 +198,7 @@ class TestNetworkOrganization(unittest.TestCase):
         self.assertEqual("juristicPerson", network_org_fhir.extension[1].valueString)
 
     def test_network_org_from_json(self):
-        network_org = MoFNetworkOrganization.from_json(self.network_org_json, "biobankId")
+        network_org = NetworkOrganization.from_json(self.network_org_json, "biobankId")
         self.assertEqual("networkOrgId", network_org.identifier)
         self.assertEqual("networkOrgName", network_org.name)
         self.assertEqual("biobankId", network_org.managing_biobank_id)

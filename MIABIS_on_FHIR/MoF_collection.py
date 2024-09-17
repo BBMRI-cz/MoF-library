@@ -12,10 +12,10 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
-from MIABIS_on_FHIR.gender import MoFGender
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
 from MIABIS_on_FHIR._constants import COLLECTION_INCLUSION_CRITERIA, MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR.gender import Gender
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from MIABIS_on_FHIR.storage_temperature import StorageTemperature
 
 
 class MoFCollection:
@@ -24,7 +24,7 @@ class MoFCollection:
     # TODO age range units
     def __init__(self, identifier: str, name: str, managing_collection_org_id: str,
                  age_range_low: int,
-                 age_range_high: int, genders: list[MoFGender], storage_temperatures: list[MoFStorageTemperature],
+                 age_range_high: int, genders: list[Gender], storage_temperatures: list[StorageTemperature],
                  material_types: list[str], diagnoses: list[str] = None, number_of_subjects: int = None,
                  inclusion_criteria: list[str] = None, sample_ids: list[str] = None, ):
         """
@@ -54,10 +54,10 @@ class MoFCollection:
         if not isinstance(age_range_high, int):
             raise TypeError("Age range high must be an integer.")
         for gender in genders:
-            if not isinstance(gender, MoFGender):
+            if not isinstance(gender, Gender):
                 raise TypeError("Gender in the list must be an instance of MoFGender.")
         for storage_temperature in storage_temperatures:
-            if not isinstance(storage_temperature, MoFStorageTemperature):
+            if not isinstance(storage_temperature, StorageTemperature):
                 raise TypeError("Storage temperature in the list must be an instance of MoFStorageTemperature.")
         for material_type in material_types:
             if material_type not in MATERIAL_TYPE_CODES:
@@ -144,24 +144,24 @@ class MoFCollection:
         self._age_range_high = age_range_high
 
     @property
-    def genders(self) -> list[MoFGender]:
+    def genders(self) -> list[Gender]:
         return self._genders
 
     @genders.setter
-    def genders(self, genders: list[MoFGender]):
+    def genders(self, genders: list[Gender]):
         for gender in genders:
-            if not isinstance(gender, MoFGender):
+            if not isinstance(gender, Gender):
                 raise TypeError("Gender must be an MoFGender")
         self._genders = genders
 
     @property
-    def storage_temperatures(self) -> list[MoFStorageTemperature]:
+    def storage_temperatures(self) -> list[StorageTemperature]:
         return self._storage_temperatures
 
     @storage_temperatures.setter
-    def storage_temperatures(self, storage_temperatures: list[MoFStorageTemperature]):
+    def storage_temperatures(self, storage_temperatures: list[StorageTemperature]):
         for storage_temperature in storage_temperatures:
-            if not isinstance(storage_temperature, MoFStorageTemperature):
+            if not isinstance(storage_temperature, StorageTemperature):
                 raise TypeError("Storage temperature must be an MoFStorageTemperature")
         self._storage_temperatures = storage_temperatures
 
@@ -241,9 +241,9 @@ class MoFCollection:
                         age_range_high = characteristic["valueRange"]["high"]["value"]
                     case "Sex":
                         genders.append(
-                            MoFGender.from_string(characteristic["valueCodeableConcept"]["coding"][0]["code"]))
+                            Gender.from_string(characteristic["valueCodeableConcept"]["coding"][0]["code"]))
                     case "StorageTemperature":
-                        storage_temperatures.append(MoFStorageTemperature(
+                        storage_temperatures.append(StorageTemperature(
                             characteristic["valueCodeableConcept"]["coding"][0]["code"]))
                     case "MaterialType":
                         material_types.append(characteristic["valueCodeableConcept"]["coding"][0]["code"])
@@ -341,7 +341,7 @@ class MoFCollection:
         return sex_characteristic
 
     def __create_storage_temperature_characteristic(self,
-                                                    storage_temperature: MoFStorageTemperature) -> GroupCharacteristic:
+                                                    storage_temperature: StorageTemperature) -> GroupCharacteristic:
         storage_temperature_characteristic = GroupCharacteristic()
         storage_temperature_characteristic.exclude = False
         storage_temperature_characteristic.code = self.__create_codeable_concept(

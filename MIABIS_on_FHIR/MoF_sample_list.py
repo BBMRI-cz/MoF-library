@@ -5,8 +5,9 @@ from fhirclient.models.meta import Meta
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
 
 
-class MoFSampleList:
+class SampleList:
     """Class representing a list of specimens in a collection."""
+
     def __init__(self, collection_identifier: str, specimen_identifiers: list[str], name: str = None):
         """
         :param name: Name of the specimen list

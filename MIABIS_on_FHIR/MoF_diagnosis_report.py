@@ -7,11 +7,11 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
-class MoFDiagnosisReport:
+class DiagnosisReport:
     """Class representing a diagnosis report in order to link a specimen to a Condition through this diagnosis report.
     as defined by the MIABIS on FHIR profile.
     """

@@ -9,15 +9,15 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.patient import Patient
 
-from MIABIS_on_FHIR.gender import MoFGender
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR._constants import DONOR_DATASET_TYPE, DEFINITION_BASE_URL
+from MIABIS_on_FHIR.gender import Gender
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
-class MoFSampleDonor:
+class SampleDonor:
     """Class representing a sample donor/patient as defined by the MIABIS on FHIR profile."""
 
-    def __init__(self, identifier: str, gender: MoFGender = None, birth_date: datetime = None,
+    def __init__(self, identifier: str, gender: Gender = None, birth_date: datetime = None,
                  dataset_type: str = None):
         """
         :param identifier: Sample donor identifier
@@ -28,8 +28,8 @@ class MoFSampleDonor:
         if not isinstance(identifier, str):
             raise TypeError("Identifier must be string")
         self._identifier = identifier
-        if gender is not None and not isinstance(gender, MoFGender):
-            raise TypeError("Gender must be from a list of values: " + str(MoFGender.list()))
+        if gender is not None and not isinstance(gender, Gender):
+            raise TypeError("Gender must be from a list of values: " + str(Gender.list()))
         self._gender = gender
         if birth_date is not None and not isinstance(birth_date, datetime):
             raise TypeError("Date of birth must be a datetime.")
@@ -44,7 +44,7 @@ class MoFSampleDonor:
         return self._identifier
 
     @property
-    def gender(self) -> MoFGender:
+    def gender(self) -> Gender:
         return self._gender
 
     @identifier.setter
@@ -54,9 +54,9 @@ class MoFSampleDonor:
         self._identifier = identifier
 
     @gender.setter
-    def gender(self, gender: MoFGender):
-        if not isinstance(gender, MoFGender):
-            raise TypeError("Gender must be from a list of values: " + str(MoFGender.list()))
+    def gender(self, gender: Gender):
+        if not isinstance(gender, Gender):
+            raise TypeError("Gender must be from a list of values: " + str(Gender.list()))
         self._gender = gender
 
     @property
@@ -95,7 +95,7 @@ class MoFSampleDonor:
             birth_date = None
             dataset_type = None
             if donor_json.get("gender") is not None:
-                gender = MoFGender.from_string(donor_json["gender"])
+                gender = Gender.from_string(donor_json["gender"])
             if donor_json.get("birthDate") is not None:
                 date_string = donor_json["birthDate"]
                 birth_date = datetime.strptime(date_string, "%Y-%m-%d")

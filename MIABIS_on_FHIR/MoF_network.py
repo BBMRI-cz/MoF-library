@@ -8,11 +8,11 @@ from fhirclient.models.group import Group
 from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
-class MoFNetwork:
+class Network:
     """Class representing a group of interconnected biobanks or collections with defined common governance"""
 
     def __init__(self, identifier: str, name: str, network_org_id: str, members_collections_ids: list[str] = None,

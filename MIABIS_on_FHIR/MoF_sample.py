@@ -11,16 +11,16 @@ from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from MIABIS_on_FHIR.storage_temperature import MoFStorageTemperature
 from MIABIS_on_FHIR._constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from MIABIS_on_FHIR.storage_temperature import StorageTemperature
 
 
-class MoFSample:
+class Sample:
     """Class representing a biological specimen as defined by the MIABIS on FHIR profile."""
 
     def __init__(self, identifier: str, donor_identifier: str, material_type: str, collected_datetime: datetime = None,
-                 body_site: str = None, body_site_system: str = None, storage_temperature: MoFStorageTemperature = None,
+                 body_site: str = None, body_site_system: str = None, storage_temperature: StorageTemperature = None,
                  use_restrictions: str = None):
         """
         :param identifier: Sample organizational identifier
@@ -50,7 +50,7 @@ class MoFSample:
         if body_site_system is not None and not isinstance(body_site_system, str):
             raise TypeError("Body site system must be a string")
         self._body_site_system = body_site_system
-        if storage_temperature is not None and not isinstance(storage_temperature, MoFStorageTemperature):
+        if storage_temperature is not None and not isinstance(storage_temperature, StorageTemperature):
             raise TypeError("Storage temperature must be a StorageTemperature object")
         self._storage_temperature = storage_temperature
         if use_restrictions is not None and not isinstance(use_restrictions, str):
@@ -124,13 +124,13 @@ class MoFSample:
         self._body_site_system = body_site_system
 
     @property
-    def storage_temperature(self) -> MoFStorageTemperature:
+    def storage_temperature(self) -> StorageTemperature:
         """Temperature at which the sample is stored."""
         return self._storage_temperature
 
     @storage_temperature.setter
-    def storage_temperature(self, storage_temperature: MoFStorageTemperature):
-        if storage_temperature is not None and not isinstance(storage_temperature, MoFStorageTemperature):
+    def storage_temperature(self, storage_temperature: StorageTemperature):
+        if storage_temperature is not None and not isinstance(storage_temperature, StorageTemperature):
             raise TypeError("Storage temperature must be a StorageTemperature object")
         self._storage_temperature = storage_temperature
 
@@ -170,8 +170,9 @@ class MoFSample:
                     body_site = collection["bodySite"]["coding"][0]["code"]
                     body_site_system = collection["bodySite"]["coding"][0]["system"]
             if sample_json.get("processing") is not None:
-                storage_temperature_string = sample_json["processing"][0]["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
-                storage_temperature = MoFStorageTemperature(storage_temperature_string)
+                storage_temperature_string = \
+                sample_json["processing"][0]["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
+                storage_temperature = StorageTemperature(storage_temperature_string)
             if sample_json.get("note") is not None:
                 use_restrictions = sample_json["note"][0]["text"]
             return cls(identifier, donor_identifier, material_type, collected_datetime, body_site, body_site_system,
