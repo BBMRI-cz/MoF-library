@@ -4,17 +4,17 @@ import time
 
 import requests
 
-from MIABIS_on_FHIR.MoF_biobank import Biobank
-from MIABIS_on_FHIR.MoF_collection import MoFCollection
-from MIABIS_on_FHIR.MoF_collection_organization import CollectionOrganization
-from MIABIS_on_FHIR.MoF_condition import Condition
-from MIABIS_on_FHIR.MoF_diagnosis_report import DiagnosisReport
-from MIABIS_on_FHIR.MoF_network import Network
+from MIABIS_on_FHIR.biobank import Biobank
+from MIABIS_on_FHIR.collection import MoFCollection
+from MIABIS_on_FHIR.collection_organization import CollectionOrganization
+from MIABIS_on_FHIR.condition import Condition
+from MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
+from MIABIS_on_FHIR.network import Network
 from MIABIS_on_FHIR.MoF_network_members import MoFNetworkMembers
-from MIABIS_on_FHIR.MoF_network_organization import NetworkOrganization
-from MIABIS_on_FHIR.MoF_observation import Observation
-from MIABIS_on_FHIR.MoF_sample import Sample
-from MIABIS_on_FHIR.MoF_sample_donor import SampleDonor
+from MIABIS_on_FHIR.network_organization import NetworkOrganization
+from MIABIS_on_FHIR.observation import Observation
+from MIABIS_on_FHIR.sample import Sample
+from MIABIS_on_FHIR.sample_donor import SampleDonor
 from MIABIS_on_FHIR.MoF_sample_list import SampleList
 from MIABIS_on_FHIR.gender import Gender
 from MIABIS_on_FHIR.storage_temperature import StorageTemperature
