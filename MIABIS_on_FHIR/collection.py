@@ -2,17 +2,16 @@
 from typing import Self
 
 import simple_icd_10 as icd10
-from fhirclient.models.codeableconcept import CodeableConcept
-from fhirclient.models.coding import Coding
 from fhirclient.models.extension import Extension
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.group import Group, GroupCharacteristic
-from fhirclient.models.identifier import Identifier
 from fhirclient.models.meta import Meta
 from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
 from MIABIS_on_FHIR._constants import COLLECTION_INCLUSION_CRITERIA, MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._util import create_fhir_identifier, create_integer_extension, create_codeable_concept_extension, \
+    create_codeable_concept
 from MIABIS_on_FHIR.gender import Gender
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import StorageTemperature
@@ -121,7 +120,7 @@ class MoFCollection:
     def managing_collection_org_id(self, managing_collection_org_id: str):
         if not isinstance(managing_collection_org_id, str):
             raise TypeError("Managing biobank identifier must be a string.")
-        self._managing_collection_org_id= managing_collection_org_id
+        self._managing_collection_org_id = managing_collection_org_id
 
     @property
     def age_range_low(self) -> int:
@@ -280,7 +279,7 @@ class MoFCollection:
         fhir_group = Group()
         fhir_group.meta = Meta()
         fhir_group.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Collection"]
-        fhir_group.identifier = [self.__create_fhir_identifier()]
+        fhir_group.identifier = [create_fhir_identifier(self.identifier)]
         fhir_group.active = True
         fhir_group.actual = True
         fhir_group.type = "person"
@@ -290,21 +289,30 @@ class MoFCollection:
         fhir_group.characteristic.append(
             self.__create_age_range_characteristic(self.age_range_low, self.age_range_high))
         for gender in self.genders:
-            fhir_group.characteristic.append(self.__create_sex_characteristic(gender.name.lower()))
+            fhir_group.characteristic.append(
+                self.__create_codeable_concept_characteristic("Sex", DEFINITION_BASE_URL + "/sexCS",
+                                                              gender.name.lower()))
         for storage_temperature in self.storage_temperatures:
-            fhir_group.characteristic.append(self.__create_storage_temperature_characteristic(storage_temperature))
+            fhir_group.characteristic.append(
+                self.__create_codeable_concept_characteristic("StorageTemperature",
+                                                              DEFINITION_BASE_URL + "/storageTemperatureCS",
+                                                              storage_temperature.value))
         for material in self.material_types:
-            fhir_group.characteristic.append(self.__create_material_type_characteristic(material))
+            fhir_group.characteristic.append(
+                self.__create_codeable_concept_characteristic("MaterialType", DEFINITION_BASE_URL + "/materialTypeCS",
+                                                              material))
         if self.diagnoses is not None:
             for diagnosis in self.diagnoses:
-                fhir_group.characteristic.append(self.__create_diagnosis_characteristic(diagnosis))
+                fhir_group.characteristic.append(
+                    self.__create_codeable_concept_characteristic("Diagnosis", "http://hl7.org/fhir/sid/icd-10",
+                                                                  diagnosis))
         extensions = []
         if self.number_of_subjects is not None:
-            extensions.append(self.__create_integer_extension(
+            extensions.append(create_integer_extension(
                 DEFINITION_BASE_URL + "/StructureDefinition/number-of-subjects-extension", self.number_of_subjects))
         if self.inclusion_criteria is not None:
             for criteria in self.inclusion_criteria:
-                extensions.append(self.__create_codeable_concept_extension(
+                extensions.append(create_codeable_concept_extension(
                     DEFINITION_BASE_URL + "/StructureDefinition/inclusion-criteria-extension",
                     DEFINITION_BASE_URL + "/inclusionCriteriaCS", criteria))
         for sample_fhir_id in sample_fhir_ids:
@@ -313,19 +321,19 @@ class MoFCollection:
             fhir_group.extension = extensions
         return fhir_group
 
-
-    def __create_member_extension(self, sample_fhir_id: str):
+    @staticmethod
+    def __create_member_extension(sample_fhir_id: str):
         extension = Extension()
         extension.url = "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity"
         extension.valueReference = FHIRReference()
         extension.valueReference.reference = f"Specimen/{sample_fhir_id}"
         return extension
 
-    def __create_age_range_characteristic(self, age_low: int, age_high: int) -> GroupCharacteristic:
-        # TODO add age range units
+    @staticmethod
+    def __create_age_range_characteristic(age_low: int, age_high: int) -> GroupCharacteristic:
         age_range_characteristic = GroupCharacteristic()
         age_range_characteristic.exclude = False
-        age_range_characteristic.code = self.__create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS", "Age")
+        age_range_characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS", "Age")
         age_range_characteristic.valueRange = Range()
         age_range_characteristic.valueRange.low = Quantity()
         age_range_characteristic.valueRange.low.value = age_low
@@ -333,83 +341,26 @@ class MoFCollection:
         age_range_characteristic.valueRange.high.value = age_high
         return age_range_characteristic
 
-    def __create_sex_characteristic(self, code: str) -> GroupCharacteristic:
+    @staticmethod
+    def __create_sex_characteristic(code: str) -> GroupCharacteristic:
         sex_characteristic = GroupCharacteristic()
         sex_characteristic.exclude = False
-        sex_characteristic.code = self.__create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS", "Sex")
-        sex_characteristic.valueCodeableConcept = self.__create_codeable_concept(DEFINITION_BASE_URL + "/sexCS", code)
+        sex_characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS", "Sex")
+        sex_characteristic.valueCodeableConcept = create_codeable_concept(DEFINITION_BASE_URL + "/sexCS", code)
         return sex_characteristic
 
-    def __create_storage_temperature_characteristic(self,
-                                                    storage_temperature: StorageTemperature) -> GroupCharacteristic:
-        storage_temperature_characteristic = GroupCharacteristic()
-        storage_temperature_characteristic.exclude = False
-        storage_temperature_characteristic.code = self.__create_codeable_concept(
-            DEFINITION_BASE_URL + "/characteristicCS",
-            "StorageTemperature")
-        storage_temperature_characteristic.valueCodeableConcept = self.__create_codeable_concept(
-            DEFINITION_BASE_URL + "/storageTemperatureCS", storage_temperature.value)
-        return storage_temperature_characteristic
-
-    def __create_material_type_characteristic(self, material_type: str) -> GroupCharacteristic:
-        material_type_characteristic = GroupCharacteristic()
-        material_type_characteristic.exclude = False
-        material_type_characteristic.code = self.__create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS",
-                                                                           "MaterialType")
-        material_type_characteristic.valueCodeableConcept = self.__create_codeable_concept(
-            DEFINITION_BASE_URL + "/materialTypeCS", material_type)
-        return material_type_characteristic
-
-    def __create_diagnosis_characteristic(self, diagnosis: str) -> GroupCharacteristic:
-        diagnosis_characteristic = GroupCharacteristic()
-        diagnosis_characteristic.exclude = False
-        diagnosis_characteristic.code = self.__create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS",
-                                                                       "Diagnosis")
-        diagnosis_characteristic.valueCodeableConcept = self.__create_codeable_concept("http://hl7.org/fhir/sid/icd-10",
-                                                                                       diagnosis)
-        return diagnosis_characteristic
-
     @staticmethod
-    def __create_codeable_concept(url: str, code: str):
-        codeable_concept = CodeableConcept()
-        codeable_concept.coding = [Coding()]
-        codeable_concept.coding[0].code = code
-        codeable_concept.coding[0].system = url
-        return codeable_concept
+    def __create_codeable_concept_characteristic(characteristic_code: str, codeable_concept_url: str,
+                                                 value: str) -> GroupCharacteristic:
+        characteristic = GroupCharacteristic()
+        characteristic.exclude = False
+        characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS",
+                                                      characteristic_code)
+        characteristic.valueCodeableConcept = create_codeable_concept(codeable_concept_url, value)
+        return characteristic
 
     @staticmethod
     def __create_managing_entity_reference(managing_ogranization_fhir_id: str) -> FHIRReference:
         entity_reference = FHIRReference()
         entity_reference.reference = f"Organization/{managing_ogranization_fhir_id}"
         return entity_reference
-
-    def __create_fhir_identifier(self) -> Identifier:
-        """Create fhir identifier."""
-        fhir_identifier = Identifier()
-        fhir_identifier.value = self._identifier
-        return fhir_identifier
-
-    @staticmethod
-    def __create_codeable_concept_extension(extension_url: str, codeable_concept_url: str,
-                                            value: str) -> Extension:
-        extension = Extension()
-        extension.url = extension_url
-        extension.valueCodeableConcept = CodeableConcept()
-        extension.valueCodeableConcept.coding = [Coding()]
-        extension.valueCodeableConcept.coding[0].code = value
-        extension.valueCodeableConcept.coding[0].system = codeable_concept_url
-        return extension
-
-    @staticmethod
-    def __create_integer_extension(extension_url, value) -> Extension:
-        extension = Extension()
-        extension.url = extension_url
-        extension.valueInteger = value
-        return extension
-
-    @staticmethod
-    def __create_string_extension(extension_url, value) -> Extension:
-        extension = Extension()
-        extension.url = extension_url
-        extension.valueString = value
-        return extension
