@@ -1,0 +1,18 @@
+def get_nested_value(data: dict, keys: list):
+    for key in keys:
+        if isinstance(data, list) and isinstance(key, int):
+            data = data[key] if key < len(data) else None
+        else:
+            data = data.get(key) if data else None
+        if data is None:
+            return None
+    return data
+
+
+def parse_contact(contact: dict) -> dict:
+    """Helper method to parse contact information."""
+    return {
+        "name": contact.get("name", {}).get("given", [""])[0],
+        "surname": contact.get("name", {}).get("family", ""),
+        "email": contact.get("telecom", [{}])[0].get("value", "")
+    }
