@@ -8,6 +8,7 @@ from fhirclient.models.organization import Organization
 
 from MIABIS_on_FHIR._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, \
     COLLECTION_SAMPLE_SOURCE, COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_contact
 from MIABIS_on_FHIR._util import create_country_of_residence, create_contact, create_codeable_concept_extension, \
     create_string_extension, create_fhir_identifier, create_codeable_concept
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
@@ -294,59 +295,63 @@ class CollectionOrganization:
         :return: MoFCollection object
         """
         try:
-            identifier = collection_json["identifier"][0]["value"]
-            name = collection_json["name"]
-            url = None
-            contact_name = None
-            contact_surname = None
-            contact_email = None
-            country = None
-            dataset_type = None
-            sample_source = None
-            sample_collection_setting = None
-            collection_design = None
-            use_and_access_conditions = None
-            publications = None
-            description = None
-            alias = collection_json.get("alias")[0]
-            if collection_json.get("telecom") is not None:
-                url = collection_json["telecom"][0]["value"]
-
-            if collection_json.get("contact") is not None:
-                contact_name = collection_json["contact"][0]["name"]["given"][0]
-                contact_surname = collection_json["contact"][0]["name"]["family"]
-                contact_email = collection_json["contact"][0]["telecom"][0]["value"]
-                country = collection_json["contact"][0]["address"]["country"]
-            extension = collection_json.get("extension", [])
-            for ext in extension:
-                match ext["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
-                    case "dataset-type-extension":
-                        dataset_type = ext["valueCodeableConcept"]["coding"][0]["code"]
-                    case "sample-source-extension":
-                        sample_source = ext["valueCodeableConcept"]["coding"][0]["code"]
-                    case "sample-collection-setting-extension":
-                        sample_collection_setting = ext["valueCodeableConcept"]["coding"][0]["code"]
-                    case "collection-design-extension":
-                        if collection_design is None:
-                            collection_design = []
-                        collection_design.append(ext["valueCodeableConcept"]["coding"][0]["code"])
-                    case "use-and-access-conditions-extension":
-                        if use_and_access_conditions is None:
-                            use_and_access_conditions = []
-                        use_and_access_conditions.append(ext["valueCodeableConcept"]["coding"][0]["code"])
-                    case "publication-extension":
-                        if publications is None:
-                            publications = []
-                        publications.append(ext["valueString"])
-                    case "description-extension":
-                        description = ext["valueString"]
-                    case _:
-                        pass
-            return cls(identifier, name, managing_biobank_id, contact_name, contact_surname, contact_email, country,
-                       alias, url, description, dataset_type, sample_source, sample_collection_setting,
-                       collection_design, use_and_access_conditions, publications)
+            identifier = get_nested_value(collection_json, ["identifier", 0, "value"])
+            name = get_nested_value(collection_json, ["name"])
+            alias = get_nested_value(collection_json, ["alias", 0])
+            url = get_nested_value(collection_json, ["telecom", 0, "value"])
+            contact = parse_contact(collection_json.get("contact", [{}])[0])
+            country = get_nested_value(collection_json, ["address", 0, "country"])
+            parsed_extensions = cls._parse_extensions(collection_json.get("extension", []))
+            return cls(identifier, name, managing_biobank_id, contact["name"], contact["surname"], contact["email"],
+                       country, alias, url, parsed_extensions["description"], parsed_extensions["dataset_type"],
+                       parsed_extensions["sample_source"], parsed_extensions["sample_collection_setting"],
+                       parsed_extensions["collection_design"], parsed_extensions["use_and_access_conditions"],
+                       parsed_extensions["publications"])
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into MoFCollection")
+
+    @staticmethod
+    def _parse_extensions(extensions: list) -> dict:
+        parsed_extensions = {"dataset_type": None, "sample_source": None, "sample_collection_setting": None,
+                             "collection_design": [], "use_and_access_conditions": [], "publications": [],
+                             "description": None}
+        for extension in extensions:
+            ext = extension["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1)
+            match ext:
+                case "dataset-type-extension":
+                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_extensions["dataset_type"] = value
+                case "sample-source-extension":
+                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_extensions["sample_source"] = value
+                case "sample-collection-setting-extension":
+                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_extensions["sample_collection_setting"] = value
+                case "collection-design-extension":
+                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_extensions["collection_design"].append(value)
+                case "use-and-access-conditions-extension":
+                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_extensions["use_and_access_conditions"].append(value)
+                case "publication-extension":
+                    value = get_nested_value(extension, ["valueString"])
+                    if value is not None:
+                        parsed_extensions["publications"].append(value)
+                case "description-extension":
+                    value = get_nested_value(extension, ["valueString"])
+                    if value is not None:
+                        parsed_extensions["description"] = value
+                case _:
+                    pass
+        for key, value in parsed_extensions.items():
+            if not value:
+                parsed_extensions[key] = None
+        return parsed_extensions
 
     def to_fhir(self, managing_organization_fhir_id: str) -> Organization:
         """Return collection representation in FHIR
@@ -364,7 +369,7 @@ class CollectionOrganization:
             fhir_org.telecom = [self.create_url(self.url)]
         if self.contact_name or self.contact_surname or self.contact_email:
             fhir_org.contact = [create_contact(self.contact_name, self._contact_surname, self._contact_email)]
-            fhir_org.address = create_country_of_residence(self.country)
+            fhir_org.address = [create_country_of_residence(self.country)]
         fhir_org.partOf = self.__create_managing_entity_reference(managing_organization_fhir_id)
         extensions = []
         if self.dataset_type is not None:

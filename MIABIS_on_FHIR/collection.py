@@ -10,6 +10,7 @@ from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
 from MIABIS_on_FHIR._constants import COLLECTION_INCLUSION_CRITERIA, MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._parsing_util import get_nested_value
 from MIABIS_on_FHIR._util import create_fhir_identifier, create_integer_extension, create_codeable_concept_extension, \
     create_codeable_concept
 from MIABIS_on_FHIR.gender import Gender
@@ -223,54 +224,75 @@ class MoFCollection:
         :return: MoFCollection object
         """
         try:
-            identifier = collection_json["identifier"][0]["value"]
-            age_range_low = None
-            age_range_high = None
-            name = collection_json["name"]
-            genders = []
-            storage_temperatures = []
-            material_types = []
-            diagnoses = None
-            number_of_subjects = None
-            inclusion_criteria = None
-            for characteristic in collection_json["characteristic"]:
-                match characteristic["code"]["coding"][0]["code"]:
-                    case "Age":
-                        age_range_low = characteristic["valueRange"]["low"]["value"]
-                        age_range_high = characteristic["valueRange"]["high"]["value"]
-                    case "Sex":
-                        genders.append(
-                            Gender.from_string(characteristic["valueCodeableConcept"]["coding"][0]["code"]))
-                    case "StorageTemperature":
-                        storage_temperatures.append(StorageTemperature(
-                            characteristic["valueCodeableConcept"]["coding"][0]["code"]))
-                    case "MaterialType":
-                        material_types.append(characteristic["valueCodeableConcept"]["coding"][0]["code"])
-                    case "Diagnosis":
-                        if diagnoses is None:
-                            diagnoses = []
-                        diagnoses.append(characteristic["valueCodeableConcept"]["coding"][0]["code"])
-                    case _:
-                        pass
-            if age_range_low is None or age_range_high is None:
-                raise IncorrectJsonFormatException("Age range is missing in the collection json.")
-
-            extension = collection_json.get("extension", [])
-            for ext in extension:
-                match ext["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
-                    case "number-of-subjects-extension":
-                        number_of_subjects = ext["valueInteger"]
-                    case "inclusion-criteria-extension":
-                        if inclusion_criteria is None:
-                            inclusion_criteria = []
-                        inclusion_criteria.append(ext["valueCodeableConcept"]["coding"][0]["code"])
-                    case _:
-                        pass
-            return cls(identifier, name, managing_collection_organization_id, age_range_low, age_range_high, genders,
-                       storage_temperatures, material_types, diagnoses, number_of_subjects, inclusion_criteria,
-                       sample_ids)
+            identifier = get_nested_value(collection_json, ["identifier", 0, "value"])
+            name = get_nested_value(collection_json, ["name"])
+            characteristics = cls._get_characteristics(collection_json["characteristic"])
+            extensions = cls._get_extensions(collection_json["extension"])
+            return cls(identifier, name, managing_collection_organization_id, characteristics["age_range_low"],
+                       characteristics["age_range_high"], characteristics["sex"],
+                       characteristics["storage_temperature"],
+                       characteristics["material_type"], characteristics["diagnosis"], extensions["number_of_subjects"],
+                       extensions["inclusion_criteria"], sample_ids)
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into MoFCollection")
+
+    @staticmethod
+    def _get_characteristics(characteristics: dict) -> dict:
+        """Extracts the characteristics from the json object.
+        :param characteristics: json object containing the characteristics.
+        :return: dictionary with the characteristics.
+        """
+        parsed_characteristics = {"age_range_low": None, "age_range_high": None, "sex": [], "storage_temperature": [],
+                                  "material_type": [], "diagnosis": []}
+        for characteristic in characteristics:
+            match characteristic["code"]["coding"][0]["code"]:
+                case "Age":
+                    age_range_low = get_nested_value(characteristic, ["valueRange", "low", "value"])
+                    age_range_high = get_nested_value(characteristic, ["valueRange", "high", "value"])
+                    if age_range_high is not None and age_range_low is not None:
+                        parsed_characteristics["age_range_low"] = age_range_low
+                        parsed_characteristics["age_range_high"] = age_range_high
+                case "Sex":
+                    value = get_nested_value(characteristic, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_characteristics["sex"].append(Gender.from_string(value))
+                case "StorageTemperature":
+                    value = get_nested_value(characteristic, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_characteristics["storage_temperature"].append(StorageTemperature(value))
+                case "MaterialType":
+                    value = get_nested_value(characteristic, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_characteristics["material_type"].append(value)
+                case "Diagnosis":
+                    value = get_nested_value(characteristic, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_characteristics["diagnosis"].append(value)
+                case _:
+                    pass
+
+        parsed_characteristics["diagnosis"] = None if not parsed_characteristics["diagnosis"] else \
+            parsed_characteristics["diagnosis"]
+        return parsed_characteristics
+
+    @staticmethod
+    def _get_extensions(extension: list[dict]) -> dict:
+        """Extracts the extensions from the json object.
+        :param extension: json object containing the extensions.
+        :return: dictionary with the extensions.
+        """
+        parsed_extensions = {"number_of_subjects": None, "inclusion_criteria": None}
+        for ext in extension:
+            match ext["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
+                case "number-of-subjects-extension":
+                    parsed_extensions["number_of_subjects"] = ext["valueInteger"]
+                case "inclusion-criteria-extension":
+                    if parsed_extensions["inclusion_criteria"] is None:
+                        parsed_extensions["inclusion_criteria"] = []
+                    parsed_extensions["inclusion_criteria"].append(ext["valueCodeableConcept"]["coding"][0]["code"])
+                case _:
+                    pass
+        return parsed_extensions
 
     def to_fhir(self, managing_organization_fhir_id: str, sample_fhir_ids: list[str]) -> Group:
         """Return collection representation in FHIR

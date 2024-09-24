@@ -7,6 +7,7 @@ class TestCollectionOrganization(unittest.TestCase):
     coll_org_json = {'meta': {'versionId': '7', 'lastUpdated': '2024-09-16T07:19:31.673Z',
                               'profile': ['http://example.com/StructureDefinition/Collection']},
                      'name': 'collectionName',
+                     'address': [{'country': 'cz'}],
                      'type': [{'coding': [{'system': 'http://example.com/organizationTypeCS', 'code': 'Collection'}]}],
                      'resourceType': 'Organization', 'extension': [
             {'url': 'http://example.com/StructureDefinition/dataset-type-extension',
@@ -26,7 +27,7 @@ class TestCollectionOrganization(unittest.TestCase):
                      'alias': ['collectionAlias'], 'active': True, 'id': 'DEPZWNXFPHMA5NLM',
                      'identifier': [{'value': 'collectionId'}], 'telecom': [{'system': 'url', 'value': 'url'}],
                      'partOf': {'reference': 'Organization/DEPZWNPN6CSOKEOC'}, 'contact': [
-            {'address': {'country': 'cz'}, 'name': {'family': 'Mrkva', 'given': ['Jozef']},
+            {'name': {'family': 'Mrkva', 'given': ['Jozef']},
              'telecom': [{'system': 'email', 'value': 'jozefmrkva@email.com'}]}]}
 
     def test_collection_org_init_required_params(self):
@@ -369,7 +370,7 @@ class TestCollectionOrganization(unittest.TestCase):
         self.assertEqual("contactName", collection_org_fhir.contact[0].name.given[0])
         self.assertEqual("contactSurname", collection_org_fhir.contact[0].name.family)
         self.assertEqual("contactEmail", collection_org_fhir.contact[0].telecom[0].value)
-        self.assertEqual("cz", collection_org_fhir.address.country)
+        self.assertEqual("cz", collection_org_fhir.address[0].country)
 
     def test_collection_org_to_fhir_optional_params_ok(self):
         collection_org = CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",

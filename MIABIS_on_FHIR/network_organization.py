@@ -5,6 +5,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
 from MIABIS_on_FHIR._constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_contact
 from MIABIS_on_FHIR._util import create_fhir_identifier, create_contact, create_country_of_residence, \
     create_codeable_concept_extension, create_string_extension
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
@@ -153,31 +154,33 @@ class NetworkOrganization:
     @classmethod
     def from_json(cls, network_json: dict, managing_biobank_id: str) -> Self:
         try:
-            identifier = network_json["identifier"][0]["value"]
-            name = network_json["name"]
-            common_collaboration_topics = None
-            juristic_person = None
-            contact_name = None
-            contact_surname = None
-            contact_email = None
-            country = None
-            for contact in network_json.get("contact", []):
-                contact_name = contact["name"]["given"][0]
-                contact_surname = contact["name"]["family"]
-                contact_email = contact["telecom"][0]["value"]
-                country = contact["address"]["country"]
-            if "extension" in network_json:
-                common_collaboration_topics = []
-                for extension in network_json["extension"]:
-                    match extension["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
-                        case "common-collaboration-topics":
-                            common_collaboration_topics.append(extension["valueCodeableConcept"]["coding"][0]["code"])
-                        case "juristic-person":
-                            juristic_person = extension["valueString"]
-            return cls(identifier, name, managing_biobank_id, contact_name, contact_surname, contact_email, country,
-                       common_collaboration_topics, juristic_person)
+            identifier = get_nested_value(network_json, ["identifier", 0, "value"])
+            name = get_nested_value(network_json, ["name"])
+            contact = parse_contact(network_json.get("contact", [{}])[0])
+            country = get_nested_value(network_json, ["address", 0, "country"])
+            parsed_extensions = cls._parse_extensions(network_json.get("extension", []))
+            return cls(identifier, name, managing_biobank_id, contact["name"], contact["surname"], contact["email"],
+                       country, parsed_extensions["common_collaboration_topics"], parsed_extensions["juristic_person"])
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFNetwork")
+
+    @staticmethod
+    def _parse_extensions(extensions: dict) -> dict:
+        parsed_extension = {"common_collaboration_topics": [], "juristic_person": None}
+        for extension in extensions:
+            match extension["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
+                case "common-collaboration-topics":
+                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_extension["common_collaboration_topics"].append(value)
+                case "juristic-person":
+                    value = get_nested_value(extension, ["valueString"])
+                    if value is not None:
+                        parsed_extension["juristic_person"] = value
+
+        if not parsed_extension["common_collaboration_topics"]:
+            parsed_extension["common_collaboration_topics"] = None
+        return parsed_extension
 
     def to_fhir(self, managing_biobank_fhir_id: str) -> Organization:
         network = Organization()
@@ -189,7 +192,7 @@ class NetworkOrganization:
         network.partOf = FHIRReference()
         network.partOf.reference = f"Organization/{managing_biobank_fhir_id}"
         network.contact = [create_contact(self._contact_name, self._contact_surname, self._contact_email)]
-        network.address = create_country_of_residence(self._country)
+        network.address = [create_country_of_residence(self._country)]
         extensions = []
         if self._common_collaboration_topics is not None:
             for topic in self._common_collaboration_topics:

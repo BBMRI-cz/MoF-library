@@ -6,6 +6,7 @@ from fhirclient.models.organization import Organization
 from MIABIS_on_FHIR._constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
     BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
     BIOBANK_ORGANISATIONAL_CAPABILITIES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_contact
 from MIABIS_on_FHIR._util import create_fhir_identifier, create_contact, create_country_of_residence, \
     create_codeable_concept_extension, create_string_extension
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
@@ -211,36 +212,65 @@ class Biobank:
         :return: MoFBiobank object.
         """
         try:
-            identifier = biobank_json["identifier"][0]["value"]
-            name = biobank_json["name"]
-            alias = biobank_json["alias"][0]
-            country = biobank_json["address"][0]["country"]
-            contact_name = biobank_json["contact"][0]["name"]["given"][0]
-            contact_surname = biobank_json["contact"][0]["name"]["family"]
-            contact_email = biobank_json["contact"][0]["telecom"][0]["value"]
-            infrastructural_capabilities = []
-            organisational_capabilities = []
-            bioprocessing = []
-            quality_standards = []
-            extensions = biobank_json.get("extension", [])
-            for extension in extensions:
-                match extension["url"].replace(f"{DEFINITION_BASE_URL}/", "", 1):
-                    case "infrastructural-capabilities":
-                        infrastructural_capabilities.append(extension["valueCodeableConcept"]["coding"][0]["code"])
-                    case "organisational-capabilities":
-                        organisational_capabilities.append(extension["valueCodeableConcept"]["coding"][0]["code"])
-                    case "bioprocessing-and-analysis-capabilities":
-                        bioprocessing.append(extension["valueCodeableConcept"]["coding"][0]["code"])
-                    case "quality-management-standards":
-                        quality_standards.append(extension["valueString"])
-                    case "juristic-person":
-                        juristic_person = extension["valueString"]
-                    case _:
-                        pass
-            return cls(identifier, name, alias, country, contact_name, contact_surname, contact_email,
-                       infrastructural_capabilities, organisational_capabilities, bioprocessing, quality_standards)
+            identifier = get_nested_value(biobank_json, ["identifier", 0, "value"])
+            name = get_nested_value(biobank_json, ["name"])
+            alias = get_nested_value(biobank_json, ["alias", 0])
+            country = get_nested_value(biobank_json, ["address", 0, "country"])
+            contact = parse_contact(biobank_json.get("contact", [{}])[0])
+            extensions = get_nested_value(biobank_json, ["extension"])
+            parsed_extension = cls.__parse_extensions(extensions)
+            infrastructural_capabilities = parsed_extension["infrastructural_capabilities"]
+            organisational_capabilities = parsed_extension["organisational_capabilities"]
+            bioprocessing = parsed_extension["bioprocessing_and_analysis_capabilities"]
+            quality_standards = parsed_extension["quality_management_standards"]
+            juristic_person = parsed_extension["juristic_person"]
+
+            return cls(identifier, name, alias, country, contact["name"], contact["surname"], contact["email"],
+                       infrastructural_capabilities, organisational_capabilities, bioprocessing, quality_standards,
+                       juristic_person)
         except KeyError:
             raise IncorrectJsonFormatException("Error occurred when parsing json into MoFBiobank")
+
+    @staticmethod
+    def __parse_extensions(extensions: list) -> dict:
+
+        """
+        Parse the extensions from the json into a dictionary.
+        :param extensions: list of extensions in the json.
+        :return: dictionary with the extensions.
+        """
+
+        parsed_extension = {"infrastructural_capabilities": [], "organisational_capabilities": [],
+                            "bioprocessing_and_analysis_capabilities": [], "quality_management_standards": [],
+                            "juristic_person": None}
+
+        for extension in extensions:
+            ext_type = extension["url"].replace(f"{DEFINITION_BASE_URL}/", "", 1)
+            match ext_type:
+                case "infrastructural-capabilities":
+                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_extension["infrastructural_capabilities"].append(value)
+                case "organisational-capabilities":
+                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_extension["organisational_capabilities"].append(value)
+                case "bioprocessing-and-analysis-capabilities":
+                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                    if value is not None:
+                        parsed_extension["bioprocessing_and_analysis_capabilities"].append(value)
+                case "quality-management-standards":
+                    value = get_nested_value(extension, ["valueString"])
+                    if value is not None:
+                        parsed_extension["quality_management_standards"].append(extension["valueString"])
+                case "juristic-person":
+                    value = get_nested_value(extension, ["valueString"])
+                    if value is not None:
+                        parsed_extension["juristic_person"] = extension["valueString"]
+                case _:
+                    pass
+        return parsed_extension
+
 
     def to_fhir(self) -> Organization:
         """Return biobank representation in FHIR"""

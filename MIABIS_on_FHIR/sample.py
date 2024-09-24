@@ -10,6 +10,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
 from MIABIS_on_FHIR._constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._parsing_util import get_nested_value
 from MIABIS_on_FHIR._util import create_fhir_identifier, create_codeable_concept, create_codeable_concept_extension
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import StorageTemperature
@@ -153,31 +154,35 @@ class Sample:
         :return:
         """
         try:
-            identifier = sample_json["identifier"][0]["value"]
-            material_type = sample_json["type"]["coding"][0]["code"]
-            collected_datetime = None
-            body_site = None
-            body_site_system = None
-            storage_temperature = None
-            use_restrictions = None
-            collection = sample_json.get("collection")
-            if collection is not None:
-                if collection.get("collectedDateTime") is not None:
-                    datetime_string = sample_json["collection"]["collectedDateTime"]
-                    collected_datetime = datetime.strptime(datetime_string, "%Y-%m-%d")
-                if collection.get("bodySite") is not None:
-                    body_site = collection["bodySite"]["coding"][0]["code"]
-                    body_site_system = collection["bodySite"]["coding"][0]["system"]
-            if sample_json.get("processing") is not None:
-                storage_temperature_string = \
-                    sample_json["processing"][0]["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
-                storage_temperature = StorageTemperature(storage_temperature_string)
-            if sample_json.get("note") is not None:
-                use_restrictions = sample_json["note"][0]["text"]
+            identifier = get_nested_value(sample_json, ["identifier", 0, "value"])
+            material_type = get_nested_value(sample_json, ["type", "coding", 0, "code"])
+            collected_datetime = cls._parse_collection_datetime(sample_json)
+            body_site = get_nested_value(sample_json, ["collection", "bodySite", "coding", 0, "code"])
+            body_site_system = get_nested_value(sample_json, ["collection", "bodySite", "coding", 0, "system"])
+            storage_temperature = cls._parse_storage_temperature(sample_json)
+            use_restrictions = get_nested_value(sample_json, ["note", 0, "text"])
             return cls(identifier, donor_identifier, material_type, collected_datetime, body_site, body_site_system,
                        storage_temperature, use_restrictions)
         except KeyError:
             raise IncorrectJsonFormatException("Error occurred when parsing json into the MoFSample")
+
+    @staticmethod
+    def _parse_collection_datetime(sample_json: dict) -> datetime | None:
+        """Parse the collection datetime from the sample JSON."""
+        collection_datetime = get_nested_value(sample_json, ["collection", "collectedDateTime"])
+        if collection_datetime is not None:
+            collection_datetime = datetime.strptime(collection_datetime, "%Y-%m-%d")
+        return collection_datetime
+
+    @staticmethod
+    def _parse_storage_temperature(sample_json: dict) -> StorageTemperature | None:
+        """Parse the storage temperature from the sample JSON."""
+        storage_temperature = get_nested_value(sample_json,
+                                               ["processing", 0, "extension", 0, "valueCodeableConcept",
+                                                "coding", 0, "code"])
+        if storage_temperature is not None:
+            storage_temperature = StorageTemperature(storage_temperature)
+        return storage_temperature
 
     def to_fhir(self, subject_fhir_id: str):
         """return sample representation in FHIR format
@@ -186,7 +191,6 @@ class Sample:
 
         specimen = Specimen()
         specimen.meta = Meta()
-        # TODO add url for the structure definition
         specimen.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Specimen"]
         specimen.identifier = [create_fhir_identifier(self.identifier)]
         specimen.subject = FHIRReference()
