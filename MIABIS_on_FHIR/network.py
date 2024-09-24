@@ -6,6 +6,7 @@ from fhirclient.models.group import Group
 from fhirclient.models.meta import Meta
 
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR._parsing_util import get_nested_value
 from MIABIS_on_FHIR._util import create_fhir_identifier
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
@@ -104,17 +105,17 @@ class Network:
         self._members_biobanks_ids = members_biobanks_ids
 
     @classmethod
-    def from_json(cls, network_json: dict, managing_biobank_id: str) -> Self:
+    def from_json(cls, network_json: dict, managing_biobank_id: str, member_collection_ids: list[str],
+                  member_biobank_ids: list[str]) -> Self:
         try:
-            identifier = network_json["identifier"][0]["value"]
+            identifier = get_nested_value(network_json, ["identifier", 0, "value"])
             name = network_json["name"]
-            if "extension" in network_json:
-                common_collaboration_topics = []
-            return cls(identifier, name, managing_biobank_id)
+            return cls(identifier, name, managing_biobank_id, member_collection_ids, member_biobank_ids)
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFNetwork")
 
-    def to_fhir(self, network_organization_fhir_id: str, member_collection_fhir_ids, member_biobank_fhir_ids) -> Group:
+    def to_fhir(self, network_organization_fhir_id: str, member_collection_fhir_ids: list[str],
+                member_biobank_fhir_ids: list[str]) -> Group:
         network = Group()
         network.meta = Meta()
         network.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Network"]

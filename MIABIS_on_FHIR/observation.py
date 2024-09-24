@@ -7,6 +7,7 @@ from fhirclient.models.coding import Coding
 from fhirclient.models.meta import Meta
 
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
+from MIABIS_on_FHIR._parsing_util import get_nested_value
 from MIABIS_on_FHIR._util import create_fhir_identifier
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
@@ -50,8 +51,10 @@ class Observation:
     @classmethod
     def from_json(cls, observation_json: dict) -> Self:
         try:
-            icd10_code = observation_json["code"]["coding"][0]["code"]
-            identifier = observation_json["identifier"][0]["value"]
+            # icd10_code = observation_json["code"]["coding"][0]["code"]
+            icd10_code = get_nested_value(observation_json, ["code", "coding", 0, "code"])
+            # identifier = observation_json["identifier"][0]["value"]
+            identifier = get_nested_value(observation_json, ["identifier", 0, "value"])
             return cls(icd10_code, identifier)
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFObservation")

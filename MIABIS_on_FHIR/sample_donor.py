@@ -7,6 +7,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.patient import Patient
 
 from MIABIS_on_FHIR._constants import DONOR_DATASET_TYPE, DEFINITION_BASE_URL
+from MIABIS_on_FHIR._parsing_util import get_nested_value
 from MIABIS_on_FHIR._util import create_fhir_identifier, create_codeable_concept_extension
 from MIABIS_on_FHIR.gender import Gender
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
@@ -88,20 +89,27 @@ class SampleDonor:
         :return: MoFSampleDonor instance
         """
         try:
-            patient_identifier = donor_json["identifier"][0]["value"]
-            gender = None
-            birth_date = None
-            dataset_type = None
-            if donor_json.get("gender") is not None:
-                gender = Gender.from_string(donor_json["gender"])
-            if donor_json.get("birthDate") is not None:
-                date_string = donor_json["birthDate"]
-                birth_date = datetime.strptime(date_string, "%Y-%m-%d")
-            if donor_json.get("extension") is not None:
-                dataset_type = donor_json["extension"][0]["valueCodeableConcept"]["coding"][0]["code"]
+            patient_identifier = get_nested_value(donor_json, ["identifier", 0, "value"])
+            gender = cls._parse_gender(donor_json)
+            birth_date = cls._parse_date_birth(donor_json)
+            dataset_type = get_nested_value(donor_json, ["extension", 0, "valueCodeableConcept", "coding", 0, "code"])
             return cls(patient_identifier, gender, birth_date, dataset_type)
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFSampleDonor")
+
+    @staticmethod
+    def _parse_gender(data: dict) -> Gender | None:
+        gender = get_nested_value(data, ["gender"])
+        if gender is not None:
+            gender = Gender.from_string(gender)
+        return gender
+
+    @staticmethod
+    def _parse_date_birth(data: dict) -> datetime | None:
+        date_string = get_nested_value(data, ["birthDate"])
+        if date_string is not None:
+            return datetime.strptime(date_string, "%Y-%m-%d")
+        return None
 
     def to_fhir(self) -> Patient:
         """Return sample donor representation in FHIR"""
