@@ -8,9 +8,10 @@ class TestNetworkOrganization(unittest.TestCase):
         {'url': 'http://example.com/StructureDefinition/common-collaboration-topics', 'valueCodeableConcept': {
             'coding': [{'code': 'Charter', 'system': 'http://example.com/common-collaboration-topics-vs'}]}},
         {'url': 'http://example.com/StructureDefinition/juristic-person', 'valueString': 'juristicPerson'}],
-                        'active': True, 'contact': [
-            {'address': {'country': 'country'}, 'name': {'family': 'contactSurname', 'given': ['contactName']},
-             'telecom': [{'system': 'email', 'value': 'contactEmail'}]}],
+                        'active': True, 'address': [{'country': 'cz'}],
+                        'contact': [
+                            {'name': {'family': 'contactSurname', 'given': ['contactName']},
+                             'telecom': [{'system': 'email', 'value': 'contactEmail'}]}],
                         'identifier': [{'system': 'http://example.com/network', 'value': 'networkOrgId'}],
                         'name': 'networkOrgName', 'partOf': {'reference': 'Organization/biobankFhirId'},
                         'resourceType': 'Organization'}
@@ -24,7 +25,7 @@ class TestNetworkOrganization(unittest.TestCase):
 
     def test_network_org_optional_params_init(self):
         network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
-                                             "contactSurname", "contactEmail", "country", ["Charter"], "juristicPerson")
+                                          "contactSurname", "contactEmail", "country", ["Charter"], "juristicPerson")
         self.assertIsInstance(network_org, NetworkOrganization)
         self.assertEqual("networkOrgId", network_org.identifier)
         self.assertEqual("networkOrgName", network_org.name)
@@ -59,27 +60,27 @@ class TestNetworkOrganization(unittest.TestCase):
     def test_network_org_invalid_contact_email_type_innit(self):
         with self.assertRaises(TypeError):
             network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
-                                                 "contactSurname", 22)
+                                              "contactSurname", 22)
 
     def test_network_org_invalid_country_type_innit(self):
         with self.assertRaises(TypeError):
             network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
-                                                 "contactSurname", "contactEmail", 22)
+                                              "contactSurname", "contactEmail", 22)
 
     def test_network_org_invalid_common_collaboration_topics_type_innit(self):
         with self.assertRaises(TypeError):
             network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
-                                                 "contactSurname", "contactEmail", "country", 22)
+                                              "contactSurname", "contactEmail", "country", 22)
 
     def test_network_org_invalid_common_collaboration_topics_value_innit(self):
         with self.assertRaises(ValueError):
             network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
-                                                 "contactSurname", "contactEmail", "country", ["invalidTopic"])
+                                              "contactSurname", "contactEmail", "country", ["invalidTopic"])
 
     def test_network_org_invalid_juristic_person_type_innit(self):
         with self.assertRaises(TypeError):
             network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
-                                                 "contactSurname", "contactEmail", "country", ["Charter"], 22)
+                                              "contactSurname", "contactEmail", "country", ["Charter"], 22)
 
     def test_network_org_set_identifier_ok(self):
         network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
@@ -185,7 +186,7 @@ class TestNetworkOrganization(unittest.TestCase):
 
     def test_network_org_to_fhir_optional_params(self):
         network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
-                                             "contactSurname", "contactEmail", "country", ["Charter"], "juristicPerson")
+                                          "contactSurname", "contactEmail", "country", ["Charter"], "juristicPerson")
         network_org_fhir = network_org.to_fhir("biobankFhirId")
         self.assertEqual("networkOrgId", network_org_fhir.identifier[0].value)
         self.assertEqual("networkOrgName", network_org_fhir.name)
@@ -193,7 +194,7 @@ class TestNetworkOrganization(unittest.TestCase):
         self.assertEqual("contactName", network_org_fhir.contact[0].name.given[0])
         self.assertEqual("contactSurname", network_org_fhir.contact[0].name.family)
         self.assertEqual("contactEmail", network_org_fhir.contact[0].telecom[0].value)
-        self.assertEqual("country", network_org_fhir.address.country)
+        self.assertEqual("country", network_org_fhir.address[0].country)
         self.assertEqual("Charter", network_org_fhir.extension[0].valueCodeableConcept.coding[0].code)
         self.assertEqual("juristicPerson", network_org_fhir.extension[1].valueString)
 
@@ -205,6 +206,6 @@ class TestNetworkOrganization(unittest.TestCase):
         self.assertEqual("contactName", network_org.contact_name)
         self.assertEqual("contactSurname", network_org.contact_surname)
         self.assertEqual("contactEmail", network_org.contact_email)
-        self.assertEqual("country", network_org.country)
+        self.assertEqual("cz", network_org.country)
         self.assertEqual(["Charter"], network_org.common_collaboration_topics)
         self.assertEqual("juristicPerson", network_org.juristic_person)

@@ -81,7 +81,11 @@ class TestNetwork(unittest.TestCase):
 
 
     def test_network_from_json(self):
-        network = Network.from_json(self.network_json, "biobankId")
+        network = Network.from_json(self.network_json, "biobankId", ["collid1", "collid2"], ["biobankid1", "biobankid2"])
         self.assertIsInstance(network, Network)
         self.assertEqual("networkId", network.identifier)
         self.assertEqual("networkName", network.name)
+        self.assertEqual("biobankId", network.managing_biobank_id)
+        self.assertEqual(["collid1", "collid2"], network.members_collections_ids)
+        self.assertEqual(["biobankid1", "biobankid2"], network.members_biobanks_ids)
+
