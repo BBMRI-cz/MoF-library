@@ -23,7 +23,7 @@ def create_codeable_concept(url: str, code: str) -> CodeableConcept:
     return codeable_concept
 
 
-def create_integer_extension(extension_url: str, value: str) -> Extension:
+def create_integer_extension(extension_url: str, value: int) -> Extension:
     extension = Extension()
     extension.url = extension_url
     extension.valueInteger = value
