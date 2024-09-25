@@ -145,3 +145,4 @@ class TestBiobank(unittest.TestCase):
         self.assertEqual(["SampleStorage"], biobank.infrastructural_capabilities)
         self.assertEqual(["Other"], biobank.organisational_capabilities)
         self.assertEqual(["Other"], biobank.bioprocessing_and_analysis_capabilities)
+        self.assertEqual("DEIDQOGU2YXMTANP", biobank.biobank_fhir_id)

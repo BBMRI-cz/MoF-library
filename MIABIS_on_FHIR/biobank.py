@@ -38,50 +38,19 @@ class Biobank:
         :param juristic_person: The legal entity that is responsible for the biobank.
         Available values in the _constants.py file
         """
-        if not isinstance(identifier, str):
-            raise TypeError("Identifier must be a string.")
-        if not isinstance(name, str):
-            raise TypeError("Name must be a string.")
-        if not isinstance(alias, str):
-            raise TypeError("Alias must be a string.")
-        if not isinstance(country, str):
-            raise TypeError("Country must be a string.")
-        if not isinstance(contact_name, str):
-            raise TypeError("Contact name must be a string.")
-        if not isinstance(contact_surname, str):
-            raise TypeError("Contact surname must be a string.")
-        if not isinstance(contact_email, str):
-            raise TypeError("Contact email must be a string.")
-        self._identifier = identifier
-        self._name = name
-        self._alias = alias
-        self._country = country
-        self._contact_name = contact_name
-        self._contact_surname = contact_surname
-        self._contact_email = contact_email
-        self._juristic_person = juristic_person
-        self._quality__management_standards = quality__management_standards
-        if infrastructural_capabilities is not None:
-            for capability in infrastructural_capabilities:
-                if capability not in BIOBANK_INFRASTRUCTURAL_CAPABILITIES:
-                    raise ValueError(f"{capability} is not a valid code for infrastructural capabilities")
-        self._infrastructural_capabilities = infrastructural_capabilities
-        if organisational_capabilities is not None:
-            for capability in organisational_capabilities:
-                if capability not in BIOBANK_ORGANISATIONAL_CAPABILITIES:
-                    raise ValueError(f"{capability} is not a valid code for organisational capabilities")
-        self._organisational_capabilities = organisational_capabilities
-        if bioprocessing_and_analysis_capabilities is not None:
-            for capability in bioprocessing_and_analysis_capabilities:
-                if capability not in BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES:
-                    raise ValueError(f"{capability} is not a valid code for bioprocessing and analysis capabilities")
-        self._bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
-        if quality__management_standards is not None:
-            self._quality__management_standards = quality__management_standards
-        if juristic_person is not None:
-            if not isinstance(juristic_person, str):
-                raise TypeError("Juristic person must be a string.")
-            self._juristic_person = juristic_person
+        self.identifier = identifier
+        self.name = name
+        self.alias = alias
+        self.country = country
+        self.contact_name = contact_name
+        self.contact_surname = contact_surname
+        self.contact_email = contact_email
+        self.juristic_person = juristic_person
+        self.quality__management_standards = quality__management_standards
+        self.infrastructural_capabilities = infrastructural_capabilities
+        self.organisational_capabilities = organisational_capabilities
+        self.bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
+        self._biobank_fhir_id = None
 
     @property
     def identifier(self) -> str:
@@ -159,7 +128,7 @@ class Biobank:
 
     @infrastructural_capabilities.setter
     def infrastructural_capabilities(self, infrastructural_capabilities: list[str]):
-        for capability in infrastructural_capabilities:
+        for capability in infrastructural_capabilities if infrastructural_capabilities is not None else []:
             if capability not in BIOBANK_INFRASTRUCTURAL_CAPABILITIES:
                 raise ValueError(f"{capability} is not a valid code for infrastructural capabilities")
         self._infrastructural_capabilities = infrastructural_capabilities
@@ -170,7 +139,7 @@ class Biobank:
 
     @organisational_capabilities.setter
     def organisational_capabilities(self, organisational_capabilities: list[str]):
-        for capability in organisational_capabilities:
+        for capability in organisational_capabilities if organisational_capabilities is not None else []:
             if capability not in BIOBANK_ORGANISATIONAL_CAPABILITIES:
                 raise ValueError(f"{capability} is not a valid code for organisational capabilities")
         self._organisational_capabilities = organisational_capabilities
@@ -181,7 +150,7 @@ class Biobank:
 
     @bioprocessing_and_analysis_capabilities.setter
     def bioprocessing_and_analysis_capabilities(self, bioprocessing_and_analysis_capabilities: list[str]):
-        for capability in bioprocessing_and_analysis_capabilities:
+        for capability in bioprocessing_and_analysis_capabilities if bioprocessing_and_analysis_capabilities is not None else []:
             if capability not in BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES:
                 raise ValueError(f"{capability} is not a valid code for bioprocessing and analysis capabilities")
         self._bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
@@ -200,9 +169,13 @@ class Biobank:
 
     @juristic_person.setter
     def juristic_person(self, juristic_person: str):
-        if not isinstance(juristic_person, str):
+        if juristic_person is not None and not isinstance(juristic_person, str):
             raise TypeError("Juristic person must be a string.")
         self._juristic_person = juristic_person
+
+    @property
+    def biobank_fhir_id(self) -> str:
+        return self._biobank_fhir_id
 
     @classmethod
     def from_json(cls, biobank_json: dict) -> Self:
@@ -212,6 +185,7 @@ class Biobank:
         :return: MoFBiobank object.
         """
         try:
+            biobank_fhir_id = get_nested_value(biobank_json, ["id"])
             identifier = get_nested_value(biobank_json, ["identifier", 0, "value"])
             name = get_nested_value(biobank_json, ["name"])
             alias = get_nested_value(biobank_json, ["alias", 0])
@@ -225,9 +199,11 @@ class Biobank:
             quality_standards = parsed_extension["quality_management_standards"]
             juristic_person = parsed_extension["juristic_person"]
 
-            return cls(identifier, name, alias, country, contact["name"], contact["surname"], contact["email"],
+            instance = cls(identifier, name, alias, country, contact["name"], contact["surname"], contact["email"],
                        infrastructural_capabilities, organisational_capabilities, bioprocessing, quality_standards,
                        juristic_person)
+            instance._biobank_fhir_id = biobank_fhir_id
+            return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occurred when parsing json into MoFBiobank")
 
@@ -311,3 +287,12 @@ class Biobank:
         if extensions:
             fhir_organization.extension = extensions
         return fhir_organization
+
+    def add_fhir_id_to_biobank(self, biobank: Organization) -> Organization:
+        """Add FHIR id to the FHIR representation of the Biobank. FHIR ID is necessary for updating the
+                resource on the server.This method should only be called if the Biobank object was created by the
+                from_json method. Otherwise,the biobank_report_fhir_id attribute is None,
+                as the FHIR ID is generated by the server and is not known in advance."""
+        biobank.id = self.biobank_fhir_id
+        return biobank
+
