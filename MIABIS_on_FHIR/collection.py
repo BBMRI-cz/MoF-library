@@ -10,7 +10,7 @@ from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
 from MIABIS_on_FHIR._constants import COLLECTION_INCLUSION_CRITERIA, MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value
+from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_reference_id
 from MIABIS_on_FHIR._util import create_fhir_identifier, create_integer_extension, create_codeable_concept_extension, \
     create_codeable_concept
 from MIABIS_on_FHIR.gender import Gender
@@ -43,55 +43,21 @@ class MoFCollection:
         :param inclusion_criteria: Inclusion criteria for the subjects in the collection.
         :param sample_ids: List of sample identifiers belonging to the collection.
         """
-        if not isinstance(identifier, str):
-            raise TypeError("Collection identifier must be a string.")
-        if not isinstance(name, str):
-            raise TypeError("Collection name must be a string.")
-        if not isinstance(managing_collection_org_id, str):
-            raise TypeError("Managing biobank identifier must be a string.")
-        if not isinstance(age_range_low, int):
-            raise TypeError("Age range low must be an integer.")
-        if not isinstance(age_range_high, int):
-            raise TypeError("Age range high must be an integer.")
-        for gender in genders:
-            if not isinstance(gender, Gender):
-                raise TypeError("Gender in the list must be an instance of MoFGender.")
-        for storage_temperature in storage_temperatures:
-            if not isinstance(storage_temperature, StorageTemperature):
-                raise TypeError("Storage temperature in the list must be an instance of MoFStorageTemperature.")
-        for material_type in material_types:
-            if material_type not in MATERIAL_TYPE_CODES:
-                raise ValueError(f"{material_type} is not a valid code for material type")
-        if sample_ids is not None:
-            for sample_id in sample_ids:
-                if not isinstance(sample_id, str):
-                    raise TypeError("Sample id must be a string.")
-
-        if diagnoses is not None:
-            for diagnosis in diagnoses:
-                if not icd10.is_valid_item(diagnosis):
-                    raise TypeError("The provided string is not a valid ICD-10 code.")
-
-        if number_of_subjects is not None and not isinstance(number_of_subjects, int):
-            raise TypeError("Number of subjects must be an integer.")
-
-        if inclusion_criteria is not None:
-            for inclusion in inclusion_criteria:
-                if inclusion not in COLLECTION_INCLUSION_CRITERIA:
-                    raise ValueError(f"{inclusion} is not a valid code for inclusion criteria")
-
-        self._identifier: str = identifier
-        self._name: str = name
-        self._managing_collection_org_id: str = managing_collection_org_id
-        self._age_range_low: int = age_range_low
-        self._age_range_high: int = age_range_high
-        self._genders = genders
-        self._storage_temperatures = storage_temperatures
-        self._diagnoses = diagnoses
-        self._material_types = material_types
-        self._number_of_subjects = number_of_subjects
-        self._sample_ids = sample_ids
-        self._inclusion_criteria = inclusion_criteria
+        self.identifier: str = identifier
+        self.name: str = name
+        self.managing_collection_org_id: str = managing_collection_org_id
+        self.age_range_low: int = age_range_low
+        self.age_range_high: int = age_range_high
+        self.genders = genders
+        self.storage_temperatures = storage_temperatures
+        self.diagnoses = diagnoses
+        self.material_types = material_types
+        self.number_of_subjects = number_of_subjects
+        self.sample_ids = sample_ids
+        self.inclusion_criteria = inclusion_criteria
+        self._collection_fhir_id = None
+        self._managing_collection_org_fhir_id = None
+        self._sample_fhir_ids = None
 
     @property
     def identifier(self) -> str:
@@ -182,9 +148,12 @@ class MoFCollection:
 
     @diagnoses.setter
     def diagnoses(self, diagnoses: list[str]):
-        for diagnosis in diagnoses:
-            if not icd10.is_valid_item(diagnosis):
-                raise ValueError("The provided string is not a valid ICD-10 code.")
+        if diagnoses is not None:
+            if not isinstance(diagnoses, list):
+                raise TypeError("Diagnoses must be a list.")
+            for diagnosis in diagnoses:
+                if not icd10.is_valid_item(diagnosis):
+                    raise ValueError("The provided string is not a valid ICD-10 code.")
         self._diagnoses = diagnoses
 
     @property
@@ -193,6 +162,8 @@ class MoFCollection:
 
     @number_of_subjects.setter
     def number_of_subjects(self, number_of_subjects: int):
+        if number_of_subjects is not None and not isinstance(number_of_subjects, int):
+            raise TypeError("Number of subjects must be an integer.")
         self._number_of_subjects = number_of_subjects
 
     @property
@@ -201,6 +172,12 @@ class MoFCollection:
 
     @inclusion_criteria.setter
     def inclusion_criteria(self, inclusion_criteria: list[str]):
+        if inclusion_criteria is not None:
+            if not isinstance(inclusion_criteria, list):
+                raise TypeError("Inclusion criteria must be a list.")
+            for criteria in inclusion_criteria:
+                if criteria not in COLLECTION_INCLUSION_CRITERIA:
+                    raise ValueError(f"{criteria} is not a valid inclusion criteria.")
         self._inclusion_criteria = inclusion_criteria
 
     @property
@@ -209,10 +186,25 @@ class MoFCollection:
 
     @sample_ids.setter
     def sample_ids(self, sample_ids: list[str]):
-        for sample_id in sample_ids:
-            if not isinstance(sample_id, str):
-                raise TypeError("Sample id must be a string.")
+        if sample_ids is not None:
+            if not isinstance(sample_ids, list):
+                raise TypeError("Sample ids must be a list.")
+            for sample_id in sample_ids:
+                if not isinstance(sample_id, str):
+                    raise TypeError("Sample id must be a string.")
         self._sample_ids = sample_ids
+
+    @property
+    def collection_fhir_id(self) -> str:
+        return self._collection_fhir_id
+
+    @property
+    def managing_collection_org_fhir_id(self) -> str:
+        return self._managing_collection_org_fhir_id
+
+    @property
+    def sample_fhir_ids(self) -> list[str]:
+        return self._sample_fhir_ids
 
     @classmethod
     def from_json(cls, collection_json: dict, managing_collection_organization_id: str, sample_ids: list[str]) -> Self:
@@ -224,17 +216,39 @@ class MoFCollection:
         :return: MoFCollection object
         """
         try:
+            collection_fhir_id = get_nested_value(collection_json, ["id"])
             identifier = get_nested_value(collection_json, ["identifier", 0, "value"])
             name = get_nested_value(collection_json, ["name"])
             characteristics = cls._get_characteristics(collection_json["characteristic"])
+            managing_collection_fhir_id = parse_reference_id(
+                get_nested_value(collection_json, ["managingEntity", "reference"]))
             extensions = cls._get_extensions(collection_json["extension"])
-            return cls(identifier, name, managing_collection_organization_id, characteristics["age_range_low"],
-                       characteristics["age_range_high"], characteristics["sex"],
-                       characteristics["storage_temperature"],
-                       characteristics["material_type"], characteristics["diagnosis"], extensions["number_of_subjects"],
-                       extensions["inclusion_criteria"], sample_ids)
+            instance = cls(identifier, name, managing_collection_organization_id, characteristics["age_range_low"],
+                           characteristics["age_range_high"], characteristics["sex"],
+                           characteristics["storage_temperature"],
+                           characteristics["material_type"], characteristics["diagnosis"],
+                           extensions["number_of_subjects"],
+                           extensions["inclusion_criteria"], sample_ids)
+            instance._collection_fhir_id = collection_fhir_id
+            instance._managing_collection_org_fhir_id = managing_collection_fhir_id
+            instance._sample_fhir_ids = extensions["sample_fhir_ids"]
+            return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into MoFCollection")
+
+    @staticmethod
+    def _parse_member_sample_fhir_ids(extensions: list[dict]) -> list[str]:
+        """
+        Parse the member sample fhir ids from the extension.
+        :param extension: list of extensions.
+        :return: list of sample fhir ids.
+        """
+        sample_fhir_ids = []
+        for extension in extensions:
+            if extension["url"] == "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity":
+                reference = get_nested_value(extension, ["valueReference", "reference"])
+                sample_fhir_ids.append(parse_reference_id(reference))
+        return sample_fhir_ids
 
     @staticmethod
     def _get_characteristics(characteristics: dict) -> dict:
@@ -281,7 +295,7 @@ class MoFCollection:
         :param extension: json object containing the extensions.
         :return: dictionary with the extensions.
         """
-        parsed_extensions = {"number_of_subjects": None, "inclusion_criteria": None}
+        parsed_extensions = {"number_of_subjects": None, "inclusion_criteria": None, "sample_fhir_ids": []}
         for ext in extension:
             match ext["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
                 case "number-of-subjects-extension":
@@ -290,14 +304,25 @@ class MoFCollection:
                     if parsed_extensions["inclusion_criteria"] is None:
                         parsed_extensions["inclusion_criteria"] = []
                     parsed_extensions["inclusion_criteria"].append(ext["valueCodeableConcept"]["coding"][0]["code"])
+                case "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity":
+                    reference_id = parse_reference_id(get_nested_value(ext, ["valueReference", "reference"]))
+                    parsed_extensions["sample_fhir_ids"].append(reference_id)
                 case _:
                     pass
         return parsed_extensions
 
-    def to_fhir(self, managing_organization_fhir_id: str, sample_fhir_ids: list[str]) -> Group:
+    def to_fhir(self, managing_collection_org_fhir_id: str = None, sample_fhir_ids: list[str] = None) -> Group:
         """Return collection representation in FHIR
-        :param managing_organization_fhir_id: FHIR Identifier of the managing organization
+        :param managing_collection_org_fhir_id: FHIR Identifier of the managing organization
         :param sample_fhir_ids: List of FHIR identifiers of the samples in the collection"""
+        managing_collection_org_fhir_id = managing_collection_org_fhir_id or self.managing_collection_org_fhir_id
+        if managing_collection_org_fhir_id is None:
+            raise ValueError(
+                "Managing collection organization FHIR id must be provided either as an argument or as a property.")
+        sample_fhir_ids = sample_fhir_ids or self.sample_fhir_ids
+        if sample_fhir_ids is None:
+            raise ValueError("Sample FHIR ids must be provided either as an argument or as a property.")
+
         fhir_group = Group()
         fhir_group.meta = Meta()
         fhir_group.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Collection"]
@@ -306,7 +331,7 @@ class MoFCollection:
         fhir_group.actual = True
         fhir_group.type = "person"
         fhir_group.name = self.name
-        fhir_group.managingEntity = self.__create_managing_entity_reference(managing_organization_fhir_id)
+        fhir_group.managingEntity = self.__create_managing_entity_reference(managing_collection_org_fhir_id)
         fhir_group.characteristic = []
         fhir_group.characteristic.append(
             self.__create_age_range_characteristic(self.age_range_low, self.age_range_high))
@@ -342,6 +367,14 @@ class MoFCollection:
         if extensions:
             fhir_group.extension = extensions
         return fhir_group
+
+    def add_fhir_id_to_collection(self, collection: Group) -> Group:
+        """Add FHIR id to the FHIR representation of the Collection. FHIR ID is necessary for updating the
+                resource on the server.This method should only be called if the Collection object was created by the
+                from_json method. Otherwise,the collection_report_fhir_id attribute is None,
+                as the FHIR ID is generated by the server and is not known in advance."""
+        collection.id = self.collection_fhir_id
+        return collection
 
     @staticmethod
     def __create_member_extension(sample_fhir_id: str):
