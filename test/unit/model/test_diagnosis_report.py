@@ -4,12 +4,13 @@ from MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
 
 
 class TestDiagnosisReport(unittest.TestCase):
-    diagnosis_report_json = {'meta': {'versionId': '4', 'lastUpdated': '2024-07-30T07:48:07.463Z'},
-                             'specimen': [{'reference': 'Specimen/DEICTQWCFXQ47G23'}],
-                             'resourceType': 'DiagnosticReport', 'status': 'final',
-                             'result': [{'reference': 'Observation/DEICTRLPII7QE2LD'}], 'id': 'DEICTROJWFN3AWKG',
-                             'code': {'coding': [{'system': 'http://example.com/multipleDiagnosis', 'code': 'False'}]},
-                             'identifier': [{'system': 'http://example.com/diagnosisReport', 'value': 'sampleId'}]}
+    diagnosis_report_json = {'id': 'ASCXXEDSKHGO',
+                             'meta': {'profile': ['http://example.com/StructureDefinition/DiagnosisReport']},
+                             'code': {'coding': [{'code': 'True', 'system': 'http://example.com/multipleDiagnosis'}]},
+                             'identifier': [{'value': 'sampleId'}], 'result': [{'reference': 'Observation/obsFhirId1'},
+                                                                               {'reference': 'Observation/ObsFhirId2'}],
+                             'specimen': [{'reference': 'Specimen/sampleFhirId'}], 'status': 'final',
+                             'resourceType': 'DiagnosticReport'}
 
     def test_diagnosis_report_init(self):
         diagnosis_report = DiagnosisReport("sampleId", ["obsId"])
@@ -68,3 +69,5 @@ class TestDiagnosisReport(unittest.TestCase):
         diagnosis_report = DiagnosisReport.from_json(self.diagnosis_report_json, ["obsId", "obsId2"])
         self.assertEqual("sampleId", diagnosis_report.sample_identifier)
         self.assertEqual(["obsId", "obsId2"], diagnosis_report.observations_identifiers)
+        self.assertEqual("ASCXXEDSKHGO", diagnosis_report.diagnosis_report_fhir_id)
+        self.assertEqual(["obsFhirId1", "ObsFhirId2"], diagnosis_report.observations_fhir_identifiers)

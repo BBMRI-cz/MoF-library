@@ -6,7 +6,7 @@ from fhirclient.models.group import Group
 from fhirclient.models.meta import Meta
 
 from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value
+from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_reference_id
 from MIABIS_on_FHIR._util import create_fhir_identifier
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
@@ -24,29 +24,15 @@ class Network:
         :param members_collections_ids: ids of all the collections (given by the organization) that are part of this network
         :param members_biobanks_ids: ids of all the biobanks (given by the organization) that are part of this network
         """
-        if not isinstance(identifier, str):
-            raise TypeError("Identifier must be string")
-        if not isinstance(name, str):
-            raise TypeError("Name must be string")
-        if not isinstance(network_org_id, str):
-            raise TypeError("Managing biobank id must be string")
-        if members_collections_ids is not None:
-            if not isinstance(members_collections_ids, list):
-                raise TypeError("Members collections ids must be a list")
-            for member in members_collections_ids:
-                if not isinstance(member, str):
-                    raise TypeError("Members collections ids must be a list of strings")
-        if members_biobanks_ids is not None:
-            if not isinstance(members_biobanks_ids, list):
-                raise TypeError("Members biobanks ids must be a list")
-            for member in members_biobanks_ids:
-                if not isinstance(member, str):
-                    raise TypeError("Members biobanks ids must be a list of strings")
-        self._identifier = identifier
-        self._name = name
-        self._managing_biobank_id = network_org_id
-        self._members_collections_ids = members_collections_ids
-        self._members_biobanks_ids = members_biobanks_ids
+        self.identifier = identifier
+        self.name = name
+        self.managing_network_org_id = network_org_id
+        self.members_collections_ids = members_collections_ids
+        self.members_biobanks_ids = members_biobanks_ids
+        self._network_fhir_id = None
+        self._managing_network_org_fhir_id = None
+        self._members_biobanks_fhir_ids = None
+        self._members_collections_fhir_ids = None
 
     @property
     def identifier(self) -> str:
@@ -69,11 +55,11 @@ class Network:
         self._name = name
 
     @property
-    def managing_biobank_id(self) -> str:
+    def managing_network_org_id(self) -> str:
         return self._managing_biobank_id
 
-    @managing_biobank_id.setter
-    def managing_biobank_id(self, managing_biobank_id: str):
+    @managing_network_org_id.setter
+    def managing_network_org_id(self, managing_biobank_id: str):
         if not isinstance(managing_biobank_id, str):
             raise TypeError("Managing biobank id must be string")
         self._managing_biobank_id = managing_biobank_id
@@ -84,9 +70,9 @@ class Network:
 
     @members_collections_ids.setter
     def members_collections_ids(self, members_collections_ids: list[str]):
-        if not isinstance(members_collections_ids, list):
+        if members_collections_ids is not None and not isinstance(members_collections_ids, list):
             raise TypeError("Members collections ids must be a list")
-        for member in members_collections_ids:
+        for member in members_collections_ids if members_collections_ids is not None else []:
             if not isinstance(member, str):
                 raise TypeError("Members collections ids must be a list of strings")
         self._members_collections_ids = members_collections_ids
@@ -97,12 +83,28 @@ class Network:
 
     @members_biobanks_ids.setter
     def members_biobanks_ids(self, members_biobanks_ids: list[str]):
-        if not isinstance(members_biobanks_ids, list):
+        if members_biobanks_ids is not None and not isinstance(members_biobanks_ids, list):
             raise TypeError("Members biobanks ids must be a list")
-        for member in members_biobanks_ids:
+        for member in members_biobanks_ids if members_biobanks_ids is not None else []:
             if not isinstance(member, str):
                 raise TypeError("Members biobanks ids must be a list of strings")
         self._members_biobanks_ids = members_biobanks_ids
+
+    @property
+    def network_fhir_id(self) -> str:
+        return self._network_fhir_id
+
+    @property
+    def managing_biobank_fhir_id(self) -> str:
+        return self._managing_network_org_fhir_id
+
+    @property
+    def members_collections_fhir_ids(self) -> list[str]:
+        return self._members_collections_fhir_ids
+
+    @property
+    def members_biobanks_fhir_ids(self) -> list[str]:
+        return self._members_biobanks_fhir_ids
 
     @classmethod
     def from_json(cls, network_json: dict, managing_biobank_id: str, member_collection_ids: list[str],
@@ -110,12 +112,45 @@ class Network:
         try:
             identifier = get_nested_value(network_json, ["identifier", 0, "value"])
             name = network_json["name"]
-            return cls(identifier, name, managing_biobank_id, member_collection_ids, member_biobank_ids)
+            network_fhir_id = get_nested_value(network_json, ["id"])
+            managing_biobank_fhir_id = parse_reference_id(
+                get_nested_value(network_json, ["managingEntity", "reference"]))
+            extensions = cls._parse_extensions(network_json.get("extension", []))
+            instance = cls(identifier, name, managing_biobank_id, member_collection_ids, member_biobank_ids)
+            instance._network_fhir_id = network_fhir_id
+            instance._managing_network_org_fhir_id = managing_biobank_fhir_id
+            instance._members_collections_fhir_ids = extensions["member_collection_fhir_ids"]
+            instance._members_biobanks_fhir_ids = extensions["member_biobank_fhir_ids"]
+            return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFNetwork")
 
-    def to_fhir(self, network_organization_fhir_id: str, member_collection_fhir_ids: list[str],
-                member_biobank_fhir_ids: list[str]) -> Group:
+    @staticmethod
+    def _parse_extensions(extensions: list[dict]) -> dict:
+        parsed_extensions = {"member_collection_fhir_ids": [], "member_biobank_fhir_ids": []}
+        for extension in extensions:
+            if extension["url"] == "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity":
+                ref_type, reference = get_nested_value(extension, ["valueReference", "reference"]).split("/")
+                if ref_type == "Group":
+                    parsed_extensions["member_collection_fhir_ids"].append(reference)
+                else:
+                    parsed_extensions["member_biobank_fhir_ids"].append(reference)
+        return parsed_extensions
+
+    def to_fhir(self, network_organization_fhir_id: str = None, member_collection_fhir_ids: list[str] = None,
+                member_biobank_fhir_ids: list[str] = None) -> Group:
+        network_organization_fhir_id = network_organization_fhir_id or self.managing_network_org_id
+        if network_organization_fhir_id is None:
+            raise ValueError("Managing biobank FHIR id must be provided either as an argument or as a property.")
+
+        member_collection_fhir_ids = member_collection_fhir_ids or self.members_collections_fhir_ids
+        if member_collection_fhir_ids is None:
+            raise ValueError("Members collections FHIR ids must be provided either as an argument or as a property.")
+
+        member_biobank_fhir_ids = member_biobank_fhir_ids or self.members_biobanks_fhir_ids
+        if member_biobank_fhir_ids is None:
+            raise ValueError("Members biobanks FHIR ids must be provided either as an argument or as a property.")
+
         network = Group()
         network.meta = Meta()
         network.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Network"]
@@ -127,9 +162,9 @@ class Network:
         network.managingEntity = FHIRReference()
         network.managingEntity.reference = f"Organization/{network_organization_fhir_id}"
         network.extension = []
-        for member_collection_fhir_id in member_collection_fhir_ids:
+        for member_collection_fhir_id in member_collection_fhir_ids if member_collection_fhir_ids is not None else []:
             network.extension.append(self.__create_member_extension("Group", member_collection_fhir_id))
-        for member_biobank_fhir_id in member_biobank_fhir_ids:
+        for member_biobank_fhir_id in member_biobank_fhir_ids if member_biobank_fhir_ids is not None else []:
             network.extension.append(self.__create_member_extension("Organization", member_biobank_fhir_id))
         return network
 
@@ -140,3 +175,11 @@ class Network:
         extension.valueReference = FHIRReference()
         extension.valueReference.reference = f"{member_type}/{member_fhir_id}"
         return extension
+
+    def add_fhir_id_to_network(self, network: Group) -> Group:
+        """Add FHIR id to the FHIR representation of the Network. FHIR ID is necessary for updating the
+                resource on the server.This method should only be called if the Network object was created by the
+                from_json method. Otherwise,the network_fhir_id attribute is None,
+                as the FHIR ID is generated by the server and is not known in advance."""
+        network.id = self._network_fhir_id
+        return network

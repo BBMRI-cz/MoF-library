@@ -54,3 +54,4 @@ class TestObservation(unittest.TestCase):
         observation = Observation.from_json(self.observation_json)
         self.assertEqual("C51", observation.icd10_code)
         self.assertEqual("sampleId", observation.sample_identifier)
+        self.assertEqual("DEICTRLPII7QE2LD", observation.observation_fhir_id)

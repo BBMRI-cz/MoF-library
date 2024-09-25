@@ -104,3 +104,4 @@ class TestSampleDonor(unittest.TestCase):
         self.assertEqual(Gender.MALE, donor.gender)
         self.assertEqual(datetime(year=2022, month=10, day=20), donor.date_of_birth)
         self.assertEqual("Other", donor.dataset_type)
+        self.assertEqual("DEICTQNW6TXY6FFC", donor.donor_fhir_id)
