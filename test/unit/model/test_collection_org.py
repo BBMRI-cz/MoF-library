@@ -1,6 +1,6 @@
 import unittest
 
-from MIABIS_on_FHIR.collection_organization import CollectionOrganization
+from src.MIABIS_on_FHIR.collection_organization import CollectionOrganization
 
 
 class TestCollectionOrganization(unittest.TestCase):

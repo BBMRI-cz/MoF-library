@@ -6,12 +6,12 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
-from MIABIS_on_FHIR._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, \
+from src.MIABIS_on_FHIR.util._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, \
     COLLECTION_SAMPLE_SOURCE, COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS, DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_contact, parse_reference_id
-from MIABIS_on_FHIR._util import create_country_of_residence, create_contact, create_codeable_concept_extension, \
+from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_contact, parse_reference_id
+from src.MIABIS_on_FHIR.util._util import create_country_of_residence, create_contact, create_codeable_concept_extension, \
     create_string_extension, create_fhir_identifier, create_codeable_concept
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 
 
 class CollectionOrganization:

@@ -1,6 +1,6 @@
 import unittest
 
-from MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
+from src.MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
 
 
 class TestDiagnosisReport(unittest.TestCase):

@@ -1,8 +1,8 @@
 import unittest
 from datetime import datetime
 
-from MIABIS_on_FHIR.sample import Sample
-from MIABIS_on_FHIR.storage_temperature import StorageTemperature
+from src.MIABIS_on_FHIR.sample import Sample
+from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
 
 
 class TestSample(unittest.TestCase):

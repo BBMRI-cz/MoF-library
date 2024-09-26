@@ -4,18 +4,18 @@ import unittest
 
 import requests
 
-from MIABIS_on_FHIR.biobank import Biobank
-from MIABIS_on_FHIR.collection import MoFCollection
-from MIABIS_on_FHIR.collection_organization import CollectionOrganization
-from MIABIS_on_FHIR.condition import Condition
-from MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
-from MIABIS_on_FHIR.gender import Gender
-from MIABIS_on_FHIR.network import Network
-from MIABIS_on_FHIR.network_organization import NetworkOrganization
-from MIABIS_on_FHIR.observation import Observation
-from MIABIS_on_FHIR.sample import Sample
-from MIABIS_on_FHIR.sample_donor import SampleDonor
-from MIABIS_on_FHIR.storage_temperature import StorageTemperature
+from src.MIABIS_on_FHIR import Biobank
+from src.MIABIS_on_FHIR import MoFCollection
+from src.MIABIS_on_FHIR import CollectionOrganization
+from src.MIABIS_on_FHIR import Condition
+from src.MIABIS_on_FHIR import DiagnosisReport
+from src.MIABIS_on_FHIR import Gender
+from src.MIABIS_on_FHIR import Network
+from src.MIABIS_on_FHIR import NetworkOrganization
+from src.MIABIS_on_FHIR import Observation
+from src.MIABIS_on_FHIR import Sample
+from src.MIABIS_on_FHIR import SampleDonor
+from src.MIABIS_on_FHIR import StorageTemperature
 
 blaze_url = "http://localhost:8080/fhir"
 

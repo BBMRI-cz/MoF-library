@@ -1,6 +1,6 @@
 import unittest
 
-from MIABIS_on_FHIR.biobank import Biobank
+from src.MIABIS_on_FHIR.biobank import Biobank
 
 
 class TestBiobank(unittest.TestCase):
