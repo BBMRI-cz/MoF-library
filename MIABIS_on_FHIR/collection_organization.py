@@ -8,7 +8,7 @@ from fhirclient.models.organization import Organization
 
 from MIABIS_on_FHIR._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, \
     COLLECTION_SAMPLE_SOURCE, COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS, DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_contact
+from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_contact, parse_reference_id
 from MIABIS_on_FHIR._util import create_country_of_residence, create_contact, create_codeable_concept_extension, \
     create_string_extension, create_fhir_identifier, create_codeable_concept
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
@@ -49,73 +49,25 @@ class CollectionOrganization:
          Available values in the _constants.py file
         :param publications: Publications related to the collection.
         """
-        if not isinstance(identifier, str):
-            raise TypeError("Collection identifier must be a string.")
-        if not isinstance(name, str):
-            raise TypeError("Collection name must be a string.")
-        if description is not None and not isinstance(description, str):
-            raise TypeError("Collection description must be a string.")
-        if not isinstance(managing_biobank_id, str):
-            raise TypeError("Managing biobank identifier must be a string.")
-        if not isinstance(contact_name, str):
-            raise TypeError("Contact name must be a string.")
-        if not isinstance(contact_surname, str):
-            raise TypeError("Contact surname must be a string.")
-        if not isinstance(contact_email, str):
-            raise TypeError("Contact email must be a string.")
-        if not isinstance(country, str):
-            raise TypeError("Country must be a string.")
-        if alias is not None and not isinstance(alias, str):
-            raise TypeError("Collection alias must be a string.")
-        if url is not None and not isinstance(url, str):
-            raise TypeError("Collection URL must be a string.")
-        if publications is not None:
-            if not isinstance(publications, list):
-                raise TypeError("Publications must be a list.")
-            for publication in publications:
-                if not isinstance(publication, str):
-                    raise TypeError("Publications must be a list of strings.")
 
-        self._identifier: str = identifier
-        self._name: str = name
-        self._description: str = description
-        self._managing_biobank_id: str = managing_biobank_id
-        self._contact_name: str = contact_name
-        self._contact_surname: str = contact_surname
-        self._contact_email: str = contact_email
-        self._country = country
-        self._alias: str = alias
-        self._url: str = url
-
-        if dataset_type is not None and dataset_type not in COLLECTION_DATASET_TYPE:
-            raise ValueError(f"{dataset_type} is not a valid code for dataset type")
-        self._dataset_type = dataset_type
-
-        if sample_source is not None and sample_source not in COLLECTION_SAMPLE_SOURCE:
-            raise ValueError(f"{sample_source} is not a valid code for sample source")
-        self._sample_source = sample_source
-
-        if sample_collection_setting is not None and sample_collection_setting \
-                not in COLLECTION_SAMPLE_COLLECTION_SETTING:
-            raise ValueError(f"{sample_collection_setting} is not a valid code for sample collection setting")
-        self._sample_collection_setting = sample_collection_setting
-
-        if collection_design is not None:
-            if not isinstance(collection_design, list):
-                raise TypeError("Collection design must be a list")
-            for design in collection_design:
-                if design not in COLLECTION_DESIGN:
-                    raise ValueError(f"{design} is not a valid code for collection design")
-        self._collection_design = collection_design
-
-        if use_and_access_conditions is not None:
-            if not isinstance(use_and_access_conditions, list):
-                raise TypeError("Use and access conditions must be a list.")
-            for condition in use_and_access_conditions:
-                if condition not in COLLECTION_USE_AND_ACCESS_CONDITIONS:
-                    raise ValueError(f"{condition} is not a valid code for use and access conditions")
-        self._use_and_access_conditions = use_and_access_conditions
-        self._publications = publications
+        self.identifier: str = identifier
+        self.name: str = name
+        self.description: str = description
+        self.managing_biobank_id: str = managing_biobank_id
+        self.contact_name: str = contact_name
+        self.contact_surname: str = contact_surname
+        self.contact_email: str = contact_email
+        self.country = country
+        self.alias: str = alias
+        self.url: str = url
+        self.dataset_type = dataset_type
+        self.sample_source = sample_source
+        self.sample_collection_setting = sample_collection_setting
+        self.collection_design = collection_design
+        self.use_and_access_conditions = use_and_access_conditions
+        self.publications = publications
+        self._collection_org_fhir_id = None
+        self._managing_biobank_fhir_id = None
 
     @property
     def identifier(self) -> str:
@@ -254,6 +206,8 @@ class CollectionOrganization:
 
     @collection_design.setter
     def collection_design(self, collection_design: list[str]):
+        if collection_design is not None and not isinstance(collection_design, list):
+            raise TypeError("Collection design must be a list of strings.")
         if collection_design is not None:
             for design in collection_design:
                 if design not in COLLECTION_DESIGN:
@@ -267,6 +221,8 @@ class CollectionOrganization:
     @use_and_access_conditions.setter
     def use_and_access_conditions(self, use_and_access_conditions: list[str]):
         if use_and_access_conditions is not None:
+            if not isinstance(use_and_access_conditions, list):
+                raise TypeError("Use and access conditions must be a list.")
             for condition in use_and_access_conditions:
                 if condition not in COLLECTION_USE_AND_ACCESS_CONDITIONS:
                     raise ValueError(f"{condition} is not a valid code for use and access conditions")
@@ -286,6 +242,14 @@ class CollectionOrganization:
                     raise TypeError("Publications must be a list of strings.")
         self._publications = publications
 
+    @property
+    def collection_org_fhir_id(self) -> str:
+        return self._collection_org_fhir_id
+
+    @property
+    def managing_biobank_fhir_id(self) -> str:
+        return self._managing_biobank_fhir_id
+
     @classmethod
     def from_json(cls, collection_json: dict, managing_biobank_id) -> Self:
         """
@@ -295,18 +259,23 @@ class CollectionOrganization:
         :return: MoFCollection object
         """
         try:
+            collection_org_fhir_id = get_nested_value(collection_json, ["id"])
             identifier = get_nested_value(collection_json, ["identifier", 0, "value"])
             name = get_nested_value(collection_json, ["name"])
             alias = get_nested_value(collection_json, ["alias", 0])
+            managing_biobank_fhir_id = parse_reference_id(get_nested_value(collection_json, ["partOf", "reference"]))
             url = get_nested_value(collection_json, ["telecom", 0, "value"])
             contact = parse_contact(collection_json.get("contact", [{}])[0])
             country = get_nested_value(collection_json, ["address", 0, "country"])
             parsed_extensions = cls._parse_extensions(collection_json.get("extension", []))
-            return cls(identifier, name, managing_biobank_id, contact["name"], contact["surname"], contact["email"],
-                       country, alias, url, parsed_extensions["description"], parsed_extensions["dataset_type"],
-                       parsed_extensions["sample_source"], parsed_extensions["sample_collection_setting"],
-                       parsed_extensions["collection_design"], parsed_extensions["use_and_access_conditions"],
-                       parsed_extensions["publications"])
+            instance = cls(identifier, name, managing_biobank_id, contact["name"], contact["surname"], contact["email"],
+                           country, alias, url, parsed_extensions["description"], parsed_extensions["dataset_type"],
+                           parsed_extensions["sample_source"], parsed_extensions["sample_collection_setting"],
+                           parsed_extensions["collection_design"], parsed_extensions["use_and_access_conditions"],
+                           parsed_extensions["publications"])
+            instance._collection_org_fhir_id = collection_org_fhir_id
+            instance._managing_biobank_fhir_id = managing_biobank_fhir_id
+            return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into MoFCollection")
 
@@ -353,9 +322,12 @@ class CollectionOrganization:
                 parsed_extensions[key] = None
         return parsed_extensions
 
-    def to_fhir(self, managing_organization_fhir_id: str) -> Organization:
+    def to_fhir(self, managing_organization_fhir_id: str = None) -> Organization:
         """Return collection representation in FHIR
         :param managing_organization_fhir_id: FHIR Identifier of the managing organization"""
+        managing_organization_fhir_id = managing_organization_fhir_id or self.managing_biobank_fhir_id
+        if managing_organization_fhir_id is None:
+            raise ValueError("Managing organization FHIR id must be provided either as an argument or as a property.")
         fhir_org = Organization()
         fhir_org.meta = Meta()
         fhir_org.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Collection"]
@@ -407,6 +379,13 @@ class CollectionOrganization:
             fhir_org.extension = extensions
         return fhir_org
 
+    def add_fhir_id_to_collection_organization(self, collection_org: Organization) -> Organization:
+        """Add FHIR id to the FHIR representation of the CollectionOrganization. FHIR ID is necessary for updating the
+                resource on the server.This method should only be called if the CollectionOrganization object
+                was created by the from_json method. Otherwise,the diagnosis_report_fhir_id attribute is None,
+                as the FHIR ID is generated by the server and is not known in advance."""
+        collection_org.id = self.collection_org_fhir_id
+        return collection_org
     @staticmethod
     def create_url(url: str) -> ContactPoint:
         contact_point = ContactPoint()

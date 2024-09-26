@@ -1,6 +1,6 @@
 import datetime
-import unittest
 import time
+import unittest
 
 import requests
 
@@ -9,14 +9,12 @@ from MIABIS_on_FHIR.collection import MoFCollection
 from MIABIS_on_FHIR.collection_organization import CollectionOrganization
 from MIABIS_on_FHIR.condition import Condition
 from MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
+from MIABIS_on_FHIR.gender import Gender
 from MIABIS_on_FHIR.network import Network
-from MIABIS_on_FHIR.MoF_network_members import MoFNetworkMembers
 from MIABIS_on_FHIR.network_organization import NetworkOrganization
 from MIABIS_on_FHIR.observation import Observation
 from MIABIS_on_FHIR.sample import Sample
 from MIABIS_on_FHIR.sample_donor import SampleDonor
-from MIABIS_on_FHIR.MoF_sample_list import SampleList
-from MIABIS_on_FHIR.gender import Gender
 from MIABIS_on_FHIR.storage_temperature import StorageTemperature
 
 blaze_url = "http://localhost:8080/fhir"
@@ -83,8 +81,8 @@ class TestBlazeStore(unittest.TestCase):
         biobank_fhir_id = \
             requests.get(blaze_url + "/Organization" + f"?identifier=biobankId").json()["entry"][0]["resource"]["id"]
         collection_org = CollectionOrganization("collectionId", "collectionName", "biobankId", "Jozef", "Mrkva",
-                                                   "jozefmrkva@email.com", "cz", "collectionAlias", "url",
-                                                   "description", dataset_type="Other", sample_source="Human",
+                                                "jozefmrkva@email.com", "cz", "collectionAlias", "url",
+                                                "description", dataset_type="Other", sample_source="Human",
                                                 sample_collection_setting="Other",
                                                 collection_design=["Other"],
                                                 use_and_access_conditions=["CommercialUse"],
@@ -108,21 +106,12 @@ class TestBlazeStore(unittest.TestCase):
         self.assertEqual(resp.status_code, 201)
         time.sleep(0.1)
 
-    def test_upload_sample_list(self):
-        collection_fhir_id = requests.get(blaze_url + "/Group?identifier=collectionId").json()["entry"][0]["resource"][
-            "id"]
-        sample_fhir_id = requests.get(blaze_url + "/Specimen?identifier=sampleId").json()["entry"][0]["resource"]["id"]
-        sample_list = SampleList("collectionId", ["sampleId"])
-        sample_list_json = sample_list.to_fhir(collection_fhir_id, [sample_fhir_id]).as_json()
-        resp = requests.post(blaze_url + "/List", json=sample_list_json)
-        self.assertEqual(resp.status_code, 201)
-
     def test_upload_network_organization(self):
         biobank_fhir_id = \
             requests.get(blaze_url + "/Organization" + f"?identifier=collectionId").json()["entry"][0]["resource"]["id"]
 
         network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
-                                             "contactSurname", "contactEmail", "country", ["Charter"], "juristicPerson")
+                                          "contactSurname", "contactEmail", "country", ["Charter"], "juristicPerson")
         network_org_fhir = network_org.to_fhir(biobank_fhir_id).as_json()
         resp = requests.post(blaze_url + "/Organization", json=network_org_fhir)
         self.assertEqual(resp.status_code, 201)
@@ -139,15 +128,3 @@ class TestBlazeStore(unittest.TestCase):
         resp = requests.post(blaze_url + "/Group", json=network_json)
         self.assertEqual(resp.status_code, 201)
         time.sleep(0.1)
-
-    def test_network_members(self):
-        network_fhir_id = requests.get(blaze_url + "/Group?identifier=networkId").json()["entry"][0]["resource"]["id"]
-        biobank_fhir_id = requests.get(blaze_url + "/Organization?identifier=biobankId").json()["entry"][0]["resource"][
-            "id"]
-        collection_fhir_id = requests.get(blaze_url + "/Group?identifier=collectionId").json()["entry"][0]["resource"][
-            "id"]
-        network_members = MoFNetworkMembers("networkId", "networkmembers", ["collectionId", "biobankId"])
-        network_members_json = network_members.to_fhir(network_fhir_id, [collection_fhir_id],
-                                                       [biobank_fhir_id]).as_json()
-        resp = requests.post(blaze_url + "/List", json=network_members_json)
-        self.assertEqual(resp.status_code, 201)

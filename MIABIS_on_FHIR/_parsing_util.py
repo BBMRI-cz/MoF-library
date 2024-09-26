@@ -9,6 +9,10 @@ def get_nested_value(data: dict, keys: list):
     return data
 
 
+def parse_reference_id(reference: str) -> str:
+    """Helper method to parse reference id."""
+    return reference.split("/")[-1]
+
 def parse_contact(contact: dict) -> dict:
     """Helper method to parse contact information."""
     return {

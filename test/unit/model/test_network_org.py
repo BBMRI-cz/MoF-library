@@ -8,7 +8,7 @@ class TestNetworkOrganization(unittest.TestCase):
         {'url': 'http://example.com/StructureDefinition/common-collaboration-topics', 'valueCodeableConcept': {
             'coding': [{'code': 'Charter', 'system': 'http://example.com/common-collaboration-topics-vs'}]}},
         {'url': 'http://example.com/StructureDefinition/juristic-person', 'valueString': 'juristicPerson'}],
-                        'active': True, 'address': [{'country': 'cz'}],
+                        'active': True, 'id': 'DEIASWWMVLK', 'address': [{'country': 'cz'}],
                         'contact': [
                             {'name': {'family': 'contactSurname', 'given': ['contactName']},
                              'telecom': [{'system': 'email', 'value': 'contactEmail'}]}],
@@ -209,3 +209,5 @@ class TestNetworkOrganization(unittest.TestCase):
         self.assertEqual("cz", network_org.country)
         self.assertEqual(["Charter"], network_org.common_collaboration_topics)
         self.assertEqual("juristicPerson", network_org.juristic_person)
+        self.assertEqual("biobankFhirId", network_org.managing_biobank_fhir_id)
+        self.assertEqual("DEIASWWMVLK", network_org.network_org_fhir_id)

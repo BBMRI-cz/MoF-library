@@ -8,38 +8,31 @@ from MIABIS_on_FHIR.storage_temperature import StorageTemperature
 
 
 class TestCollection(unittest.TestCase):
-    collection_json = {'meta': {'profile': ['http://example.com/StructureDefinition/Collection']}, 'extension': [
-        {'url': 'http://example.com/StructureDefinition/number-of-subjects-extension', 'valueInteger': 10},
-        {'url': 'http://example.com/StructureDefinition/inclusion-criteria-extension', 'valueCodeableConcept': {
-            'coding': [{'code': 'HealthStatus', 'system': 'http://example.com/inclusionCriteriaCS'}]}},
-        {'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity',
-         'valueReference': {'reference': 'Specimen/sampleFhirId1'}},
-        {'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity',
-         'valueReference': {'reference': 'Specimen/sampleFhirId2'}}], 'active': True, 'actual': True,
-                       'characteristic': [
-                           {'code': {'coding': [{'code': 'Age', 'system': 'http://example.com/characteristicCS'}]},
-                            'exclude': False, 'valueRange': {'high': {'value': 100}, 'low': {'value': 0}}},
-                           {'code': {'coding': [{'code': 'Sex', 'system': 'http://example.com/characteristicCS'}]},
-                            'exclude': False, 'valueCodeableConcept': {
-                               'coding': [{'code': 'male', 'system': 'http://example.com/sexCS'}]}}, {'code': {
-                               'coding': [
-                                   {'code': 'StorageTemperature', 'system': 'http://example.com/characteristicCS'}]},
-                               'exclude': False,
-                               'valueCodeableConcept': {
-                                   'coding': [{
-                                       'code': 'temperatureGN',
-                                       'system': 'http://example.com/storageTemperatureCS'}]}},
-                           {'code': {
-                               'coding': [{'code': 'MaterialType', 'system': 'http://example.com/characteristicCS'}]},
-                               'exclude': False, 'valueCodeableConcept': {
-                               'coding': [{'code': 'DNA', 'system': 'http://example.com/materialTypeCS'}]}}, {'code': {
-                               'coding': [{'code': 'Diagnosis', 'system': 'http://example.com/characteristicCS'}]},
-                               'exclude': False,
-                               'valueCodeableConcept': {
-                                   'coding': [
-                                       {
-                                           'code': 'C51',
-                                           'system': 'http://hl7.org/fhir/sid/icd-10'}]}}],
+    collection_json = {'id': 'NGJKWUEOLKA', 'meta': {'profile': ['http://example.com/StructureDefinition/Collection']},
+                       'extension': [{'url': 'http://example.com/StructureDefinition/number-of-subjects-extension',
+                                      'valueInteger': 10},
+                                     {'url': 'http://example.com/StructureDefinition/inclusion-criteria-extension',
+                                      'valueCodeableConcept': {'coding': [{'code': 'HealthStatus',
+                                                                           'system': 'http://example.com/inclusionCriteriaCS'}]}},
+                                     {
+                                         'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity',
+                                         'valueReference': {'reference': 'Specimen/sampleFhirId1'}}, {
+                                         'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity',
+                                         'valueReference': {'reference': 'Specimen/sampleFhirId2'}}], 'active': True,
+                       'actual': True, 'characteristic': [
+            {'code': {'coding': [{'code': 'Age', 'system': 'http://example.com/characteristicCS'}]}, 'exclude': False,
+             'valueRange': {'high': {'value': 100}, 'low': {'value': 0}}},
+            {'code': {'coding': [{'code': 'Sex', 'system': 'http://example.com/characteristicCS'}]}, 'exclude': False,
+             'valueCodeableConcept': {'coding': [{'code': 'male', 'system': 'http://example.com/sexCS'}]}},
+            {'code': {'coding': [{'code': 'StorageTemperature', 'system': 'http://example.com/characteristicCS'}]},
+             'exclude': False, 'valueCodeableConcept': {
+                'coding': [{'code': 'temperatureGN', 'system': 'http://example.com/storageTemperatureCS'}]}},
+            {'code': {'coding': [{'code': 'MaterialType', 'system': 'http://example.com/characteristicCS'}]},
+             'exclude': False,
+             'valueCodeableConcept': {'coding': [{'code': 'DNA', 'system': 'http://example.com/materialTypeCS'}]}},
+            {'code': {'coding': [{'code': 'Diagnosis', 'system': 'http://example.com/characteristicCS'}]},
+             'exclude': False,
+             'valueCodeableConcept': {'coding': [{'code': 'C51', 'system': 'http://hl7.org/fhir/sid/icd-10'}]}}],
                        'identifier': [{'value': 'collectionId'}],
                        'managingEntity': {'reference': 'Organization/biobankFhirId'}, 'name': 'collectionName',
                        'type': 'person', 'resourceType': 'Group'}
@@ -192,6 +185,7 @@ class TestCollection(unittest.TestCase):
                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
         with self.assertRaises(ValueError):
             collection.material_types = [37]
+
     def test_collection_optional_args_description_invalid(self):
         with self.assertRaises(TypeError):
             collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0,
@@ -205,7 +199,7 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(["C51"], collection.diagnoses)
 
     def test_collection_optional_args_diagnosis_invalid(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             collection = MoFCollection("collectionId", "collectionName", "managingBiobankId", 0,
                                        100,
                                        [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"],
@@ -296,3 +290,7 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(["HealthStatus"], collection.inclusion_criteria)
         self.assertEqual(10, collection.number_of_subjects)
         self.assertEqual(["sampleId1"], collection.sample_ids)
+        self.assertEqual("NGJKWUEOLKA", collection.collection_fhir_id)
+        self.assertEqual("biobankFhirId", collection.managing_collection_org_fhir_id)
+        self.assertEqual(["sampleFhirId1", "sampleFhirId2"], collection.sample_fhir_ids)
+

@@ -141,3 +141,5 @@ class TestSample(unittest.TestCase):
         self.assertEqual("bsSystem", sample.body_site_system)
         self.assertEqual(StorageTemperature.TEMPERATURE_ROOM, sample.storage_temperature)
         self.assertEqual("use_restric", sample.use_restrictions)
+        self.assertEqual("DEJGYCPFDABXEMWV", sample._subject_fhir_id)
+        self.assertEqual("DEJGYCYLDDUJKNVW", sample._sample_fhir_id)

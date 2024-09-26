@@ -10,7 +10,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
 from MIABIS_on_FHIR._constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value
+from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_reference_id
 from MIABIS_on_FHIR._util import create_fhir_identifier, create_codeable_concept, create_codeable_concept_extension
 from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from MIABIS_on_FHIR.storage_temperature import StorageTemperature
@@ -32,30 +32,17 @@ class Sample:
         :param storage_temperature: Temperature at which the sample is stored
         :param use_restrictions: Restrictions on the use of the sample
         """
-        if not isinstance(identifier, str):
-            raise TypeError("Identifier must be string")
-        self._identifier = identifier
-        if not isinstance(donor_identifier, str):
-            raise TypeError("Identifier must be string")
-        self._donor_identifier = donor_identifier
-        if material_type not in MATERIAL_TYPE_CODES:
-            raise ValueError(f"Material type {material_type} is not valid. Valid values are: {MATERIAL_TYPE_CODES}")
-        self._material_type = material_type
-        if collected_datetime is not None and not isinstance(collected_datetime, datetime):
-            raise TypeError("Collected datetime must be a datetime object")
-        self._collected_datetime = collected_datetime
-        if body_site is not None and not isinstance(body_site, str):
-            raise TypeError("Body site must be a string")
-        self._body_site = body_site
-        if body_site_system is not None and not isinstance(body_site_system, str):
-            raise TypeError("Body site system must be a string")
-        self._body_site_system = body_site_system
-        if storage_temperature is not None and not isinstance(storage_temperature, StorageTemperature):
-            raise TypeError("Storage temperature must be a StorageTemperature object")
-        self._storage_temperature = storage_temperature
-        if use_restrictions is not None and not isinstance(use_restrictions, str):
-            raise TypeError("Use restrictions must be a string")
-        self._use_restrictions = use_restrictions
+        self.identifier = identifier
+        # self._donor_identifier = donor_identifier
+        self.material_type = material_type
+        self.collected_datetime = collected_datetime
+        self.donor_identifier = donor_identifier
+        self.body_site = body_site
+        self.body_site_system = body_site_system
+        self.storage_temperature = storage_temperature
+        self.use_restrictions = use_restrictions
+        self._subject_fhir_id = None
+        self._sample_fhir_id = None
 
     @property
     def identifier(self) -> str:
@@ -145,6 +132,16 @@ class Sample:
             raise TypeError("Use restrictions must be a string")
         self._use_restrictions = use_restrictions
 
+    @property
+    def subject_fhir_id(self) -> str:
+        """FHIR ID of the subject to which the sample belongs."""
+        return self._subject_fhir_id
+
+    @property
+    def sample_fhir_id(self) -> str:
+        """FHIR ID of the sample."""
+        return self._sample_fhir_id
+
     @classmethod
     def from_json(cls, sample_json: dict, donor_identifier: str) -> Self:
         """
@@ -154,6 +151,7 @@ class Sample:
         :return:
         """
         try:
+            sample_fhir_id = get_nested_value(sample_json, ["id"])
             identifier = get_nested_value(sample_json, ["identifier", 0, "value"])
             material_type = get_nested_value(sample_json, ["type", "coding", 0, "code"])
             collected_datetime = cls._parse_collection_datetime(sample_json)
@@ -161,8 +159,11 @@ class Sample:
             body_site_system = get_nested_value(sample_json, ["collection", "bodySite", "coding", 0, "system"])
             storage_temperature = cls._parse_storage_temperature(sample_json)
             use_restrictions = get_nested_value(sample_json, ["note", 0, "text"])
-            return cls(identifier, donor_identifier, material_type, collected_datetime, body_site, body_site_system,
-                       storage_temperature, use_restrictions)
+            instance = cls(identifier, donor_identifier, material_type, collected_datetime, body_site, body_site_system,
+                           storage_temperature, use_restrictions)
+            instance._subject_fhir_id = parse_reference_id(get_nested_value(sample_json, ["subject", "reference"]))
+            instance._sample_fhir_id = sample_fhir_id
+            return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occurred when parsing json into the MoFSample")
 
@@ -184,10 +185,15 @@ class Sample:
             storage_temperature = StorageTemperature(storage_temperature)
         return storage_temperature
 
-    def to_fhir(self, subject_fhir_id: str):
+    def to_fhir(self, subject_fhir_id: str = None) -> Specimen:
         """return sample representation in FHIR format
         :param material_type_map: Mapping of material types to FHIR codes
         :param subject_fhir_id: FHIR ID of the subject to which the sample belongs"""
+
+        subject_fhir_id = subject_fhir_id or self.subject_fhir_id
+
+        if subject_fhir_id is None:
+            raise ValueError("Subject FHIR ID must be provided either as an argument or as a property")
 
         specimen = Specimen()
         specimen.meta = Meta()
@@ -214,6 +220,14 @@ class Sample:
             specimen.note = [Annotation()]
             specimen.note[0].text = self.use_restrictions
         return specimen
+
+    def add_fhir_id_to_fhir_representation(self, sample: Specimen) -> Specimen:
+        """Add the FHIR ID to the FHIR representation of the sample. FHIR ID is necessary for updating the sample.
+         This method should only be called if the Sample object was created by the from_json method. Otherwise,
+         the sample_fhir_id attribute is None, as the FHIR ID is generated by the server and is not known in advance.
+        :param sample: Sample FHIR object"""
+        sample.id = self.sample_fhir_id
+        return sample
 
     def __create_body_site(self) -> CodeableConcept:
         """Create body site codeable concept."""
