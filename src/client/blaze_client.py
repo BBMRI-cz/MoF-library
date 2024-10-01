@@ -32,14 +32,36 @@ class BlazeClient:
         session.auth = (blaze_username, blaze_password)
         self._session = session
 
-    def get_fhir_resource_as_json(self, resource_type: str, resource_fhir_id: str) -> dict:
+    def is_resource_present_in_blaze(self, resource_type: str, search_value: str, search_param: str) -> bool:
+        """Check if a resource is present in the blaze.
+        The search parameter needs to confront to the searchable parameters defined by FHIR for each resource.
+        if search_param is None, this method checks the existence of resource by FHIR id.
+        :param resource_type: type of the resource
+        :param search_param: parameter by which the resource is searched
+        :param search_value: actual value by which the search is done
+        :return True if the resource is present, false otherwise"""
+        if search_param is None:
+            response = self._session.get(f"{self._blaze_url}/{resource_type.capitalize()}/{search_value}")
+            if response.status_code == 404:
+                return False
+            if response.status_code == 200:
+                return True
+        response = self._session.get(f"{self._blaze_url}/{resource_type.capitalize()}?{search_param}={search_value}")
+        response.raise_for_status()
+        if response.json()["total"] == 0:
+            return False
+        return True
+
+    def get_fhir_resource_as_json(self, resource_type: str, resource_fhir_id: str) -> dict | None:
         """Get a FHIR resource from blaze as a json.
         :param resource_type: the type of the resource
         :param resource_fhir_id: the fhir id of the resource
-        :return: json representation of the resource
+        :return: json representation of the resource, or None if such resource is not present.
         :raises HTTPError: if the request to blaze fails
         """
-        response = self._session.get(f"{self._blaze_url}/{resource_type}/{resource_fhir_id}")
+        response = self._session.get(f"{self._blaze_url}/{resource_type.capitalize()}/{resource_fhir_id}")
+        if response.status_code == 404:
+            return None
         response.raise_for_status()
         return response.json()
 
@@ -69,19 +91,19 @@ class BlazeClient:
             return None
         return response_json["entry"][0]["resource"]["id"]
 
-    def get_identifier_by_fhir_id(self, resource_type: str, resource_fhir_id: str) -> str:
+    def get_identifier_by_fhir_id(self, resource_type: str, resource_fhir_id: str) -> str | None:
         """get the identifier of a resource in blaze.
             :param resource_type: the type of the resource
             :param resource_fhir_id: the fhir id of the resource
-            :return: the identifier of the resource in blaze
+            :return: the identifier of the resource in blaze, None if resource with resource_fhir_id does not exists
             :raises HTTPError: if the request to blaze fails
             """
         response = self._session.get(f"{self._blaze_url}/{resource_type}/{resource_fhir_id}")
+        if response.status_code == 404:
+            return None
         response.raise_for_status()
         response_json = response.json()
-        if response_json["total"] == 0:
-            raise ValueError(f"Resource with type \"{resource_type}\" and fhir id \"{resource_fhir_id}\" not found.")
-        return response_json["identifier"][0]["value"]
+        return get_nested_value(response_json, ["identifier", 0, "value"])
 
     def upload_donor(self, donor: SampleDonor) -> str:
         """Upload a donor to blaze.
@@ -106,6 +128,16 @@ class BlazeClient:
         response = self._session.post(f"{self._blaze_url}/Specimen", json=sample.to_fhir(donor_fhir_id).as_json())
         response.raise_for_status()
         return response.json()["id"]
+
+    def add_diagnosis_reports_to_condition(self, condition_fhir_id: str, diagnosis_report_fhir_ids: list[str]) -> bool:
+        """add new diagnosis to already present condition in the blaze store"""
+        condition_json = self.get_fhir_resource_as_json("Condition", condition_fhir_id)
+        patient_fhir_id = parse_reference_id(get_nested_value(condition_json, ["subject", "reference"]))
+        patient_identifier = self.get_identifier_by_fhir_id("Patient", patient_fhir_id)
+        condition = Condition.from_json(condition_json, patient_identifier)
+        condition.diagnosis_report_fhir_ids.extend(diagnosis_report_fhir_ids)
+        self.update_fhir_resource("Condition", condition_fhir_id, condition.to_fhir())
+        return True
 
     def upload_observation(self, observation: Observation) -> str:
         """Upload an observation to blaze.
@@ -251,7 +283,7 @@ class BlazeClient:
         :raises HTTPError: if the request to blaze fails
         """
         donor = self.get_fhir_resource_as_json("Patient", donor_fhir_id)
-        sample_fhir_ids = [get_nested_value(link, ["target", "reference"]) for link in donor["link"]]
+        sample_fhir_ids = self.__get_all_sample_fhir_ids_belonging_to_patient(donor_fhir_id)
         condition_fhir_id = self.__get_condition_fhir_id_by_patient_identifier(donor_fhir_id)
         for sample_fhir_id in sample_fhir_ids:
             if self.delete_sample(sample_fhir_id):
@@ -319,6 +351,22 @@ class BlazeClient:
         response.raise_for_status()
         return response.status_code == 200 or response.status_code == 204
 
+    def __get_all_sample_fhir_ids_belonging_to_patient(self, patient_fhir_id: str) -> list[str]:
+        """Get all sample fhir ids which belong to patient.
+        :param patient_fhir_id: id of patient from which we want to get samples.
+        :raises: HTTPError if the requests to blaze fails
+        :return: list of FHIR ids of samples that belong to this patient."""
+        sample_fhir_ids = []
+        response = self._session.get(f"{self._blaze_url}/Specimen?patient={patient_fhir_id}")
+        response.raise_for_status()
+        response_json = response.json()
+        if response_json["total"] == 0:
+            return sample_fhir_ids
+        for entry in response_json['entry']:
+            sample_fhir_id = get_nested_value(entry["resource"], ["resource", "id"])
+            sample_fhir_ids.append(sample_fhir_id)
+        return sample_fhir_ids
+
     def __get_diagnosis_reports_fhir_id_by_sample_identifier(self, sample_identifier: str) -> list[str]:
         response = self._session.get(f"{self._blaze_url}/DiagnosticReport?specimen=Specimen/{sample_identifier}")
         response.raise_for_status()
@@ -332,9 +380,10 @@ class BlazeClient:
         return diagnosis_reports_fhir_ids
 
     def __get_condition_fhir_id_by_patient_identifier(self, patient_identifier: str) -> str:
-        response = self._session.get(f"{self._blaze_url}/Condition?subject=Patient/{patient_identifier}")
+        response = self._session.get(f"{self._blaze_url}/Condition?subject={patient_identifier}")
         response.raise_for_status()
-        return response.json()["entry"][0]["resource"]["id"]
+        response_json = response.json()
+        return get_nested_value(response_json, ["entry", 0, "resource", "id"])
 
     def __delete_diagnosis_report_reference_from_condition(self, condition_fhir_id: str,
                                                            diagnosis_report_fhir_id: str) -> bool:
