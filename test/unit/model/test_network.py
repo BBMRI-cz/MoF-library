@@ -95,6 +95,6 @@ class TestNetwork(unittest.TestCase):
         self.assertEqual(["collid1", "collid2"], network.members_collections_ids)
         self.assertEqual(["biobankid1", "biobankid2"], network.members_biobanks_ids)
         self.assertEqual("SKJAOWSQEMJ", network.network_fhir_id)
-        self.assertEqual("bioFhirId", network.managing_biobank_fhir_id)
+        self.assertEqual("bioFhirId", network.managing_network_org_fhir_id)
         self.assertEqual(["collFhirId1", "collFhirId2"], network.members_collections_fhir_ids)
         self.assertEqual(["bioFhirId1", "bioFhirId2"], network.members_biobanks_fhir_ids)
