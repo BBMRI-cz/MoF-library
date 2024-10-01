@@ -95,7 +95,7 @@ class Network:
         return self._network_fhir_id
 
     @property
-    def managing_biobank_fhir_id(self) -> str:
+    def managing_network_org_fhir_id(self) -> str:
         return self._managing_network_org_fhir_id
 
     @property
@@ -137,6 +137,7 @@ class Network:
                     parsed_extensions["member_biobank_fhir_ids"].append(reference)
         return parsed_extensions
 
+    # TODO member colelction - "formal parts of collection stored in collection_org resource - is type of Organization - no need to specify if member is collection or biobank, both same resource
     def to_fhir(self, network_organization_fhir_id: str = None, member_collection_fhir_ids: list[str] = None,
                 member_biobank_fhir_ids: list[str] = None) -> Group:
         network_organization_fhir_id = network_organization_fhir_id or self.managing_network_org_id
