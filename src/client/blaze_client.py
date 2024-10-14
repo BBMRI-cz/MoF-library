@@ -11,7 +11,7 @@ from src.MIABIS_on_FHIR.network_organization import NetworkOrganization
 from src.MIABIS_on_FHIR.observation import Observation
 from src.MIABIS_on_FHIR.sample import Sample
 from src.MIABIS_on_FHIR.sample_donor import SampleDonor
-from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
+from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id, parse_date_from_string
 
 
 # TODO add update collection, update network
@@ -32,7 +32,7 @@ class BlazeClient:
         session.auth = (blaze_username, blaze_password)
         self._session = session
 
-    def is_resource_present_in_blaze(self, resource_type: str, search_value: str, search_param: str) -> bool:
+    def is_resource_present_in_blaze(self, resource_type: str, search_value: str, search_param: str = None) -> bool:
         """Check if a resource is present in the blaze.
         The search parameter needs to confront to the searchable parameters defined by FHIR for each resource.
         if search_param is None, this method checks the existence of resource by FHIR id.
@@ -59,23 +59,11 @@ class BlazeClient:
         :return: json representation of the resource, or None if such resource is not present.
         :raises HTTPError: if the request to blaze fails
         """
-        response = self._session.get(f"{self._blaze_url}/{resource_type.capitalize()}/{resource_fhir_id}")
+        response = self._session.get(f"{self._blaze_url}/{resource_type}/{resource_fhir_id}")
         if response.status_code == 404:
             return None
         response.raise_for_status()
         return response.json()
-
-    def update_fhir_resource(self, resource_type: str, resource_fhir_id: str, resource_json: dict) -> bool:
-        """Update a FHIR resource in blaze.
-        :param resource_type: the type of the resource
-        :param resource_fhir_id: the fhir id of the resource
-        :param resource_json: the json representation of the resource
-        :return: True if the resource was updated successfully
-        :raises HTTPError: if the request to blaze fails
-        """
-        response = self._session.put(f"{self._blaze_url}/{resource_type}/{resource_fhir_id}", json=resource_json)
-        response.raise_for_status()
-        return response.status_code == 200 or response.status_code == 201
 
     def get_fhir_id(self, resource_type: str, resource_identifier: str) -> str | None:
         """get the fhir id of a resource in blaze.
@@ -105,6 +93,64 @@ class BlazeClient:
         response_json = response.json()
         return get_nested_value(response_json, ["identifier", 0, "value"])
 
+    def get_observation_fhir_ids_belonging_to_sample(self, sample_fhir_id: str) -> list[str]:
+        """get all observations linked to a specific sample
+        :param sample_fhir_id: fhir id of a sample for which the observations should be retrieved
+        :return list of fhir ids linked to a specific sample"""
+        response = self._session.get(f"{self._blaze_url}/Observation?specimen={sample_fhir_id}")
+        response.raise_for_status()
+        observations_fhir_ids = []
+        response_json = response.json()
+        for entry in response_json["entry"]:
+            obs_fhir_id = get_nested_value(entry, ["resource", "id"])
+            if obs_fhir_id is not None:
+                observations_fhir_ids.append(obs_fhir_id)
+        return observations_fhir_ids
+
+    def get_diagnosis_report_fhir_id_belonging_to_sample(self, sample_fhir_id: str) -> str:
+        """get diagnosis report which belongs to a specific sample
+        :param sample_fhir_id: fhir id of sample that this diagnosis report belongs to
+        :return fhir id of the diagnosis report"""
+        response = self._session.get(f"{self._blaze_url}/DiagnosticReport?specimen={sample_fhir_id}")
+        response.raise_for_status()
+        diagnosis_report_json = response.json()
+        diagnosis_report_fhir_id = get_nested_value(diagnosis_report_json, ["entry", 0, "resource", "id"])
+        return diagnosis_report_fhir_id
+
+    def get_diagnosis_report_fhir_ids_belonging_to_patient(self, donor_fhir_id: str) -> list[str]:
+        """get diagnosis reports fhir ids, which belong to a specific donor
+        :param donor_fhir_id: fhir id of donor that these diagnosis reports belong to
+        :return list of  diagnosis fhir ids belonging to a specified donor """
+        diagnosis_report_fhir_ids = []
+        response = self._session.get(f"{self._blaze_url}/DiagnosticReport?subject={donor_fhir_id}")
+        response.raise_for_status()
+        diagnosis_reports_json = response.json()
+        for entry in diagnosis_reports_json["entry"]:
+            diagnosis_report_fhir_id = get_nested_value(entry, ["resource", "id"])
+            diagnosis_report_fhir_ids.append(diagnosis_report_fhir_id)
+        return diagnosis_report_fhir_ids
+
+    def get_condition_fhir_id_by_donor_fhir_id(self, donor_fhir_id: str) -> str:
+        """get condition fhir id, which belongs to a specific donor
+        :param donor_fhir_id: fhir id of donor that this condition belongs to
+        :return fhir id of condition which belongs to a specified donor"""
+        response = self._session.get(f"{self._blaze_url}/Condition?subject={donor_fhir_id}")
+        response.raise_for_status()
+        condition_fhir_id = get_nested_value(response.json(), ["entry", 0, "resource", "id"])
+        return condition_fhir_id
+
+    def update_fhir_resource(self, resource_type: str, resource_fhir_id: str, resource_json: dict) -> bool:
+        """Update a FHIR resource in blaze.
+        :param resource_type: the type of the resource
+        :param resource_fhir_id: the fhir id of the resource
+        :param resource_json: the json representation of the resource
+        :return: True if the resource was updated successfully
+        :raises HTTPError: if the request to blaze fails
+        """
+        response = self._session.put(f"{self._blaze_url}/{resource_type}/{resource_fhir_id}", json=resource_json)
+        response.raise_for_status()
+        return response.status_code == 200 or response.status_code == 201
+
     def upload_donor(self, donor: SampleDonor) -> str:
         """Upload a donor to blaze.
             :param donor: the donor to upload
@@ -129,47 +175,46 @@ class BlazeClient:
         response.raise_for_status()
         return response.json()["id"]
 
-    def add_diagnosis_reports_to_condition(self, condition_fhir_id: str, diagnosis_report_fhir_ids: list[str]) -> bool:
-        """add new diagnosis to already present condition in the blaze store"""
-        condition_json = self.get_fhir_resource_as_json("Condition", condition_fhir_id)
-        patient_fhir_id = parse_reference_id(get_nested_value(condition_json, ["subject", "reference"]))
-        patient_identifier = self.get_identifier_by_fhir_id("Patient", patient_fhir_id)
-        condition = Condition.from_json(condition_json, patient_identifier)
-        condition.diagnosis_report_fhir_ids.extend(diagnosis_report_fhir_ids)
-        self.update_fhir_resource("Condition", condition_fhir_id, condition.to_fhir())
-        return True
-
     def upload_observation(self, observation: Observation) -> str:
         """Upload an observation to blaze.
+            :param patient_fhir_id: FHIR ID of the patient this observation is linked to
             :param observation: the observation to upload
             :raises HTTPError: if the request to blaze fails
             :return: the fhir id of the uploaded observation
             """
-        response = self._session.post(f"{self._blaze_url}/Observation", json=observation.to_fhir().as_json())
+        patient_fhir_id = observation.patient_fhir_id
+        sample_fhir_id = observation.sample_fhir_id
+        if patient_fhir_id is None:
+            patient_fhir_id = self.get_fhir_id("Patient", observation.patient_identifier)
+        if sample_fhir_id is None:
+            sample_fhir_id = self.get_fhir_id("Specimen", observation.sample_identifier)
+        response = self._session.post(f"{self._blaze_url}/Observation",
+                                      json=observation.to_fhir(patient_fhir_id, sample_fhir_id).as_json())
         response.raise_for_status()
         return response.json()["id"]
 
     def upload_diagnosis_report(self, diagnosis_report: DiagnosisReport) -> str:
         """Upload a diagnosis report to blaze.
             :param diagnosis_report: the diagnosis report to upload
-            :param sample_fhir_id: the fhir id of the sample the diagnosis report is about
-            :param observation_fhir_ids: the fhir ids of the observations in the diagnosis report
             :raises HTTPError: if the request to blaze fails
             :return: the fhir id of the uploaded diagnosis report
             """
         sample_fhir_id = diagnosis_report.sample_fhir_id
+        patient_fhir_id = diagnosis_report.patient_fhir_id
         observation_fhir_ids = diagnosis_report.observations_fhir_identifiers
         if sample_fhir_id is None:
             sample_fhir_id = self.get_fhir_id("Specimen", diagnosis_report.sample_identifier)
+        if patient_fhir_id is None:
+            patient_fhir_id = self.get_fhir_id("Patient", diagnosis_report.patient_identifier)
         if observation_fhir_ids is None:
-            observation_fhir_ids = [self.get_fhir_id("Observation", observation_id) for observation_id in
-                                    diagnosis_report.observations_identifiers]
-        diagnosis_report_json = diagnosis_report.to_fhir(sample_fhir_id, observation_fhir_ids).as_json()
+            observation_fhir_ids = self.get_observation_fhir_ids_belonging_to_sample(sample_fhir_id)
+        diagnosis_report_json = diagnosis_report.to_fhir(sample_fhir_id, patient_fhir_id,
+                                                         observation_fhir_ids).as_json()
         response = self._session.post(f"{self._blaze_url}/DiagnosticReport", json=diagnosis_report_json)
         response.raise_for_status()
         return response.json()["id"]
 
-    def upload_condition(self, condition: Condition, diagnosis_reports_fhir_ids: list[str]) -> str:
+    def upload_condition(self, condition: Condition) -> str:
         """Upload a condition to blaze.
             :param condition: the condition to upload
             :param diagnosis_reports_fhir_ids: the fhir ids of the diagnosis reports in the condition
@@ -177,8 +222,11 @@ class BlazeClient:
             :return: the fhir id of the uploaded condition
             """
         donor_fhir_id = condition.patient_fhir_id
+        diagnosis_reports_fhir_ids = condition.diagnosis_report_fhir_ids
         if donor_fhir_id is None:
             donor_fhir_id = self.get_fhir_id("Patient", condition.patient_identifier)
+        if diagnosis_reports_fhir_ids is None:
+            diagnosis_reports_fhir_ids = self.get_diagnosis_report_fhir_ids_belonging_to_patient(donor_fhir_id)
         condition_json = condition.to_fhir(donor_fhir_id, diagnosis_reports_fhir_ids).as_json()
         response = self._session.post(f"{self._blaze_url}/Condition", json=condition_json)
         response.raise_for_status()
@@ -276,13 +324,158 @@ class BlazeClient:
         response.raise_for_status()
         return response.json()["entry"][0]["resource"]["id"]
 
+    def add_diagnosis_reports_to_condition(self, condition_fhir_id: str, diagnosis_report_fhir_ids: list[str]) -> bool:
+        """add new diagnosis to already present condition in the blaze store"""
+        condition_json = self.get_fhir_resource_as_json("Condition", condition_fhir_id)
+        patient_fhir_id = parse_reference_id(get_nested_value(condition_json, ["subject", "reference"]))
+        patient_identifier = self.get_identifier_by_fhir_id("Patient", patient_fhir_id)
+        condition = Condition.from_json(condition_json, patient_identifier)
+        condition.diagnosis_report_fhir_ids.extend(diagnosis_report_fhir_ids)
+        updated_condition_fhir = condition.to_fhir()
+        condition.add_fhir_id_to_condition(updated_condition_fhir)
+        self.update_fhir_resource("Condition", condition_fhir_id, updated_condition_fhir.as_json())
+        return True
+
+    def add_diagnoses_to_collection(self, collection_fhir_id: str, diagnoses: list[str]) -> bool:
+        """Add diagnoses to a collection in blaze.
+        :param collection_fhir_id: the fhir id of the collection
+        :param diagnoses: the diagnoses to add to the collection
+        :return: True if the diagnoses were added successfully
+        :raises HTTPError: if the request to blaze fails
+        """
+        collection = self.__build_collection_object_from_json(collection_fhir_id)
+        collection.diagnoses.extend(diagnoses)
+        collection_fhir = collection.to_fhir()
+        return self.update_fhir_resource("Group", collection_fhir_id, collection_fhir.as_json())
+
+    def add_existing_observation_to_diagnosis_report(self, observation_fhir_id: str,
+                                                     diagnosis_report_fhir_id: str) -> bool:
+        """Add an existing observation to an existing diagnosis report in blaze.
+        :param observation_fhir_id: the fhir id of the observation
+        :param diagnosis_report_fhir_id: the fhir id of the diagnosis report
+        :return: True if the observation was added successfully
+        :raises HTTPError: if the request to blaze fails
+        """
+        diagnosis_report = self.get_fhir_resource_as_json("DiagnosticReport", diagnosis_report_fhir_id)
+        observation_fhir_ids = [get_nested_value(result, ["reference"]) for result in diagnosis_report["result"]]
+        if f"Observation/{observation_fhir_id}" in observation_fhir_ids:
+            # TODO Maybe add a custom exception ?
+            return False
+        observation_fhir_ids.append(f"Observation/{observation_fhir_id}")
+        diagnosis_report["result"] = [{"reference": observation_id} for observation_id in observation_fhir_ids]
+        return self.update_fhir_resource("DiagnosticReport", diagnosis_report_fhir_id, diagnosis_report)
+
+    def update_collection_characteristics_from_samples(self, samples: list[Sample], collection_fhir_id: str):
+        """update the characteristics for collection with new values from the samples.
+        :param samples: the samples to calculate the characteristics from
+        :param collection_fhir_id: the fhir id of the collection
+        :return: the calculated characteristics of the samples
+        :raises HTTPError: if the request to blaze fails
+        """
+        collection = self.__build_collection_object_from_json(collection_fhir_id)
+        age_range_low = collection.age_range_low
+        age_range_high = collection.age_range_high
+        genders = collection.genders
+        storage_temperatures = collection.storage_temperatures
+        material_types = collection.material_types
+        diagnoses = collection.diagnoses
+        already_present_sample_jsons = [self.get_fhir_resource_as_json("Specimen", sample_fhir_id) for sample_fhir_id in
+                                        collection.sample_fhir_ids]
+        donor_ids = [parse_reference_id(get_nested_value(sample_json, ["subject", "reference"])) for sample_json in
+                     already_present_sample_jsons]
+        count_of_new_subjects = 0
+
+        for sample in samples:
+            sample_fhir_id = self.get_fhir_id("Specimen", sample.identifier)
+            if sample.donor_identifier not in donor_ids:
+                count_of_new_subjects += 1
+                donor_ids.append(sample.donor_identifier)
+            donor_json = self.get_fhir_resource_as_json("Patient", self.get_fhir_id("Patient", sample.donor_identifier))
+            donor = SampleDonor.from_json(donor_json)
+            if donor.gender not in genders:
+                genders.append(donor.gender)
+            if sample.storage_temperature not in storage_temperatures:
+                storage_temperatures.append(sample.storage_temperature)
+            if sample.material_type not in material_types:
+                material_types.append(sample.material_type)
+            sample_diagnoses = self.__get_diagnosis_of_sample(sample_fhir_id)
+            for diagnosis in sample_diagnoses:
+                if diagnosis not in diagnoses:
+                    diagnoses.append(diagnosis)
+            ages_at_diagnosis = self.__get_age_at_the_time_of_diagnosis(sample_fhir_id, donor.identifier)
+            for age in ages_at_diagnosis:
+                age_range_low = min(age, age_range_low)
+                age_range_high = max(age, age_range_high)
+
+    def get_observation_fhir_ids_belonging_to_diagnosis_report(self, diagnosis_report_fhir_id: str) -> list[str]:
+        observation_fhir_ids = []
+        diagnosis_report = self.get_fhir_resource_as_json("DiagnosticReport", diagnosis_report_fhir_id)
+        for observation in diagnosis_report["result"]:
+            observation_id = parse_reference_id(observation["reference"])
+            observation_fhir_ids.append(observation_id)
+        return observation_fhir_ids
+
+    def __get_diagnosis_of_sample(self, sample_fhir_id: str) -> list[str]:
+        #  TODO TEST THIS FIRST
+        """"""
+        diagnoses = []
+        if not self.is_resource_present_in_blaze("DiagnosticReport", sample_fhir_id, "specimen"):
+            return diagnoses
+        response = self._session.get(f"{self._blaze_url}/DiagnosticReport?specimen={sample_fhir_id}")
+        observation_fhir_ids = []
+        diagnosis_reports = response.json()["entry"] if response.json()["total"] > 0 else []
+        for diagnosis_report in diagnosis_reports:
+            for observation in diagnosis_report["result"]:
+                observation_id = parse_reference_id(observation["reference"])
+                observation_fhir_ids.append(observation_id)
+        for observation_fhir_id in observation_fhir_ids:
+            obs_json = self.get_fhir_resource_as_json("Observation", observation_fhir_id)
+            diagnosis_code = get_nested_value(obs_json, ["valueCodeableConcept", "coding", 0, "code"])
+            diagnoses.append(diagnosis_code)
+        return diagnoses
+
+    def __get_age_at_the_time_of_diagnosis(self, sample_fhir_id: str, donor_fhir_id: str) -> list[int]:
+        """"""
+        ages_at_diagnosis = []
+        if not self.is_resource_present_in_blaze("DiagnosticReport", sample_fhir_id, "specimen"):
+            return ages_at_diagnosis
+        donor = self.get_fhir_resource_as_json("Patient", donor_fhir_id)
+        donor_birthdate_string = get_nested_value(donor, ["birthDate"])
+        if donor_birthdate_string is None:
+            return ages_at_diagnosis
+        donor_birthdate = parse_date_from_string(donor_birthdate_string)
+        response = self._session.get(f"{self._blaze_url}/DiagnosticReport?specimen={sample_fhir_id}")
+        diagnosis_reports = response.json()["entry"] if response.json()["total"] > 0 else []
+        for diagnosis_report in diagnosis_reports:
+            effective_time = parse_date_from_string(get_nested_value(diagnosis_report, ["effectiveDateTime"]))
+            age_at_diagnosis = effective_time.year - donor_birthdate.year
+            ages_at_diagnosis.append(age_at_diagnosis)
+
+        return ages_at_diagnosis
+
+    def __build_collection_object_from_json(self, collection_fhir_id: str) -> Collection:
+        """Build a collection object from a json representation.
+        :param collection_fhir_id: the fhir id of the collection
+        :return: the collection object
+        :raises HTTPError: if the request to blaze fails
+        """
+        collection_json = self.get_fhir_resource_as_json("Group", collection_fhir_id)
+        managing_collection_org_fhir_id = parse_reference_id(
+            get_nested_value(collection_json, ["managingEntity", "reference"]))
+        managing_collection_id = self.get_identifier_by_fhir_id("Organization", managing_collection_org_fhir_id)
+        already_present_sample_fhir_ids = self.__get_all_sample_fhir_ids_belonging_to_collection(collection_fhir_id)
+        already_present_sample_ids = [self.get_identifier_by_fhir_id("Specimen", sample_fhir_id) for sample_fhir_id in
+                                      already_present_sample_fhir_ids]
+        collection = Collection.from_json(collection_json, managing_collection_id, already_present_sample_ids)
+        return collection
+
     def delete_donor(self, donor_fhir_id: str) -> bool:
-        """Delete a donor from blaze. BEWARE: Deleting a donor will also delete all related samples and diagnosis reports.
+        """Delete a donor from blaze.
+        BEWARE: Deleting a donor will also delete all related samples and diagnosis reports.
         :param donor_fhir_id: the fhir id of the donor to delete
         :return: True if the donor was deleted successfully
         :raises HTTPError: if the request to blaze fails
         """
-        donor = self.get_fhir_resource_as_json("Patient", donor_fhir_id)
         sample_fhir_ids = self.__get_all_sample_fhir_ids_belonging_to_patient(donor_fhir_id)
         condition_fhir_id = self.__get_condition_fhir_id_by_patient_identifier(donor_fhir_id)
         for sample_fhir_id in sample_fhir_ids:
@@ -311,8 +504,8 @@ class BlazeClient:
         :return: True if the sample was deleted successfully
         :raises HTTPError: if the request to blaze fails
         """
-        sample = self.get_fhir_resource_as_json("Specimen", sample_fhir_id)
-        patient_fhir_id = (get_nested_value(sample, ["subject", "reference"]))
+        sample_json = self.get_fhir_resource_as_json("Specimen", sample_fhir_id)
+        patient_fhir_id = (get_nested_value(sample_json, ["subject", "reference"]))
         condition_fhir_id = self.__get_condition_fhir_id_by_patient_identifier(patient_fhir_id)
         diagnosis_reports_fhir_ids = self.__get_diagnosis_reports_fhir_id_by_sample_identifier(sample_fhir_id)
         for diagnosis_report_fhir_id in diagnosis_reports_fhir_ids:
@@ -328,15 +521,15 @@ class BlazeClient:
 
     def delete_diagnosis_report(self, diagnosis_report_fhir_id: str) -> bool:
         """Delete a diagnosis report from blaze.
-        :param diagnosis_report_fhir_id: the fhir id of the diagnosis report to delete
         :param patient_fhir_identifier: the fhir identifier of the patient
         :return: True if the diagnosis report was deleted successfully
         :raises HTTPError: if the request to blaze fails
         """
-        diagnosis_report = self.get_fhir_resource_as_json("DiagnosticReport", diagnosis_report_fhir_id)
-        observation_fhir_ids = [get_nested_value(result, ["reference"]) for result in diagnosis_report["result"]]
-        for observation_fhir_id in observation_fhir_ids:
-            self.delete_observation(observation_fhir_id)
+        diagnosis_report_json = self.get_fhir_resource_as_json("DiagnosticReport", diagnosis_report_fhir_id)
+        patient_fhir_id = parse_reference_id(get_nested_value(diagnosis_report_json, ["subject", "reference"]))
+        condition_fhir_id = self.__get_condition_fhir_id_by_patient_identifier(patient_fhir_id)
+        deleted_diag_from_condition = self.__delete_diagnosis_report_reference_from_condition(condition_fhir_id,
+                                                                                              diagnosis_report_fhir_id)
         response = self._session.delete(f"{self._blaze_url}/DiagnosticReport/{diagnosis_report_fhir_id}")
         response.raise_for_status()
         return response.status_code == 200 or response.status_code == 204
@@ -350,6 +543,20 @@ class BlazeClient:
         response = self._session.delete(f"{self._blaze_url}/Observation/{observation_fhir_id}")
         response.raise_for_status()
         return response.status_code == 200 or response.status_code == 204
+
+    def __get_all_sample_fhir_ids_belonging_to_collection(self, collection_fhir_id: str) -> list[str]:
+        """Get all sample fhir ids which belong to collection.
+        :param collection_fhir_id: id of collection from which we want to get samples.
+        :raises: HTTPError if the requests to blaze fails
+        :return: list of FHIR ids of samples that belong to this collection."""
+        sample_fhir_ids = []
+        collection_json = self.get_fhir_resource_as_json("Group", collection_fhir_id)
+        for extension in collection_json["extension"]:
+            if extension["url"] == "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity":
+                reference = get_nested_value(extension, ["valueReference", "reference"])
+                if reference is not None:
+                    sample_fhir_ids.append(parse_reference_id(reference))
+        return sample_fhir_ids
 
     def __get_all_sample_fhir_ids_belonging_to_patient(self, patient_fhir_id: str) -> list[str]:
         """Get all sample fhir ids which belong to patient.
@@ -372,6 +579,8 @@ class BlazeClient:
         response.raise_for_status()
         response_json = response.json()
         diagnosis_reports_fhir_ids = []
+        if response_json["total"] == 0:
+            return diagnosis_reports_fhir_ids
         for entry in response_json["entry"]:
             diagnosis_report = entry["resource"]
             diagnosis_report_fhir_id = get_nested_value(diagnosis_report, ["id"])
@@ -379,19 +588,19 @@ class BlazeClient:
                 diagnosis_reports_fhir_ids.append(diagnosis_report_fhir_id)
         return diagnosis_reports_fhir_ids
 
-    def __get_condition_fhir_id_by_patient_identifier(self, patient_identifier: str) -> str:
+    def __get_condition_fhir_id_by_patient_identifier(self, patient_identifier: str) -> str | None:
         response = self._session.get(f"{self._blaze_url}/Condition?subject={patient_identifier}")
         response.raise_for_status()
         response_json = response.json()
+        if response_json["total"] == 0:
+            return None
         return get_nested_value(response_json, ["entry", 0, "resource", "id"])
 
     def __delete_diagnosis_report_reference_from_condition(self, condition_fhir_id: str,
                                                            diagnosis_report_fhir_id: str) -> bool:
-        condition_response = self._session.get(f"{self._blaze_url}/Condition/{condition_fhir_id}")
-        if condition_response.status_code != 200:
-            raise requests.HTTPError(
-                f"Failed to fetch condition with id {condition_fhir_id}. Check if the id is correct")
-        condition_json = condition_response.json()["entry"][0]["resource"]
+        condition_json = self.get_fhir_resource_as_json("Condition", condition_fhir_id)
+        if condition_json is None:
+            return True
         resource_type, patient_fhir_id = condition_json["subject"]["reference"].split("/")
         patient_identifier = self.get_identifier_by_fhir_id(resource_type, patient_fhir_id)
         condition = Condition.from_json(condition_json, patient_identifier)
