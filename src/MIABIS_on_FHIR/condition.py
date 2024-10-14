@@ -76,8 +76,10 @@ class Condition:
         try:
             condition_id = get_nested_value(condition_json, ["id"])
             patient_fhir_identifier = parse_reference_id(get_nested_value(condition_json, ["subject", "reference"]))
-            diagnosis_report_fhir_ids = cls.parse_diagnosis_reports(
-                get_nested_value(condition_json, ["stage", 0, "assessment"]))
+            diagnosis_reports = get_nested_value(condition_json, ["stage", 0, "assessment"])
+            if diagnosis_reports is None:
+                diagnosis_reports = []
+            diagnosis_report_fhir_ids = cls.parse_diagnosis_reports(diagnosis_reports)
             icd_10_code = get_nested_value(condition_json, ["code", "coding", 0, "code"])
             condition_identifier = get_nested_value(condition_json, ["identifier", 0, "value"])
             instance = cls(patient_identifier, icd_10_code,condition_identifier)
@@ -108,8 +110,8 @@ class Condition:
             raise ValueError("Patient FHIR ID must be provided either as an argument or as an property.")
 
         diagnosis_report_fhir_ids = diagnosis_report_fhir_ids or self.diagnosis_report_fhir_ids
-        if not diagnosis_report_fhir_ids:
-            raise ValueError("Diagnosis report FHIR IDs must be provided either as an argument or as an property.")
+        if diagnosis_report_fhir_ids is None:
+            diagnosis_report_fhir_ids = []
 
         condition = fhir_condition.Condition()
         condition.meta = Meta()

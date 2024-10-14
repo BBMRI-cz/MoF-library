@@ -17,19 +17,23 @@ class DiagnosisReport:
     as defined by the MIABIS on FHIR profile.
     """
 
-    def __init__(self, sample_identifier: str, observations_identifiers: list[str],
+    def __init__(self, sample_identifier: str, patient_identifier: str, observations_identifiers: list[str] = None,
                  diagnosis_report_identifier: str = None):
         """
         :param sample_identifier: The identifier of the sample that this diagnosis report is linked to.
+        :param patient_identifier: The identifier of the patient that this diagnosis report is linked to.
         :param observations_identifiers: List of identifiers of the observations that are related to this diagnosis report.
+        There is no need to specify this list, as the observations do not have required ids
         :param diagnosis_report_identifier: The identifier of this diagnosis report (if such exists)
         """
         self.sample_identifier = sample_identifier
+        self.patient_identifier = patient_identifier
         self.observations_identifiers = observations_identifiers
         self.diagnosis_report_identifier = diagnosis_report_identifier
         self._diagnosis_report_fhir_id = None
         self._observations_fhir_identifiers = None
         self._sample_fhir_id = None
+        self._patient_fhir_id = None
 
     @property
     def sample_identifier(self) -> str:
@@ -40,6 +44,16 @@ class DiagnosisReport:
         if sample_id is not None and not isinstance(sample_id, str):
             raise TypeError("Sample identifier must be a string.")
         self._sample_identifier = sample_id
+
+    @property
+    def patient_identifier(self) -> str:
+        return self._patient_identifier
+
+    @patient_identifier.setter
+    def patient_identifier(self, patient_identifier: str):
+        if not isinstance(patient_identifier, str):
+            raise TypeError("Patient identifier must be a string.")
+        self._patient_identifier = patient_identifier
 
     @property
     def observations_identifiers(self) -> list[str]:
@@ -77,11 +91,18 @@ class DiagnosisReport:
     def sample_fhir_id(self) -> str:
         return self._sample_fhir_id
 
+    @property
+    def patient_fhir_id(self) -> str:
+        return self._patient_fhir_id
+
     @classmethod
-    def from_json(cls, diagnosis_report: dict, observations_identifiers: list[str]) -> Self:
+    def from_json(cls, diagnosis_report: dict, sample_identifier: str, patient_identifier: str,
+                  observations_identifiers: list[str] = None) -> Self:
         """
         parse the json into the MoFDiagnosisReport object.
         :param diagnosis_report: json representing the diagnosis report.
+        :param sample_identifier: id of sample that this diagnosis report is linked to.
+        :param patient_identifier: id of patient that this diagnosis report is linked to.
         :param observations_identifiers: observations_identifiers (not FHIR ids) that are related to this diagnosis report.
         :return: MoFDiagnosisReport object.
         """
@@ -90,10 +111,12 @@ class DiagnosisReport:
             identifier = get_nested_value(diagnosis_report, ["identifier", 0, "value"])
             observations_fhir_identifiers = cls._parse_observation_ids(get_nested_value(diagnosis_report, ["result"]))
             sample_fhir_id = parse_reference_id(get_nested_value(diagnosis_report, ["specimen", 0, "reference"]))
-            instance = cls(identifier, observations_identifiers, identifier)
+            patient_fhir_id = parse_reference_id(get_nested_value(diagnosis_report, ["subject", "reference"]))
+            instance = cls(sample_identifier, patient_identifier, observations_identifiers, identifier)
             instance._diagnosis_report_fhir_id = diagnosis_report_fhir_id
             instance._observations_fhir_identifiers = observations_fhir_identifiers
             instance._sample_fhir_id = sample_fhir_id
+            instance._patient_fhir_id = patient_fhir_id
             return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFDiagnosisReport")
@@ -111,25 +134,30 @@ class DiagnosisReport:
             observations_identifiers.append(observation_id)
         return observations_identifiers
 
-    def to_fhir(self, sample_fhir_id: str = None, observation_fhir_ids: list[str] = None) -> DiagnosticReport:
+    def to_fhir(self, sample_fhir_id: str = None, patient_fhir_id: str = None,
+                observation_fhir_ids: list[str] = None) -> DiagnosticReport:
         """Converts the diagnosis report to a FHIR object.
         :param sample_fhir_id: FHIR identifier of the sample (often given by the server).
         :param observation_fhir_ids: List of FHIR observation identifiers.
         :return: DiagnosticReport
         """
         sample_fhir_id = sample_fhir_id or self.sample_fhir_id
+        patient_fhir_id = patient_fhir_id or self.patient_fhir_id
         observation_fhir_ids = observation_fhir_ids or self.observations_fhir_identifiers
         if sample_fhir_id is None:
             raise ValueError("Sample FHIR identifier must be provided either as an argument or as a property.")
         if observation_fhir_ids is None:
             raise ValueError("Observation FHIR identifiers must be provided either as an argument or as a property.")
+        if patient_fhir_id is None:
+            raise ValueError("Patient FHIR identifier must be provided either as an argument or as a property.")
 
         diagnosis_report = DiagnosticReport()
         diagnosis_report.meta = Meta()
         diagnosis_report.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/DiagnosisReport"]
         if self.diagnosis_report_identifier is not None:
             diagnosis_report.identifier = [create_fhir_identifier(self.diagnosis_report_identifier)]
-        diagnosis_report.specimen = [self.__create_specimen_reference(sample_fhir_id)]
+        diagnosis_report.specimen = [self.__create_reference("Specimen", sample_fhir_id)]
+        diagnosis_report.subject = self.__create_reference("Patient", patient_fhir_id)
         diagnosis_report.status = "final"
         diagnosis_report.result = self._create_result_reference(observation_fhir_ids)
         diagnosis_report.code = self.__create_loinc_code()
@@ -152,13 +180,13 @@ class DiagnosisReport:
         return code
 
     @staticmethod
-    def __create_specimen_reference(sample_id: str) -> FHIRReference:
+    def __create_reference(resource_type: str, sample_id: str) -> FHIRReference:
         """Creates a reference to the specimen.
         :param sample_id: FHIR identifier of the sample.
         :return: FHIRReference
         """
         reference = FHIRReference()
-        reference.reference = f"Specimen/{sample_id}"
+        reference.reference = f"{resource_type.capitalize()}/{sample_id}"
         return reference
 
     @staticmethod
