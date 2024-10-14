@@ -47,9 +47,9 @@ class TestDiagnosisReport(unittest.TestCase):
             diagnosis_report.observations_identifiers = 37
 
     def test_diagnosis_report_to_fhir_ok(self):
-        diagnosis_report = DiagnosisReport("sampleId", ["obsId"])
+        diagnosis_report = DiagnosisReport("sampleId", ["obsId"],"diagnosisReportId")
         diagnosis_report_fhir = diagnosis_report.to_fhir("sampleFhirId", ["obsFhirId"])
-        self.assertEqual("sampleId", diagnosis_report_fhir.identifier[0].value)
+        self.assertEqual("diagnosisReportId", diagnosis_report_fhir.identifier[0].value)
         self.assertEqual("Observation/obsFhirId", diagnosis_report_fhir.result[0].reference)
         self.assertEqual("final", diagnosis_report_fhir.status)
 

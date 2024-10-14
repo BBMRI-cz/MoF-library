@@ -17,13 +17,16 @@ class DiagnosisReport:
     as defined by the MIABIS on FHIR profile.
     """
 
-    def __init__(self, sample_identifier: str, observations_identifiers: list[str]):
+    def __init__(self, sample_identifier: str, observations_identifiers: list[str],
+                 diagnosis_report_identifier: str = None):
         """
-        :param sample_identifier: The identifier of the sample (this is used as a diagnosis report identifier).
-        :param observations_identifiers: List of identifiers of the observations that are related to this diagnosis report.f
+        :param sample_identifier: The identifier of the sample that this diagnosis report is linked to.
+        :param observations_identifiers: List of identifiers of the observations that are related to this diagnosis report.
+        :param diagnosis_report_identifier: The identifier of this diagnosis report (if such exists)
         """
         self.sample_identifier = sample_identifier
         self.observations_identifiers = observations_identifiers
+        self.diagnosis_report_identifier = diagnosis_report_identifier
         self._diagnosis_report_fhir_id = None
         self._observations_fhir_identifiers = None
         self._sample_fhir_id = None
@@ -53,6 +56,16 @@ class DiagnosisReport:
         self._observations_identifiers = observations_ids
 
     @property
+    def diagnosis_report_identifier(self) -> str:
+        return self._diagnosis_report_identifier
+
+    @diagnosis_report_identifier.setter
+    def diagnosis_report_identifier(self, diagnosis_report_identifier: str):
+        if diagnosis_report_identifier is not None and not isinstance(diagnosis_report_identifier, str):
+            raise TypeError("Diagnosis report identifier must be a string")
+        self._diagnosis_report_identifier = diagnosis_report_identifier
+
+    @property
     def diagnosis_report_fhir_id(self) -> str:
         return self._diagnosis_report_fhir_id
 
@@ -77,7 +90,7 @@ class DiagnosisReport:
             identifier = get_nested_value(diagnosis_report, ["identifier", 0, "value"])
             observations_fhir_identifiers = cls._parse_observation_ids(get_nested_value(diagnosis_report, ["result"]))
             sample_fhir_id = parse_reference_id(get_nested_value(diagnosis_report, ["specimen", 0, "reference"]))
-            instance = cls(identifier, observations_identifiers)
+            instance = cls(identifier, observations_identifiers, identifier)
             instance._diagnosis_report_fhir_id = diagnosis_report_fhir_id
             instance._observations_fhir_identifiers = observations_fhir_identifiers
             instance._sample_fhir_id = sample_fhir_id
@@ -114,11 +127,12 @@ class DiagnosisReport:
         diagnosis_report = DiagnosticReport()
         diagnosis_report.meta = Meta()
         diagnosis_report.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/DiagnosisReport"]
-        diagnosis_report.identifier = [create_fhir_identifier(self.sample_identifier)]
+        if self.diagnosis_report_identifier is not None:
+            diagnosis_report.identifier = [create_fhir_identifier(self.diagnosis_report_identifier)]
         diagnosis_report.specimen = [self.__create_specimen_reference(sample_fhir_id)]
         diagnosis_report.status = "final"
         diagnosis_report.result = self._create_result_reference(observation_fhir_ids)
-        diagnosis_report.code = self.__create_code_multiple_diagnosis_bool(len(observation_fhir_ids) > 1)
+        diagnosis_report.code = self.__create_loinc_code()
         return diagnosis_report
 
     def add_fhir_id_to_diagnosis_report(self, diagnosis_report: DiagnosticReport) -> DiagnosticReport:
@@ -130,11 +144,11 @@ class DiagnosisReport:
         return diagnosis_report
 
     @staticmethod
-    def __create_code_multiple_diagnosis_bool(multiple_diagnosis: bool):
+    def __create_loinc_code() -> CodeableConcept:
         code = CodeableConcept()
         code.coding = [Coding()]
-        code.coding[0].code = multiple_diagnosis.__str__()
-        code.coding[0].system = DEFINITION_BASE_URL + "/multipleDiagnosis"
+        code.coding[0].code = "52797-8"
+        code.coding[0].system = "http://loinc.org"
         return code
 
     @staticmethod

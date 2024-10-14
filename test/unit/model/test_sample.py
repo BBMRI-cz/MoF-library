@@ -15,7 +15,7 @@ class TestSample(unittest.TestCase):
                                'valueCodeableConcept': {
                                    'coding': [
                                        {
-                                           'code': 'temperatureRoom'}]}}]}],
+                                           'code': 'RT'}]}}]}],
                    'type': {
                        'coding': [{'system': 'http://example.com/ValueSet/miabis-material-type-VS', 'code': 'DNA'}]},
                    'resourceType': 'Specimen', 'note': [{'text': 'use_restric'}], 'id': 'DEJGYCYLDDUJKNVW',
@@ -99,8 +99,8 @@ class TestSample(unittest.TestCase):
             sample.collected_datetime = "2022-10-20"
 
     def test_sample_storage_temperature_ok(self):
-        sample = Sample("sampleId", "donorId", "Blood", storage_temperature=StorageTemperature.TEMPERATURE_GN)
-        self.assertEqual(StorageTemperature.TEMPERATURE_GN, sample.storage_temperature)
+        sample = Sample("sampleId", "donorId", "Blood", storage_temperature=StorageTemperature.TEMPERATURE_LN)
+        self.assertEqual(StorageTemperature.TEMPERATURE_LN, sample.storage_temperature)
 
     def test_sample_storage_temperature_invalid(self):
         with self.assertRaises(TypeError):
@@ -122,13 +122,13 @@ class TestSample(unittest.TestCase):
         self.assertEqual("Blood", sample_fhir.type.coding[0].code)
 
     def test_sample_to_fhir_all_args_ok(self):
-        sample = Sample("sampleId", "donorId", "Blood", storage_temperature=StorageTemperature.TEMPERATURE_GN,
+        sample = Sample("sampleId", "donorId", "Blood", storage_temperature=StorageTemperature.TEMPERATURE_LN,
                         use_restrictions="No restrictions")
         sample_fhir = sample.to_fhir("donorFhirId")
         self.assertEqual("sampleId", sample_fhir.identifier[0].value)
         self.assertEqual("Patient/donorFhirId", sample_fhir.subject.reference)
         self.assertEqual("Blood", sample_fhir.type.coding[0].code)
-        self.assertEqual("temperatureGN", sample_fhir.processing[0].extension[0].valueCodeableConcept.coding[0].code)
+        self.assertEqual("LN", sample_fhir.processing[0].extension[0].valueCodeableConcept.coding[0].code)
         self.assertEqual("No restrictions", sample_fhir.note[0].text)
 
     def test_sample_from_json(self):

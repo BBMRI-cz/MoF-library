@@ -17,7 +17,7 @@ class NetworkOrganization:
 
     def __init__(self, identifier: str, name: str, managing_biobank_id: str,
                  contact_name: str = None, contact_surname: str = None, contact_email: str = None, country: str = None,
-                 common_collaboration_topics: list[str] = None, juristic_person: str = None):
+                 common_collaboration_topics: list[str] = None, juristic_person: str = None, description: str = None):
         """
         :param identifier: network organizational identifier
         :param name: name of the network
@@ -35,6 +35,7 @@ class NetworkOrganization:
         self.country = country
         self.juristic_person = juristic_person
         self.common_collaboration_topics = common_collaboration_topics
+        self.description = description
         self._network_org_fhir_id = None
         self._managing_biobank_fhir_id = None
 
@@ -139,6 +140,16 @@ class NetworkOrganization:
     def managing_biobank_fhir_id(self) -> str:
         return self._managing_biobank_fhir_id
 
+    @property
+    def description(self) -> str:
+        return self._description
+
+    @description.setter
+    def description(self, description: str):
+        if description is not None and not isinstance(description, str):
+            raise TypeError("Description must be string")
+        self._description = description
+
     @classmethod
     def from_json(cls, network_json: dict, managing_biobank_id: str) -> Self:
         try:
@@ -151,7 +162,7 @@ class NetworkOrganization:
             parsed_extensions = cls._parse_extensions(network_json.get("extension", []))
             instance = cls(identifier, name, managing_biobank_id, contact["name"], contact["surname"], contact["email"],
                            country, parsed_extensions["common_collaboration_topics"],
-                           parsed_extensions["juristic_person"])
+                           parsed_extensions["juristic_person"], parsed_extensions["description"])
             instance._network_org_fhir_id = network_org_fhir_id
             instance._managing_biobank_fhir_id = managing_biobank_fhir_id
             return instance
@@ -160,7 +171,7 @@ class NetworkOrganization:
 
     @staticmethod
     def _parse_extensions(extensions: dict) -> dict:
-        parsed_extension = {"common_collaboration_topics": [], "juristic_person": None}
+        parsed_extension = {"common_collaboration_topics": [], "juristic_person": None, "description": None}
         for extension in extensions:
             match extension["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
                 case "common-collaboration-topics":
@@ -169,8 +180,10 @@ class NetworkOrganization:
                         parsed_extension["common_collaboration_topics"].append(value)
                 case "juristic-person":
                     value = get_nested_value(extension, ["valueString"])
-                    if value is not None:
-                        parsed_extension["juristic_person"] = value
+                    parsed_extension["juristic_person"] = value
+                case "description":
+                    value = get_nested_value(extension, ["valueString"])
+                    parsed_extension["description"] = value
 
         if not parsed_extension["common_collaboration_topics"]:
             parsed_extension["common_collaboration_topics"] = None
@@ -201,6 +214,9 @@ class NetworkOrganization:
             extensions.append(
                 create_string_extension(DEFINITION_BASE_URL + "/StructureDefinition/juristic-person",
                                         self._juristic_person))
+        if self._description is not None:
+            extensions.append(
+                create_string_extension(DEFINITION_BASE_URL + "/StructureDefinition/description", self._description))
         network.extension = extensions
         return network
 

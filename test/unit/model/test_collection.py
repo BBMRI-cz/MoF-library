@@ -26,7 +26,7 @@ class TestCollection(unittest.TestCase):
              'valueCodeableConcept': {'coding': [{'code': 'male', 'system': 'http://example.com/sexCS'}]}},
             {'code': {'coding': [{'code': 'StorageTemperature', 'system': 'http://example.com/characteristicCS'}]},
              'exclude': False, 'valueCodeableConcept': {
-                'coding': [{'code': 'temperatureGN', 'system': 'http://example.com/storageTemperatureCS'}]}},
+                'coding': [{'code': 'LN', 'system': 'http://example.com/storageTemperatureCS'}]}},
             {'code': {'coding': [{'code': 'MaterialType', 'system': 'http://example.com/characteristicCS'}]},
              'exclude': False,
              'valueCodeableConcept': {'coding': [{'code': 'DNA', 'system': 'http://example.com/materialTypeCS'}]}},
@@ -39,7 +39,7 @@ class TestCollection(unittest.TestCase):
 
     def test_collection_init(self):
         collection = Collection("collectionId", "collectionName", "collectionOrgId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         self.assertIsInstance(collection, Collection)
         self.assertEqual("collectionId", collection.identifier)
         self.assertEqual("collectionName", collection.name)
@@ -47,38 +47,38 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(0, collection.age_range_low)
         self.assertEqual(100, collection.age_range_high)
         self.assertEqual([Gender.MALE], collection.genders)
-        self.assertEqual([StorageTemperature.TEMPERATURE_GN], collection.storage_temperatures)
+        self.assertEqual([StorageTemperature.TEMPERATURE_LN], collection.storage_temperatures)
         self.assertEqual(["DNA"], collection.material_types)
 
     def test_collection_invalid_identifier_type_innit(self):
         with self.assertRaises(TypeError):
             collection = Collection(37, "collectionName", "managingBiobankId", 0, 100,
-                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
 
     def test_collection_invalid_name_type_innit(self):
         with self.assertRaises(TypeError):
             collection = Collection("collectionId", 22, "managingBiobankId", 0, 100,
-                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
 
     def test_collection_invalid_managing_biobank_id_type_innit(self):
         with self.assertRaises(TypeError):
             collection = Collection("collectionId", "collectionName", 22, 0, 100,
-                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
 
     def test_collection_invalid_age_range_low_type_innit(self):
         with self.assertRaises(TypeError):
             collection = Collection("collectionId", "collectionName", "managingBiobankId", "0",
-                                    100, [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                    100, [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
 
     def test_collection_invalid_age_range_high_type_innit(self):
         with self.assertRaises(TypeError):
             collection = Collection("collectionId", "collectionName", "managingBiobankId", 0,
-                                       "100", [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                       "100", [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
 
     def test_collection_invalid_gender_type_init(self):
         with self.assertRaises(TypeError):
             collection = Collection("collectionId", "collectionName", "managingBiobankId", 0,
-                                    100, 37, [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                    100, 37, [StorageTemperature.TEMPERATURE_LN], ["DNA"])
 
     def test_collection_invalid_storage_temperature_type_init(self):
         with self.assertRaises(TypeError):
@@ -88,101 +88,101 @@ class TestCollection(unittest.TestCase):
     def test_collection_invalid_material_type_type_init(self):
         with self.assertRaises(ValueError):
             collection = Collection("collectionId", "collectionName", "managingBiobankId", 0,
-                                    22, [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], [0])
+                                    22, [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], [0])
 
     def test_collection_set_identifier_ok(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         collection.identifier = "newId"
         self.assertEqual("newId", collection.identifier)
 
     def test_collection_set_identifier_invalid(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         with self.assertRaises(TypeError):
             collection.identifier = 37
 
     def test_collection_set_name_ok(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         collection.name = "newName"
         self.assertEqual("newName", collection.name)
 
     def test_collection_set_name_invalid(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         with self.assertRaises(TypeError):
             collection.name = 37
 
     def test_collection_set_managing_biobank_id_ok(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         collection.managing_biobank_id = "newBiobankId"
         self.assertEqual("newBiobankId", collection.managing_biobank_id)
 
     def test_collection_set_managing_biobank_id_invalid(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         with self.assertRaises(TypeError):
             collection.managing_collection_org_id = 37
 
     def test_collection_set_age_range_low_ok(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         collection.age_range_low = 10
         self.assertEqual(10, collection.age_range_low)
 
     def test_collection_set_age_range_low_invalid(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         with self.assertRaises(TypeError):
             collection.age_range_low = "10"
 
     def test_collection_set_age_range_high_ok(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         collection.age_range_high = 10
         self.assertEqual(10, collection.age_range_high)
 
     def test_collection_set_age_range_high_invalid(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         with self.assertRaises(TypeError):
             collection.age_range_high = "10"
 
     def test_collection_set_gender_ok(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         collection.genders = [Gender.FEMALE]
         self.assertEqual([Gender.FEMALE], collection.genders)
 
     def test_collection_set_gender_invalid(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         with self.assertRaises(TypeError):
             collection.genders = [37]
 
     def test_collection_set_storage_temperature_ok(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         collection.storage_temperatures = [StorageTemperature.TEMPERATURE_LN]
         self.assertEqual([StorageTemperature.TEMPERATURE_LN], collection.storage_temperatures)
 
     def test_collection_set_storage_temperature_invalid(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         with self.assertRaises(TypeError):
             collection.storage_temperatures = [37]
 
     def test_collection_set_material_type_ok(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         collection.material_types = ["RNA"]
         self.assertEqual(["RNA"], collection.material_types)
 
     def test_collection_set_material_type_invalid(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         with self.assertRaises(ValueError):
             collection.material_types = [37]
 
@@ -190,24 +190,24 @@ class TestCollection(unittest.TestCase):
         with self.assertRaises(TypeError):
             collection = Collection("collectionId", "collectionName", "managingBiobankId", 0,
                                     100,
-                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"],
+                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"],
                                     description=37)
 
     def test_collection_optional_args_diagnosis(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"], diagnoses=["C51"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"], diagnoses=["C51"])
         self.assertEqual(["C51"], collection.diagnoses)
 
     def test_collection_optional_args_diagnosis_invalid(self):
         with self.assertRaises(ValueError):
             collection = Collection("collectionId", "collectionName", "managingBiobankId", 0,
                                     100,
-                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"],
+                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"],
                                     diagnoses=["C11111"])
 
     def test_collection_optional_args_inclusion_criteria(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"],
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"],
                                 inclusion_criteria=["HealthStatus"])
         self.assertEqual(["HealthStatus"], collection.inclusion_criteria)
 
@@ -215,12 +215,12 @@ class TestCollection(unittest.TestCase):
         with self.assertRaises(ValueError):
             collection = Collection("collectionId", "collectionName", "managingBiobankId", 0,
                                     100,
-                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"],
+                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"],
                                     inclusion_criteria=["Invalid"])
 
     def test_collection_optional_args_number_of_subject(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"],
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"],
                                 number_of_subjects=10)
         self.assertEqual(10, collection.number_of_subjects)
 
@@ -228,12 +228,12 @@ class TestCollection(unittest.TestCase):
         with self.assertRaises(TypeError):
             collection = Collection("collectionId", "collectionName", "managingBiobankId", 0,
                                     100,
-                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"],
+                                    [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"],
                                     number_of_subjects="10")
 
     def test_collection_required_args_to_fhir(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"])
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"])
         collection_fhir = collection.to_fhir("biobankFhirId", ["sampleFhirId1", "sampleFhirId2"])
         self.assertIsInstance(collection_fhir, Group)
         self.assertEqual(collection.identifier, collection_fhir.identifier[0].value)
@@ -252,7 +252,7 @@ class TestCollection(unittest.TestCase):
 
     def test_collection_optional_args_to_fhir(self):
         collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
-                                [Gender.MALE], [StorageTemperature.TEMPERATURE_GN], ["DNA"], diagnoses=["C51"],
+                                [Gender.MALE], [StorageTemperature.TEMPERATURE_LN], ["DNA"], diagnoses=["C51"],
                                 inclusion_criteria=["HealthStatus"], number_of_subjects=10,
                                 )
         collection_fhir = collection.to_fhir("biobankFhirId", ["sampleFhirId1", "sampleFhirId2"])
@@ -284,7 +284,7 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(0, collection.age_range_low)
         self.assertEqual(100, collection.age_range_high)
         self.assertEqual([Gender.MALE], collection.genders)
-        self.assertEqual([StorageTemperature.TEMPERATURE_GN], collection.storage_temperatures)
+        self.assertEqual([StorageTemperature.TEMPERATURE_LN], collection.storage_temperatures)
         self.assertEqual(["DNA"], collection.material_types)
         self.assertEqual(["C51"], collection.diagnoses)
         self.assertEqual(["HealthStatus"], collection.inclusion_criteria)
@@ -293,4 +293,20 @@ class TestCollection(unittest.TestCase):
         self.assertEqual("NGJKWUEOLKA", collection.collection_fhir_id)
         self.assertEqual("biobankFhirId", collection.managing_collection_org_fhir_id)
         self.assertEqual(["sampleFhirId1", "sampleFhirId2"], collection.sample_fhir_ids)
+
+    def test_collection_to_fhir_empty_characteristics(self):
+        collection = Collection("collectionId", "collectionName", "managingBiobankId", 0, 100,
+                                [], [], [], diagnoses=[],
+                                inclusion_criteria=["HealthStatus"], number_of_subjects=10,
+                                )
+        collection_fhir = collection.to_fhir("biobankFhirId", ["sampleFhirId1", "sampleFhirId2"])
+        self.assertIsInstance(collection_fhir, Group)
+        self.assertEqual(collection.identifier, collection_fhir.identifier[0].value)
+        self.assertEqual(collection.name, collection_fhir.name)
+        self.assertEqual("Organization/biobankFhirId", collection_fhir.managingEntity.reference)
+        self.assertEqual(10, collection_fhir.extension[0].valueInteger)
+        self.assertEqual("HealthStatus", collection_fhir.extension[1].valueCodeableConcept.coding[0].code)
+        self.assertEqual(collection_fhir.extension[2].valueReference.reference, "Specimen/sampleFhirId1")
+
+
 
