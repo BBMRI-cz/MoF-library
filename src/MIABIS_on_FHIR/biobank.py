@@ -269,7 +269,7 @@ class Biobank:
         """Return biobank representation in FHIR"""
         fhir_organization = Organization()
         fhir_organization.meta = Meta()
-        fhir_organization.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Biobank"]
+        fhir_organization.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/miabis-biobank"]
         fhir_organization.identifier = [create_fhir_identifier(self.identifier)]
         fhir_organization.name = self.name
         fhir_organization.alias = [self.alias]
@@ -279,30 +279,39 @@ class Biobank:
         if self.infrastructural_capabilities is not None:
             for capability in self.infrastructural_capabilities:
                 extensions.append(
-                    create_codeable_concept_extension(DEFINITION_BASE_URL + "/infrastructural-capabilities",
-                                                      DEFINITION_BASE_URL + "/infrastructural-capabilities-vs",
-                                                      capability))
+                    create_codeable_concept_extension(
+                        DEFINITION_BASE_URL + "/StructureDefinition/miabis-infrastructural-capabilities-extension",
+                        DEFINITION_BASE_URL + "ValueSet/miabis-infrastructural-capabilities-vs",
+                        capability))
         if self.organisational_capabilities is not None:
             for capability in self.organisational_capabilities:
                 extensions.append(
-                    create_codeable_concept_extension(DEFINITION_BASE_URL + "/organisational-capabilities",
-                                                      DEFINITION_BASE_URL + "/organisational-capabilities-vs",
-                                                      capability))
+                    create_codeable_concept_extension(
+                        DEFINITION_BASE_URL + "/StructureDefinition/miabis-organisational-capabilities-extension",
+                        DEFINITION_BASE_URL + "/ValueSet/miabis-organisational-capabilities-vs",
+                        capability))
         if self.bioprocessing_and_analysis_capabilities is not None:
             for capability in self.bioprocessing_and_analysis_capabilities:
                 extensions.append(
                     create_codeable_concept_extension(
-                        DEFINITION_BASE_URL + "/bioprocessing-and-analysis-capabilities",
-                        DEFINITION_BASE_URL + "/bioprocessing-and-analysis-capabilities-vs", capability))
+                        DEFINITION_BASE_URL + "/StructureDefinition/miabis-bioprocessing"
+                                              "-and-analytical-capabilities-extension",
+                        DEFINITION_BASE_URL + "//ValueSet/miabis-bioprocessing-and-analytical-capabilities-vs",
+                        capability))
         if self.quality__management_standards is not None:
             for standard in self.quality__management_standards:
                 extensions.append(
-                    create_string_extension(DEFINITION_BASE_URL + "/quality-management-standards", standard))
+                    create_string_extension(
+                        DEFINITION_BASE_URL + "/StructureDefinition/miabis-quality-management-standard-extension",
+                        standard))
         if self.juristic_person is not None:
             extensions.append(
-                create_string_extension(DEFINITION_BASE_URL + "/juristic-person", self.juristic_person))
+                create_string_extension(DEFINITION_BASE_URL + "/StructureDefinition/miabis-juristic-person-extension",
+                                        self.juristic_person))
         if self.description is not None:
-            extensions.append(create_string_extension(DEFINITION_BASE_URL + "/description", self.description))
+            extensions.append(create_string_extension(
+                DEFINITION_BASE_URL + "/StructureDefinition/miabis-organization-description-extension",
+                self.description))
         if extensions:
             fhir_organization.extension = extensions
         return fhir_organization

@@ -109,7 +109,10 @@ class DiagnosisReport:
         try:
             diagnosis_report_fhir_id = get_nested_value(diagnosis_report, ["id"])
             identifier = get_nested_value(diagnosis_report, ["identifier", 0, "value"])
-            observations_fhir_identifiers = cls._parse_observation_ids(get_nested_value(diagnosis_report, ["result"]))
+            result_references = get_nested_value(diagnosis_report, ["result"])
+            observations_fhir_identifiers = None
+            if result_references is not None:
+                observations_fhir_identifiers = cls._parse_observation_ids(get_nested_value(diagnosis_report, ["result"]))
             sample_fhir_id = parse_reference_id(get_nested_value(diagnosis_report, ["specimen", 0, "reference"]))
             patient_fhir_id = parse_reference_id(get_nested_value(diagnosis_report, ["subject", "reference"]))
             instance = cls(sample_identifier, patient_identifier, observations_identifiers, identifier)
@@ -147,7 +150,8 @@ class DiagnosisReport:
         if sample_fhir_id is None:
             raise ValueError("Sample FHIR identifier must be provided either as an argument or as a property.")
         if observation_fhir_ids is None:
-            raise ValueError("Observation FHIR identifiers must be provided either as an argument or as a property.")
+            observation_fhir_ids = []
+            # raise ValueError("Observation FHIR identifiers must be provided either as an argument or as a property.")
         if patient_fhir_id is None:
             raise ValueError("Patient FHIR identifier must be provided either as an argument or as a property.")
 

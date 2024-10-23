@@ -1,7 +1,63 @@
-DEFINITION_BASE_URL = "http://example.com"
+DEFINITION_BASE_URL = "https://fhir.bbmri-eric.eu/fhir"
 
-MATERIAL_TYPE_CODES = ["Blood", "DNA", "Faeces", "ImmortalizedCellLine", "IsolatedPathogen", "Plasma", "RNA", "Saliva",
-                       "Serum", "TissueFrozen", "TissueFFPE", "Urine", "Other"]
+DETAILED_MATERIAL_TYPE_CODES = ["AmnioticFluid", "AscitesFluid", "Bile", "BodyCavityFluid", "Bone",
+                                "BoneMarrowAspirate", "BoneMarrowPlasma", "BoneMarrowWhole", "BreastMilk",
+                                "BronchLavage", "BuffyCoat", "CancerCellLine", "CerebrospinalFluid", "CordBlood",
+                                "DentalPulp", "DNA", "Embryo", "EntireOrgan", "Faeces", "FetalTissue", "Fibroblast",
+                                "FoodSpecimen", "Gas", "GastricFluid", "Hair", "ImmortalizedCellLine",
+                                "IsolatedMicrobe", "IsolatedExosome", "IsolatedTumorCell", "LiquidBiopsy",
+                                "MenstrualBlood", "Nail", "NasalWashing", "Organoid", "Other", "PericardialFluid",
+                                "PBMC", "Placenta", "Plasma", "PleuralFluid", "PostMortemTissue", "PrimaryCells",
+                                "Protein", "RedBloodCells", "RNA", "Saliva", "Semen", "Serum", "SpecimenEnvironment",
+                                "Sputum", "StemCells", "Swab", "Sweat", "SynovialFluid", "Tears", "Teeth",
+                                "TissueFixed", "TissueFreshFrozen", "UmbilicalCord", "Urine", "UrineSediment",
+                                "VitreousFluid", "WholeBlood", "WholeBloodDried"]
+
+DETAILED_MATERIAL_TYPE_TO_COLLECTION_MATERIAL_TYPE_MAP = {"AmnioticFluid": "OtherBodyFluid",
+                                                          "AscitesFluid": "OtherBodyFluid", "Bile": "OtherBodyFluid",
+                                                          "BodyCavityFluid": "OtherBodyFluid", "Bone": "TissueFrozen",
+                                                          "BoneMarrowAspirate": "OtherBodyFluid",
+                                                          "BoneMarrowPlasma": "OtherBodyFluid",
+                                                          "BoneMarrowWhole": "OtherBodyFluid",
+                                                          "BreastMilk": "OtherBodyFluid",
+                                                          "BronchLavage": "OtherBodyFluid", "BuffyCoat": "BuffyCoat",
+                                                          "CancerCellLine": "CancerCellLine",
+                                                          "CerebrospinalFluid": "OtherBodyFluid",
+                                                          "CordBlood": "OtherBodyFluid", "DentalPulp": "OtherBodyFluid",
+                                                          "DNA": "DNA", "Embryo": "EmbryoFetal",
+                                                          "EntireOrgan": "EntireOrgan", "Faeces": "Faeces",
+                                                          "FetalTissue": "EmbryoFetal", "Fibroblast": "PrimaryCells",
+                                                          "FoodSpecimen": "SpecimenEnvironment", "Gas": "Other",
+                                                          "GastricFluid": "OtherBodyFluid", "Hair": "Other",
+                                                          "ImmortalizedCellLine": "ImmortalizedCellLine",
+                                                          "IsolatedMicrobe": "IsolatedMicrobe",
+                                                          "IsolatedExosome": "Other",
+                                                          "IsolatedTumorCell": "PrimaryCells", "LiquidBiopsy": "Blood",
+                                                          "MenstrualBlood": "OtherBodyFluid", "Nail": "Other",
+                                                          "NasalWashing": "OtherBodyFluid", "Organoid": "Other",
+                                                          "Other": "Other", "PericardialFluid": "OtherBodyFluid",
+                                                          "PBMC": "PrimaryCells", "Placenta": "EntireOrgan",
+                                                          "Plasma": "Plasma", "PleuralFluid": "OtherBodyFluid",
+                                                          "PostMortemTissue": "PostMortemTissue",
+                                                          "PrimaryCells": "PrimaryCells", "Protein": "Other",
+                                                          "RedBloodCells": "PrimaryCells", "RNA": "RNA",
+                                                          "Saliva": "Saliva", "Semen": "OtherBodyFluid",
+                                                          "Serum": "Serum",
+                                                          "SpecimenEnvironment": "SpecimenEnvironment",
+                                                          "Sputum": "OtherBodyFluid",
+                                                          "StemCells": "ImmortalizedCellLine", "Swab": "Swab",
+                                                          "Sweat": "OtherBodyFluid", "SynovialFluid": "OtherBodyFluid",
+                                                          "Tears": "OtherBodyFluid", "Teeth": "EntireOrgan",
+                                                          "TissueFixed": "TissueFrozen",
+                                                          "TissueFreshFrozen": "TissueFrozen",
+                                                          "UmbilicalCord": "TissueFrozen", "Urine": "Urine",
+                                                          "UrineSediment": "Urine", "VitreousFluid": "OtherBodyFluid",
+                                                          "WholeBlood": "Blood", "WholeBloodDried": "Blood"}
+
+COLLECTION_MATERIAL_TYPE_CODES = ["Blood", "BuffyCoat", "CancerCellLine", "DNA", "EntireOrgan", "Faeces", "EmbryoFetal",
+                                  "ImmortalizedCellLine", "IsolatedMicrobe", "OtherBodyFluid", "Plasma", "PrimaryCells",
+                                  "PostMortemTissue", "RNA", "Saliva", "Serum", "SpecimenEnvironment", "Swab",
+                                  "TissueFrozen", "TissueFFPE", "Urine", "Other"]
 
 STORAGE_TEMPERATURE_CODES = []
 

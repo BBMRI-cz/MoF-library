@@ -330,7 +330,7 @@ class CollectionOrganization:
             raise ValueError("Managing organization FHIR id must be provided either as an argument or as a property.")
         fhir_org = Organization()
         fhir_org.meta = Meta()
-        fhir_org.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Collection"]
+        fhir_org.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/miabis-collection-organization"]
         fhir_org.identifier = [create_fhir_identifier(self.identifier)]
         fhir_org.type = [create_codeable_concept(DEFINITION_BASE_URL + "/organizationTypeCS", "Collection")]
         fhir_org.active = True

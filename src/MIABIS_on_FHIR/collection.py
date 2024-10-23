@@ -9,9 +9,11 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
-from src.MIABIS_on_FHIR.util._constants import COLLECTION_INCLUSION_CRITERIA, MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from src.MIABIS_on_FHIR.util._constants import COLLECTION_INCLUSION_CRITERIA, COLLECTION_MATERIAL_TYPE_CODES, \
+    DEFINITION_BASE_URL
 from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
-from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_integer_extension, create_codeable_concept_extension, \
+from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_integer_extension, \
+    create_codeable_concept_extension, \
     create_codeable_concept
 from src.MIABIS_on_FHIR.gender import Gender
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
@@ -22,11 +24,10 @@ class Collection:
     """Sample Collection represents a set of samples with at least one common characteristic."""
 
     # TODO age range units
-    def __init__(self, identifier: str, name: str, managing_collection_org_id: str,
-                 age_range_low: int,
-                 age_range_high: int, genders: list[Gender], storage_temperatures: list[StorageTemperature],
-                 material_types: list[str], diagnoses: list[str] = None, number_of_subjects: int = None,
-                 inclusion_criteria: list[str] = None, sample_ids: list[str] = None, ):
+    def __init__(self, identifier: str, name: str, managing_collection_org_id: str, genders: list[Gender],
+                 material_types: list[str], age_range_low: int = None, age_range_high: int = None,
+                 storage_temperatures: list[StorageTemperature] = None, diagnoses: list[str] = None,
+                 number_of_subjects: int = None, inclusion_criteria: list[str] = None, sample_ids: list[str] = None):
         """
         :param identifier: Collection identifier same format as in the BBMRI-ERIC directory.
         :param name: Name of the collection.
@@ -49,8 +50,14 @@ class Collection:
         self.age_range_low: int = age_range_low
         self.age_range_high: int = age_range_high
         self.genders = genders
-        self.storage_temperatures = storage_temperatures
-        self.diagnoses = diagnoses
+        if storage_temperatures is None:
+            self.storage_temperatures = []
+        else:
+            self.storage_temperatures = storage_temperatures
+        if diagnoses is None:
+            self.diagnoses = []
+        else:
+            self.diagnoses = diagnoses
         self.material_types = material_types
         self.number_of_subjects = number_of_subjects
         self.sample_ids = sample_ids
@@ -95,7 +102,7 @@ class Collection:
 
     @age_range_low.setter
     def age_range_low(self, age_range_low: int):
-        if not isinstance(age_range_low, int):
+        if age_range_low is not None and not isinstance(age_range_low, int):
             raise TypeError("Age range low must be an integer.")
         self._age_range_low = age_range_low
 
@@ -105,7 +112,7 @@ class Collection:
 
     @age_range_high.setter
     def age_range_high(self, age_range_high: int):
-        if not isinstance(age_range_high, int):
+        if age_range_high is not None and not isinstance(age_range_high, int):
             raise TypeError("Age range high must be an integer.")
         self._age_range_high = age_range_high
 
@@ -138,8 +145,9 @@ class Collection:
     @material_types.setter
     def material_types(self, material_types: list[str]):
         for material_type in material_types:
-            if material_type not in MATERIAL_TYPE_CODES:
-                raise ValueError(f"{material_type} is not a valid code for material type")
+            if material_type not in COLLECTION_MATERIAL_TYPE_CODES:
+                raise ValueError(
+                    f"{material_type} is not a valid code for material type. Valid codes are {COLLECTION_MATERIAL_TYPE_CODES}")
         self._material_types = material_types
 
     @property
@@ -223,11 +231,10 @@ class Collection:
             managing_collection_fhir_id = parse_reference_id(
                 get_nested_value(collection_json, ["managingEntity", "reference"]))
             extensions = cls._get_extensions(collection_json["extension"])
-            instance = cls(identifier, name, managing_collection_organization_id, characteristics["age_range_low"],
-                           characteristics["age_range_high"], characteristics["sex"],
-                           characteristics["storage_temperature"],
-                           characteristics["material_type"], characteristics["diagnosis"],
-                           extensions["number_of_subjects"],
+            instance = cls(identifier, name, managing_collection_organization_id, characteristics["sex"],
+                           characteristics["material_type"], characteristics["age_range_low"],
+                           characteristics["age_range_high"], characteristics["storage_temperature"],
+                           characteristics["diagnosis"], extensions["number_of_subjects"],
                            extensions["inclusion_criteria"], sample_ids)
             instance._collection_fhir_id = collection_fhir_id
             instance._managing_collection_org_fhir_id = managing_collection_fhir_id
@@ -321,11 +328,12 @@ class Collection:
                 "Managing collection organization FHIR id must be provided either as an argument or as a property.")
         sample_fhir_ids = sample_fhir_ids or self.sample_fhir_ids
         if sample_fhir_ids is None:
-            raise ValueError("Sample FHIR ids must be provided either as an argument or as a property.")
+            sample_fhir_ids = []
+            # raise ValueError("Sample FHIR ids must be provided either as an argument or as a property.")
 
         fhir_group = Group()
         fhir_group.meta = Meta()
-        fhir_group.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Collection"]
+        fhir_group.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/miabis-collection"]
         fhir_group.identifier = [create_fhir_identifier(self.identifier)]
         fhir_group.active = True
         fhir_group.actual = True
@@ -333,20 +341,23 @@ class Collection:
         fhir_group.name = self.name
         fhir_group.managingEntity = self.__create_managing_entity_reference(managing_collection_org_fhir_id)
         fhir_group.characteristic = []
-        fhir_group.characteristic.append(
-            self.__create_age_range_characteristic(self.age_range_low, self.age_range_high))
+        if self.age_range_low is not None and self.age_range_high is not None:
+            fhir_group.characteristic.append(
+                self.__create_age_range_characteristic(self.age_range_low, self.age_range_high))
         for gender in self.genders:
             fhir_group.characteristic.append(
-                self.__create_codeable_concept_characteristic("Sex", DEFINITION_BASE_URL + "/sexCS",
+                self.__create_codeable_concept_characteristic("Sex", "http://hl7.org/fhir/administrative-gender",
                                                               gender.name.lower()))
         for storage_temperature in self.storage_temperatures:
             fhir_group.characteristic.append(
                 self.__create_codeable_concept_characteristic("StorageTemperature",
-                                                              DEFINITION_BASE_URL + "/storageTemperatureCS",
+                                                              DEFINITION_BASE_URL +
+                                                              "/CodeSystem/miabis-storage-temperature-cs",
                                                               storage_temperature.value))
         for material in self.material_types:
             fhir_group.characteristic.append(
-                self.__create_codeable_concept_characteristic("MaterialType", DEFINITION_BASE_URL + "/materialTypeCS",
+                self.__create_codeable_concept_characteristic("MaterialType", DEFINITION_BASE_URL +
+                                                              "/CodeSystem/miabis-collection-sample-type-cs",
                                                               material))
         if self.diagnoses is not None:
             for diagnosis in self.diagnoses:
@@ -356,12 +367,13 @@ class Collection:
         extensions = []
         if self.number_of_subjects is not None:
             extensions.append(create_integer_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/number-of-subjects-extension", self.number_of_subjects))
+                DEFINITION_BASE_URL + "/StructureDefinition/miabis-number-of-subjects-extension",
+                self.number_of_subjects))
         if self.inclusion_criteria is not None:
             for criteria in self.inclusion_criteria:
                 extensions.append(create_codeable_concept_extension(
-                    DEFINITION_BASE_URL + "/StructureDefinition/inclusion-criteria-extension",
-                    DEFINITION_BASE_URL + "/inclusionCriteriaCS", criteria))
+                    DEFINITION_BASE_URL + "/StructureDefinition/miabis-inclusion-criteria-extension",
+                    DEFINITION_BASE_URL + "/CodeSystem/miabis-inclusion-criteria-cs", criteria))
         for sample_fhir_id in sample_fhir_ids:
             extensions.append(self.__create_member_extension(sample_fhir_id))
         if extensions:
@@ -400,7 +412,8 @@ class Collection:
     def __create_sex_characteristic(code: str) -> GroupCharacteristic:
         sex_characteristic = GroupCharacteristic()
         sex_characteristic.exclude = False
-        sex_characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS", "Sex")
+        sex_characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/CodeSystem/miabis-characteristicCS",
+                                                          "Sex")
         sex_characteristic.valueCodeableConcept = create_codeable_concept(DEFINITION_BASE_URL + "/sexCS", code)
         return sex_characteristic
 
@@ -409,7 +422,7 @@ class Collection:
                                                  value: str) -> GroupCharacteristic:
         characteristic = GroupCharacteristic()
         characteristic.exclude = False
-        characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS",
+        characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/CodeSystem/miabis-characteristicCS",
                                                       characteristic_code)
         characteristic.valueCodeableConcept = create_codeable_concept(codeable_concept_url, value)
         return characteristic

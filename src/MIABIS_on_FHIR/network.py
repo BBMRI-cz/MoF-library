@@ -107,7 +107,7 @@ class Network:
         return self._members_biobanks_fhir_ids
 
     @classmethod
-    def from_json(cls, network_json: dict, managing_biobank_id: str, member_collection_ids: list[str],
+    def from_json(cls, network_json: dict, managing_network_org_id: str, member_collection_ids: list[str],
                   member_biobank_ids: list[str]) -> Self:
         try:
             identifier = get_nested_value(network_json, ["identifier", 0, "value"])
@@ -116,7 +116,7 @@ class Network:
             managing_biobank_fhir_id = parse_reference_id(
                 get_nested_value(network_json, ["managingEntity", "reference"]))
             extensions = cls._parse_extensions(network_json.get("extension", []))
-            instance = cls(identifier, name, managing_biobank_id, member_collection_ids, member_biobank_ids)
+            instance = cls(identifier, name, managing_network_org_id, member_collection_ids, member_biobank_ids)
             instance._network_fhir_id = network_fhir_id
             instance._managing_network_org_fhir_id = managing_biobank_fhir_id
             instance._members_collections_fhir_ids = extensions["member_collection_fhir_ids"]

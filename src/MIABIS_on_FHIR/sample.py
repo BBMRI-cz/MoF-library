@@ -9,7 +9,7 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
-from src.MIABIS_on_FHIR.util._constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from src.MIABIS_on_FHIR.util._constants import DETAILED_MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
 from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
 from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_codeable_concept, create_codeable_concept_extension
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
@@ -73,8 +73,8 @@ class Sample:
 
     @material_type.setter
     def material_type(self, material_type: str):
-        if material_type not in MATERIAL_TYPE_CODES:
-            raise ValueError(f"Material type {material_type} is not valid. Valid values are: {MATERIAL_TYPE_CODES}")
+        if material_type not in DETAILED_MATERIAL_TYPE_CODES:
+            raise ValueError(f"Material type {material_type} is not valid. Valid values are: {DETAILED_MATERIAL_TYPE_CODES}")
         self._material_type = material_type
 
     @property
