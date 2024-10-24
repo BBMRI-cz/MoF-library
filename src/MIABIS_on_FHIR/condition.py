@@ -10,6 +10,7 @@ from src.MIABIS_on_FHIR.util._constants import DEFINITION_BASE_URL
 from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from src.MIABIS_on_FHIR.util._util import create_fhir_identifier
+from src.config import FHIRConfig
 
 
 class Condition:
@@ -82,7 +83,7 @@ class Condition:
             diagnosis_report_fhir_ids = cls.parse_diagnosis_reports(diagnosis_reports)
             icd_10_code = get_nested_value(condition_json, ["code", "coding", 0, "code"])
             condition_identifier = get_nested_value(condition_json, ["identifier", 0, "value"])
-            instance = cls(patient_identifier, icd_10_code,condition_identifier)
+            instance = cls(patient_identifier, icd_10_code, condition_identifier)
             instance._condition_fhir_id = condition_id
             instance._patient_fhir_id = patient_fhir_identifier
             instance._diagnosis_report_fhir_ids = diagnosis_report_fhir_ids
@@ -115,7 +116,7 @@ class Condition:
 
         condition = fhir_condition.Condition()
         condition.meta = Meta()
-        condition.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Condition"]
+        condition.meta.profile = [FHIRConfig.get_meta_profile_url("condition")]
         if self.condition_identifier is not None:
             condition.identifier = create_fhir_identifier(self.condition_identifier)
         if self.icd_10_code is not None:
@@ -143,7 +144,7 @@ class Condition:
         code = CodeableConcept()
         code.coding = [Coding()]
         code.coding[0].code = self.__diagnosis_with_period()
-        code.coding[0].system = "http://hl7.org/fhir/sid/icd-10"
+        code.coding[0].system = FHIRConfig.DIAGNOSIS_CODE_SYSTEM
         return code
 
     def __diagnosis_with_period(self, ) -> str:

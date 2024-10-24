@@ -6,24 +6,6 @@ from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
 
 
 class TestSample(unittest.TestCase):
-    sample_json = {'meta': {'versionId': '2', 'lastUpdated': '2024-08-06T08:14:08.062Z',
-                            'profile': ['http://example.com/StructureDefinition/Specimen']},
-                   'processing': [{
-                       'extension': [
-                           {
-                               'url': 'http://example.com/StructureDefinition/StorageTemperature',
-                               'valueCodeableConcept': {
-                                   'coding': [
-                                       {
-                                           'code': 'RT'}]}}]}],
-                   'type': {
-                       'coding': [{'system': 'http://example.com/ValueSet/miabis-material-type-VS', 'code': 'DNA'}]},
-                   'resourceType': 'Specimen', 'note': [{'text': 'use_restric'}], 'id': 'DEJGYCYLDDUJKNVW',
-                   'identifier': [{'value': 'sampleId'}], 'collection': {'collectedDateTime': '2022-10-20',
-                                                                         'bodySite': {'coding': [
-                                                                             {'system': 'bsSystem', 'code': 'Arm'}]}},
-                   'subject': {'reference': 'Patient/DEJGYCPFDABXEMWV'}}
-
     def test_sample_necessary_args(self):
         sample = Sample("sampleId", "donorId", "BuffyCoat")
         self.assertIsInstance(sample, Sample)
@@ -132,14 +114,17 @@ class TestSample(unittest.TestCase):
         self.assertEqual("No restrictions", sample_fhir.note[0].text)
 
     def test_sample_from_json(self):
-        sample = Sample.from_json(self.sample_json, "donorId")
-        self.assertEqual("sampleId", sample.identifier)
-        self.assertEqual("donorId", sample.donor_identifier)
-        self.assertEqual("DNA", sample.material_type)
-        self.assertEqual(datetime(year=2022, month=10, day=20), sample.collected_datetime)
-        self.assertEqual("Arm", sample.body_site)
-        self.assertEqual("bsSystem", sample.body_site_system)
-        self.assertEqual(StorageTemperature.TEMPERATURE_ROOM, sample.storage_temperature)
-        self.assertEqual("use_restric", sample.use_restrictions)
-        self.assertEqual("DEJGYCPFDABXEMWV", sample._subject_fhir_id)
-        self.assertEqual("DEJGYCYLDDUJKNVW", sample._sample_fhir_id)
+        example_sample = Sample("sampleId", "donorId", "BuffyCoat",
+                                storage_temperature=StorageTemperature.TEMPERATURE_LN,
+                                use_restrictions="No restrictions")
+        example_fhir = example_sample.to_fhir("donorFhirId")
+        example_fhir.id = "TestFHIRId"
+        sample = Sample.from_json(example_fhir.as_json(), "donorId")
+        self.assertEqual(example_sample.identifier, sample.identifier)
+        self.assertEqual(example_sample.donor_identifier, sample.donor_identifier)
+        self.assertEqual(example_sample.material_type, sample.material_type)
+        self.assertEqual(example_sample.collected_datetime, sample.collected_datetime)
+        self.assertEqual(example_sample.storage_temperature, sample.storage_temperature)
+        self.assertEqual(example_sample.use_restrictions, sample.use_restrictions)
+        self.assertEqual("donorFhirId", sample._subject_fhir_id)
+        self.assertEqual("TestFHIRId", sample._sample_fhir_id)

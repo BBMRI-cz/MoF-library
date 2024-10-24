@@ -8,35 +8,6 @@ from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
 
 
 class TestCollection(unittest.TestCase):
-    collection_json = {'id': 'NGJKWUEOLKA', 'meta': {'profile': ['http://example.com/StructureDefinition/Collection']},
-                       'extension': [{'url': 'http://example.com/StructureDefinition/number-of-subjects-extension',
-                                      'valueInteger': 10},
-                                     {'url': 'http://example.com/StructureDefinition/inclusion-criteria-extension',
-                                      'valueCodeableConcept': {'coding': [{'code': 'HealthStatus',
-                                                                           'system': 'http://example.com/inclusionCriteriaCS'}]}},
-                                     {
-                                         'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity',
-                                         'valueReference': {'reference': 'Specimen/sampleFhirId1'}}, {
-                                         'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity',
-                                         'valueReference': {'reference': 'Specimen/sampleFhirId2'}}], 'active': True,
-                       'actual': True, 'characteristic': [
-            {'code': {'coding': [{'code': 'Age', 'system': 'http://example.com/characteristicCS'}]}, 'exclude': False,
-             'valueRange': {'high': {'value': 100}, 'low': {'value': 0}}},
-            {'code': {'coding': [{'code': 'Sex', 'system': 'http://example.com/characteristicCS'}]}, 'exclude': False,
-             'valueCodeableConcept': {'coding': [{'code': 'male', 'system': 'http://example.com/sexCS'}]}},
-            {'code': {'coding': [{'code': 'StorageTemperature', 'system': 'http://example.com/characteristicCS'}]},
-             'exclude': False, 'valueCodeableConcept': {
-                'coding': [{'code': 'LN', 'system': 'http://example.com/storageTemperatureCS'}]}},
-            {'code': {'coding': [{'code': 'MaterialType', 'system': 'http://example.com/characteristicCS'}]},
-             'exclude': False,
-             'valueCodeableConcept': {'coding': [{'code': 'DNA', 'system': 'http://example.com/materialTypeCS'}]}},
-            {'code': {'coding': [{'code': 'Diagnosis', 'system': 'http://example.com/characteristicCS'}]},
-             'exclude': False,
-             'valueCodeableConcept': {'coding': [{'code': 'C51', 'system': 'http://hl7.org/fhir/sid/icd-10'}]}}],
-                       'identifier': [{'value': 'collectionId'}],
-                       'managingEntity': {'reference': 'Organization/biobankFhirId'}, 'name': 'collectionName',
-                       'type': 'person', 'resourceType': 'Group'}
-
     def test_collection_init(self):
         collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
                                 [StorageTemperature.TEMPERATURE_LN])
@@ -273,27 +244,36 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(collection_fhir.extension[3].valueReference.reference, "Specimen/sampleFhirId2")
 
     def test_collection_from_json(self):
-        collection = Collection.from_json(self.collection_json, "biobankId", ["sampleId1"])
+        example_collection = Collection("collectionId", "collectionName", "managingBiobankId", [Gender.MALE], ["DNA"],
+                                        0, 100,
+                                        storage_temperatures=[StorageTemperature.TEMPERATURE_LN], diagnoses=["C51"],
+                                        inclusion_criteria=["HealthStatus"], number_of_subjects=10,
+                                        sample_ids=["sampleId1", "sampleId2"]
+                                        )
+        example_collection_fhir = example_collection.to_fhir("biobankFHIRId", ["sampleFHIRId1", "sampleFHIRId2"])
+        example_collection_fhir.id = "TestFHIRId"
+        collection = Collection.from_json(example_collection_fhir.as_json(), "managingBiobankId",
+                                          ["sampleId1", "sampleId2"])
         self.assertIsInstance(collection, Collection)
-        self.assertEqual("collectionId", collection.identifier)
-        self.assertEqual("collectionName", collection.name)
-        self.assertEqual("biobankId", collection.managing_collection_org_id)
-        self.assertEqual(0, collection.age_range_low)
-        self.assertEqual(100, collection.age_range_high)
-        self.assertEqual([Gender.MALE], collection.genders)
-        self.assertEqual([StorageTemperature.TEMPERATURE_LN], collection.storage_temperatures)
-        self.assertEqual(["DNA"], collection.material_types)
-        self.assertEqual(["C51"], collection.diagnoses)
-        self.assertEqual(["HealthStatus"], collection.inclusion_criteria)
-        self.assertEqual(10, collection.number_of_subjects)
-        self.assertEqual(["sampleId1"], collection.sample_ids)
-        self.assertEqual("NGJKWUEOLKA", collection.collection_fhir_id)
-        self.assertEqual("biobankFhirId", collection.managing_collection_org_fhir_id)
-        self.assertEqual(["sampleFhirId1", "sampleFhirId2"], collection.sample_fhir_ids)
+        self.assertEqual(example_collection.identifier, collection.identifier)
+        self.assertEqual(example_collection.name, collection.name)
+        self.assertEqual(example_collection.managing_collection_org_id, collection.managing_collection_org_id)
+        self.assertEqual(example_collection.age_range_low, collection.age_range_low)
+        self.assertEqual(example_collection.age_range_high, collection.age_range_high)
+        self.assertEqual(example_collection.genders, collection.genders)
+        self.assertEqual(example_collection.storage_temperatures, collection.storage_temperatures)
+        self.assertEqual(example_collection.material_types, collection.material_types)
+        self.assertEqual(example_collection.diagnoses, collection.diagnoses)
+        self.assertEqual(example_collection.inclusion_criteria, collection.inclusion_criteria)
+        self.assertEqual(example_collection.number_of_subjects, collection.number_of_subjects)
+        self.assertEqual(example_collection.sample_ids, collection.sample_ids)
+        self.assertEqual("TestFHIRId", collection.collection_fhir_id)
+        self.assertEqual("biobankFHIRId", collection.managing_collection_org_fhir_id)
+        self.assertEqual(["sampleFHIRId1", "sampleFHIRId2"], collection.sample_fhir_ids)
 
     def test_collection_to_fhir_empty_characteristics(self):
-        collection = Collection("collectionId", "collectionName", "managingBiobankId",[], [], 0, 100,
-                                 [], diagnoses=[],
+        collection = Collection("collectionId", "collectionName", "managingBiobankId", [], [], 0, 100,
+                                [], diagnoses=[],
                                 inclusion_criteria=["HealthStatus"], number_of_subjects=10,
                                 )
         collection_fhir = collection.to_fhir("biobankFhirId", ["sampleFhirId1", "sampleFhirId2"])

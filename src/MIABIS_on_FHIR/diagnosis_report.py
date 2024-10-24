@@ -10,6 +10,7 @@ from src.MIABIS_on_FHIR.util._constants import DEFINITION_BASE_URL
 from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
 from src.MIABIS_on_FHIR.util._util import create_fhir_identifier
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.config import FHIRConfig
 
 
 class DiagnosisReport:
@@ -157,7 +158,7 @@ class DiagnosisReport:
 
         diagnosis_report = DiagnosticReport()
         diagnosis_report.meta = Meta()
-        diagnosis_report.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/DiagnosisReport"]
+        diagnosis_report.meta.profile = [FHIRConfig.get_meta_profile_url("diagnosis_report")]
         if self.diagnosis_report_identifier is not None:
             diagnosis_report.identifier = [create_fhir_identifier(self.diagnosis_report_identifier)]
         diagnosis_report.specimen = [self.__create_reference("Specimen", sample_fhir_id)]

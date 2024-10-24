@@ -5,13 +5,6 @@ from src.MIABIS_on_FHIR.observation import Observation
 
 
 class TestObservation(unittest.TestCase):
-    observation_json = {'id': 'ASRJNQWJP', 'meta': {'profile': ['http://example.com/StructureDefinition/Observation']},
-                        'code': {'coding': [{'code': '52797-8', 'system': 'http://loinc.org'}]},
-                        'effectiveDateTime': '2022-10-10', 'identifier': [{'value': 'obsId'}],
-                        'specimen': {'reference': 'Specimen/sampleFhirId'}, 'status': 'final',
-                        'subject': {'reference': 'Patient/donorFhirId'}, 'valueCodeableConcept': {
-            'coding': [{'code': 'C51', 'system': 'http://hl7.org/fhir/sid/icd-10'}]}, 'resourceType': 'Observation'}
-
     def test_observation_args_ok(self):
         observation = Observation("C51", "sampleId", "patientId")
         self.assertIsInstance(observation, Observation)
@@ -58,13 +51,17 @@ class TestObservation(unittest.TestCase):
         self.assertEqual(datetime.datetime(year=2022, month=10, day=10).date(), obs_fhir.effectiveDateTime.date)
 
     def test_observation_from_json(self):
-        observation = Observation.from_json(self.observation_json, "patientId", "sampleId")
-        self.assertEqual("C51", observation.icd10_code)
-        self.assertEqual("sampleId", observation.sample_identifier)
-        self.assertEqual("patientId", observation.patient_identifier)
-        self.assertEqual(datetime.datetime(year=2022, month=10, day=10).date(),
+        example_observation = Observation("C51", "sampleId", "patientId",
+                                          datetime.datetime(year=2022, month=10, day=10))
+        example_fhir = example_observation.to_fhir("patientFhirId", "sampleFhirId")
+        example_fhir.id = "TestFHIRId"
+        observation = Observation.from_json(example_fhir.as_json(), "patientId", "sampleId")
+        self.assertEqual(example_observation.icd10_code, observation.icd10_code)
+        self.assertEqual(example_observation.sample_identifier, observation.sample_identifier)
+        self.assertEqual(example_observation.patient_identifier, observation.patient_identifier)
+        self.assertEqual(example_observation.diagnosis_observed_datetime.date(),
                          observation.diagnosis_observed_datetime.date())
-        self.assertEqual("ASRJNQWJP", observation.observation_fhir_id)
+        self.assertEqual("TestFHIRId", observation.observation_fhir_id)
         self.assertEqual("sampleFhirId", observation.sample_fhir_id)
-        self.assertEqual("donorFhirId", observation.patient_fhir_id)
-        self.assertEqual("obsId", observation.observation_identifier)
+        self.assertEqual("patientFhirId", observation.patient_fhir_id)
+

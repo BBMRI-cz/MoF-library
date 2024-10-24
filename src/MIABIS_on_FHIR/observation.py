@@ -16,6 +16,7 @@ from src.MIABIS_on_FHIR.util._constants import DEFINITION_BASE_URL
 from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
 from src.MIABIS_on_FHIR.util._util import create_fhir_identifier
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.config import FHIRConfig
 
 
 class Observation:
@@ -144,7 +145,7 @@ class Observation:
 
         observation = fhir_observation.Observation()
         observation.meta = Meta()
-        observation.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Observation"]
+        observation.meta.profile = [FHIRConfig.get_meta_profile_url("observation")]
         if self.observation_identifier is not None:
             observation.identifier = [create_fhir_identifier(self.observation_identifier)]
         observation.subject = self.__create_patient_reference(patient_fhir_id)
@@ -173,18 +174,18 @@ class Observation:
         observation.id = self._observation_fhir_id
 
     @staticmethod
-    def __create_loinc_code():
+    def __create_loinc_code() -> CodeableConcept:
         code = CodeableConcept()
         code.coding = [Coding()]
         code.coding[0].code = "52797-8"
         code.coding[0].system = "http://loinc.org"
         return code
 
-    def __create_icd_10_code(self):
+    def __create_icd_10_code(self) -> CodeableConcept:
         code = CodeableConcept()
         code.coding = [Coding()]
         code.coding[0].code = self.__diagnosis_with_period()
-        code.coding[0].system = "http://hl7.org/fhir/sid/icd-10"
+        code.coding[0].system = FHIRConfig.DIAGNOSIS_CODE_SYSTEM
         return code
 
     def __diagnosis_with_period(self, ) -> str:

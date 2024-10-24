@@ -7,11 +7,13 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
 from src.MIABIS_on_FHIR.util._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, \
-    COLLECTION_SAMPLE_SOURCE, COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS, DEFINITION_BASE_URL
+    COLLECTION_SAMPLE_SOURCE, COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS
 from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_contact, parse_reference_id
-from src.MIABIS_on_FHIR.util._util import create_country_of_residence, create_contact, create_codeable_concept_extension, \
-    create_string_extension, create_fhir_identifier, create_codeable_concept
+from src.MIABIS_on_FHIR.util._util import create_country_of_residence, create_contact, \
+    create_codeable_concept_extension, \
+    create_string_extension, create_fhir_identifier
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.config import FHIRConfig
 
 
 class CollectionOrganization:
@@ -284,39 +286,46 @@ class CollectionOrganization:
         parsed_extensions = {"dataset_type": None, "sample_source": None, "sample_collection_setting": None,
                              "collection_design": [], "use_and_access_conditions": [], "publications": [],
                              "description": None}
+        dataset_url = FHIRConfig.get_extension_url("collection_organization", "dataset_type")
+        sample_source_url = FHIRConfig.get_extension_url("collection_organization", "sample_source")
+        collection_seting_url = FHIRConfig.get_extension_url("collection_organization", "sample_collection_setting")
+        collection_design_url = FHIRConfig.get_extension_url("collection_organization", "collection_design")
+        use_and_access_url = FHIRConfig.get_extension_url("collection_organization", "use_and_access")
+        publications_url = FHIRConfig.get_extension_url("collection_organization", "publications")
+        description_url = FHIRConfig.get_extension_url("collection_organization", "description")
+
         for extension in extensions:
-            ext = extension["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1)
-            match ext:
-                case "dataset-type-extension":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extensions["dataset_type"] = value
-                case "sample-source-extension":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extensions["sample_source"] = value
-                case "sample-collection-setting-extension":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extensions["sample_collection_setting"] = value
-                case "collection-design-extension":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extensions["collection_design"].append(value)
-                case "use-and-access-conditions-extension":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extensions["use_and_access_conditions"].append(value)
-                case "publication-extension":
-                    value = get_nested_value(extension, ["valueString"])
-                    if value is not None:
-                        parsed_extensions["publications"].append(value)
-                case "description-extension":
-                    value = get_nested_value(extension, ["valueString"])
-                    if value is not None:
-                        parsed_extensions["description"] = value
-                case _:
-                    pass
+            extension_url = extension["url"]
+            if extension_url == dataset_url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extensions["dataset_type"] = value
+            elif extension_url == sample_source_url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extensions["sample_source"] = value
+            elif extension_url == collection_seting_url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extensions["sample_collection_setting"] = value
+            elif extension_url == collection_design_url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extensions["collection_design"].append(value)
+            elif extension_url == use_and_access_url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extensions["use_and_access_conditions"].append(value)
+            elif extension_url == publications_url:
+                value = get_nested_value(extension, ["valueString"])
+                if value is not None:
+                    parsed_extensions["publications"].append(value)
+            elif extension_url == description_url:
+                value = get_nested_value(extension, ["valueString"])
+                if value is not None:
+                    parsed_extensions["description"] = value
+            else:
+                continue
         for key, value in parsed_extensions.items():
             if not value:
                 parsed_extensions[key] = None
@@ -330,9 +339,9 @@ class CollectionOrganization:
             raise ValueError("Managing organization FHIR id must be provided either as an argument or as a property.")
         fhir_org = Organization()
         fhir_org.meta = Meta()
-        fhir_org.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/miabis-collection-organization"]
+        fhir_org.meta.profile = [FHIRConfig.get_meta_profile_url("collection_organization")]
         fhir_org.identifier = [create_fhir_identifier(self.identifier)]
-        fhir_org.type = [create_codeable_concept(DEFINITION_BASE_URL + "/organizationTypeCS", "Collection")]
+        # fhir_org.type = [create_codeable_concept(DEFINITION_BASE_URL + "/organizationTypeCS", "Collection")]
         fhir_org.active = True
         fhir_org.name = self.name
         if self.alias is not None:
@@ -346,35 +355,36 @@ class CollectionOrganization:
         extensions = []
         if self.dataset_type is not None:
             extensions.append(create_codeable_concept_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/dataset-type-extension",
-                DEFINITION_BASE_URL + "/datasetTypeCS",
+                FHIRConfig.get_extension_url("collection_organization", "dataset_type"),
+                FHIRConfig.get_code_system_url("collection_organization", "dataset_type"),
                 self.dataset_type))
         if self.sample_source is not None:
             extensions.append(create_codeable_concept_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/sample-source-extension",
-                DEFINITION_BASE_URL + "/sampleSourceCS",
+                FHIRConfig.get_extension_url("collection_organization", "sample_source"),
+                FHIRConfig.get_code_system_url("collection_organization", "sample_source"),
                 self.sample_source))
         if self.sample_collection_setting is not None:
             extensions.append(create_codeable_concept_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/sample-collection-setting-extension",
-                DEFINITION_BASE_URL + "/sampleCollectionSettingCS", self.sample_collection_setting))
+                FHIRConfig.get_extension_url("collection_organization", "sample_collection_setting"),
+                FHIRConfig.get_code_system_url("collection_organization", "sample_collection_setting"),
+                self.sample_collection_setting))
         if self.collection_design is not None:
             for design in self.collection_design:
                 extensions.append(create_codeable_concept_extension(
-                    DEFINITION_BASE_URL + "/StructureDefinition/collection-design-extension",
-                    DEFINITION_BASE_URL + "/collectionDesignCS", design))
+                    FHIRConfig.get_extension_url("collection_organization", "collection_design"),
+                    FHIRConfig.get_code_system_url("collection_organization", "collection_design"), design))
         if self.use_and_access_conditions is not None:
             for condition in self.use_and_access_conditions:
                 extensions.append(create_codeable_concept_extension(
-                    DEFINITION_BASE_URL + "/StructureDefinition/use-and-access-conditions-extension",
-                    DEFINITION_BASE_URL + "/useAndAccessConditionsCS", condition))
+                    FHIRConfig.get_extension_url("collection_organization", "use_and_access"),
+                    FHIRConfig.get_code_system_url("collection_organization", "use_and_access"), condition))
         if self.publications is not None:
             for publication in self.publications:
                 extensions.append(create_string_extension(
-                    DEFINITION_BASE_URL + "/StructureDefinition/publication-extension", publication))
+                    FHIRConfig.get_extension_url("collection_organization", "publications"), publication))
         if self.description is not None:
             extensions.append(create_string_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/description-extension", self.description))
+                FHIRConfig.get_extension_url("collection_organization", "description"), self.description))
         if extensions:
             fhir_org.extension = extensions
         return fhir_org
@@ -386,6 +396,7 @@ class CollectionOrganization:
                 as the FHIR ID is generated by the server and is not known in advance."""
         collection_org.id = self.collection_org_fhir_id
         return collection_org
+
     @staticmethod
     def create_url(url: str) -> ContactPoint:
         contact_point = ContactPoint()

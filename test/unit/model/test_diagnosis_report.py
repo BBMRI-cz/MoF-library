@@ -4,14 +4,6 @@ from src.MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
 
 
 class TestDiagnosisReport(unittest.TestCase):
-    diagnosis_report_json = {'id': 'QNJWNJ123ONASH',
-                             'meta': {'profile': ['http://example.com/StructureDefinition/DiagnosisReport']},
-                             'code': {'coding': [{'code': '52797-8', 'system': 'http://loinc.org'}]},
-                             'result': [{'reference': 'Observation/obsFhirId'},
-                                        {'reference': 'Observation/obsFhirId2'}],
-                             'specimen': [{'reference': 'Specimen/sampleFhirId'}], 'status': 'final',
-                             'subject': {'reference': 'Patient/donorFhirId'}, 'resourceType': 'DiagnosticReport'}
-
     def test_diagnosis_report_init(self):
         diagnosis_report = DiagnosisReport("sampleId", "donorId")
         self.assertIsInstance(diagnosis_report, DiagnosisReport)
@@ -78,12 +70,12 @@ class TestDiagnosisReport(unittest.TestCase):
         self.assertEqual("final", diagnosis_report_fhir.status)
 
     def test_diagnosis_report_from_json(self):
-        diagnosis_report = DiagnosisReport.from_json(self.diagnosis_report_json, "sampleId", "donorId",
-                                                     ["obsId", "obsId2"])
-        self.assertEqual("sampleId", diagnosis_report.sample_identifier)
-        self.assertEqual(["obsId", "obsId2"], diagnosis_report.observations_identifiers)
-        self.assertEqual("QNJWNJ123ONASH", diagnosis_report.diagnosis_report_fhir_id)
+        example_diagnosis_report = DiagnosisReport("sampleId", "donorId")
+        example_fhir = example_diagnosis_report.to_fhir("sampleFhirId", "donorFhirId", ["obsFhirId", "obsFhirId2"])
+        example_fhir.id = "TestFHIRId"
+        diagnosis_report = DiagnosisReport.from_json(example_fhir.as_json(), "sampleId", "donorId")
+        self.assertEqual(example_diagnosis_report.sample_identifier, diagnosis_report.sample_identifier)
+        self.assertEqual("TestFHIRId", diagnosis_report.diagnosis_report_fhir_id)
         self.assertEqual(["obsFhirId", "obsFhirId2"], diagnosis_report.observations_fhir_identifiers)
         self.assertEqual("sampleFhirId", diagnosis_report.sample_fhir_id)
         self.assertEqual("donorFhirId", diagnosis_report.patient_fhir_id)
-

@@ -18,6 +18,7 @@ from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_integer
 from src.MIABIS_on_FHIR.gender import Gender
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
+from src.config import FHIRConfig
 
 
 class Collection:
@@ -303,19 +304,22 @@ class Collection:
         :return: dictionary with the extensions.
         """
         parsed_extensions = {"number_of_subjects": None, "inclusion_criteria": None, "sample_fhir_ids": []}
+        number_of_subjects_url = FHIRConfig.get_extension_url("collection", "number_of_subjects")
+        inclusion_criteria_url = FHIRConfig.get_extension_url("collection", "inclusion_criteria")
         for ext in extension:
-            match ext["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
-                case "number-of-subjects-extension":
-                    parsed_extensions["number_of_subjects"] = ext["valueInteger"]
-                case "inclusion-criteria-extension":
-                    if parsed_extensions["inclusion_criteria"] is None:
-                        parsed_extensions["inclusion_criteria"] = []
-                    parsed_extensions["inclusion_criteria"].append(ext["valueCodeableConcept"]["coding"][0]["code"])
-                case "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity":
-                    reference_id = parse_reference_id(get_nested_value(ext, ["valueReference", "reference"]))
-                    parsed_extensions["sample_fhir_ids"].append(reference_id)
-                case _:
-                    pass
+            extension_url = ext["url"]
+            if extension_url == number_of_subjects_url:
+                parsed_extensions["number_of_subjects"] = ext["valueInteger"]
+            elif extension_url == inclusion_criteria_url:
+                if parsed_extensions["inclusion_criteria"] is None:
+                    parsed_extensions["inclusion_criteria"] = []
+                parsed_extensions["inclusion_criteria"].append(
+                    get_nested_value(ext, ["valueCodeableConcept", "coding", 0, "code"]))
+            elif extension_url == FHIRConfig.MEMBER_V5_EXTENSION:
+                reference_id = parse_reference_id(get_nested_value(ext, ["valueReference", "reference"]))
+                parsed_extensions["sample_fhir_ids"].append(reference_id)
+            else:
+                continue
         return parsed_extensions
 
     def to_fhir(self, managing_collection_org_fhir_id: str = None, sample_fhir_ids: list[str] = None) -> Group:
@@ -333,7 +337,7 @@ class Collection:
 
         fhir_group = Group()
         fhir_group.meta = Meta()
-        fhir_group.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/miabis-collection"]
+        fhir_group.meta.profile = [FHIRConfig.get_meta_profile_url("collection")]
         fhir_group.identifier = [create_fhir_identifier(self.identifier)]
         fhir_group.active = True
         fhir_group.actual = True
@@ -346,34 +350,36 @@ class Collection:
                 self.__create_age_range_characteristic(self.age_range_low, self.age_range_high))
         for gender in self.genders:
             fhir_group.characteristic.append(
-                self.__create_codeable_concept_characteristic("Sex", "http://hl7.org/fhir/administrative-gender",
+                self.__create_codeable_concept_characteristic("Sex",
+                                                              FHIRConfig.get_code_system_url("collection", "gender"),
                                                               gender.name.lower()))
         for storage_temperature in self.storage_temperatures:
             fhir_group.characteristic.append(
                 self.__create_codeable_concept_characteristic("StorageTemperature",
-                                                              DEFINITION_BASE_URL +
-                                                              "/CodeSystem/miabis-storage-temperature-cs",
+                                                              FHIRConfig.get_code_system_url("collection",
+                                                                                             "storage_temperature"),
                                                               storage_temperature.value))
         for material in self.material_types:
             fhir_group.characteristic.append(
-                self.__create_codeable_concept_characteristic("MaterialType", DEFINITION_BASE_URL +
-                                                              "/CodeSystem/miabis-collection-sample-type-cs",
+                self.__create_codeable_concept_characteristic("MaterialType",
+                                                              FHIRConfig.get_code_system_url("collection",
+                                                                                             "material_type"),
                                                               material))
         if self.diagnoses is not None:
             for diagnosis in self.diagnoses:
                 fhir_group.characteristic.append(
-                    self.__create_codeable_concept_characteristic("Diagnosis", "http://hl7.org/fhir/sid/icd-10",
+                    self.__create_codeable_concept_characteristic("Diagnosis", FHIRConfig.DIAGNOSIS_CODE_SYSTEM,
                                                                   diagnosis))
         extensions = []
         if self.number_of_subjects is not None:
             extensions.append(create_integer_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/miabis-number-of-subjects-extension",
+                FHIRConfig.get_extension_url("collection", "number_of_subjects"),
                 self.number_of_subjects))
         if self.inclusion_criteria is not None:
             for criteria in self.inclusion_criteria:
                 extensions.append(create_codeable_concept_extension(
-                    DEFINITION_BASE_URL + "/StructureDefinition/miabis-inclusion-criteria-extension",
-                    DEFINITION_BASE_URL + "/CodeSystem/miabis-inclusion-criteria-cs", criteria))
+                    FHIRConfig.get_extension_url("collection", "inclusion_criteria"),
+                    FHIRConfig.get_code_system_url("collection", "inclusion_criteria"), criteria))
         for sample_fhir_id in sample_fhir_ids:
             extensions.append(self.__create_member_extension(sample_fhir_id))
         if extensions:
@@ -391,7 +397,7 @@ class Collection:
     @staticmethod
     def __create_member_extension(sample_fhir_id: str):
         extension = Extension()
-        extension.url = "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity"
+        extension.url = FHIRConfig.MEMBER_V5_EXTENSION
         extension.valueReference = FHIRReference()
         extension.valueReference.reference = f"Specimen/{sample_fhir_id}"
         return extension
@@ -400,7 +406,8 @@ class Collection:
     def __create_age_range_characteristic(age_low: int, age_high: int) -> GroupCharacteristic:
         age_range_characteristic = GroupCharacteristic()
         age_range_characteristic.exclude = False
-        age_range_characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/characteristicCS", "Age")
+        age_range_characteristic.code = create_codeable_concept(
+            FHIRConfig.get_code_system_url("collection", "characteristic"), "Age")
         age_range_characteristic.valueRange = Range()
         age_range_characteristic.valueRange.low = Quantity()
         age_range_characteristic.valueRange.low.value = age_low
@@ -409,20 +416,11 @@ class Collection:
         return age_range_characteristic
 
     @staticmethod
-    def __create_sex_characteristic(code: str) -> GroupCharacteristic:
-        sex_characteristic = GroupCharacteristic()
-        sex_characteristic.exclude = False
-        sex_characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/CodeSystem/miabis-characteristicCS",
-                                                          "Sex")
-        sex_characteristic.valueCodeableConcept = create_codeable_concept(DEFINITION_BASE_URL + "/sexCS", code)
-        return sex_characteristic
-
-    @staticmethod
     def __create_codeable_concept_characteristic(characteristic_code: str, codeable_concept_url: str,
                                                  value: str) -> GroupCharacteristic:
         characteristic = GroupCharacteristic()
         characteristic.exclude = False
-        characteristic.code = create_codeable_concept(DEFINITION_BASE_URL + "/CodeSystem/miabis-characteristicCS",
+        characteristic.code = create_codeable_concept(FHIRConfig.get_code_system_url("collection", "characteristic"),
                                                       characteristic_code)
         characteristic.valueCodeableConcept = create_codeable_concept(codeable_concept_url, value)
         return characteristic

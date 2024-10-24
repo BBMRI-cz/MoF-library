@@ -4,33 +4,6 @@ from src.MIABIS_on_FHIR.collection_organization import CollectionOrganization
 
 
 class TestCollectionOrganization(unittest.TestCase):
-    coll_org_json = {'id': 'AOLKUVBPQS', 'meta': {'profile': ['http://example.com/StructureDefinition/Collection']},
-                     'extension': [{'url': 'http://example.com/StructureDefinition/dataset-type-extension',
-                                    'valueCodeableConcept': {'coding': [
-                                        {'code': 'LifeStyle', 'system': 'http://example.com/datasetTypeCS'}]}},
-                                   {'url': 'http://example.com/StructureDefinition/sample-source-extension',
-                                    'valueCodeableConcept': {
-                                        'coding': [{'code': 'Human', 'system': 'http://example.com/sampleSourceCS'}]}},
-                                   {'url': 'http://example.com/StructureDefinition/sample-collection-setting-extension',
-                                    'valueCodeableConcept': {'coding': [{'code': 'Environment',
-                                                                         'system': 'http://example.com/sampleCollectionSettingCS'}]}},
-                                   {'url': 'http://example.com/StructureDefinition/collection-design-extension',
-                                    'valueCodeableConcept': {'coding': [
-                                        {'code': 'CaseControl', 'system': 'http://example.com/collectionDesignCS'}]}},
-                                   {'url': 'http://example.com/StructureDefinition/use-and-access-conditions-extension',
-                                    'valueCodeableConcept': {'coding': [{'code': 'CommercialUse',
-                                                                         'system': 'http://example.com/useAndAccessConditionsCS'}]}},
-                                   {'url': 'http://example.com/StructureDefinition/publication-extension',
-                                    'valueString': 'publication'},
-                                   {'url': 'http://example.com/StructureDefinition/description-extension',
-                                    'valueString': 'description'}], 'active': True, 'address': [{'country': 'cz'}],
-                     'alias': ['alias'], 'contact': [{'name': {'family': 'contactSurname', 'given': ['contactName']},
-                                                      'telecom': [{'system': 'email', 'value': 'contactEmail'}]}],
-                     'identifier': [{'value': 'collectionOrgId'}], 'name': 'collectionOrgName',
-                     'partOf': {'reference': 'Organization/biobankFhirId'},
-                     'telecom': [{'system': 'url', 'value': 'url'}],
-                     'type': [{'coding': [{'code': 'Collection', 'system': 'http://example.com/organizationTypeCS'}]}],
-                     'resourceType': 'Organization'}
 
     def test_collection_org_init_required_params(self):
         collection_org = CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
@@ -392,25 +365,31 @@ class TestCollectionOrganization(unittest.TestCase):
         self.assertEqual("description", collection_org_fhir.extension[6].valueString)
 
     def test_collection_org_from_json(self):
-        collection_org = CollectionOrganization.from_json(self.coll_org_json,"biobankId")
+        example_collection_org = CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                                        "contactName",
+                                                        "contactSurname", "contactEmail", "cz", "alias", "url",
+                                                        "description",
+                                                        "LifeStyle", "Human", "Environment", ["CaseControl"],
+                                                        ["CommercialUse"], ["publication"])
+        example_fhir = example_collection_org.to_fhir("biobankFHIRId")
+        example_fhir.id = "TestFHIRId"
+        collection_org = CollectionOrganization.from_json(example_fhir.as_json(), "biobankId")
         self.assertIsInstance(collection_org, CollectionOrganization)
-        self.assertEqual("collectionOrgId", collection_org.identifier)
-        self.assertEqual("collectionOrgName", collection_org.name)
-        self.assertEqual("biobankId", collection_org.managing_biobank_id)
-        self.assertEqual("contactName", collection_org.contact_name)
-        self.assertEqual("contactSurname", collection_org.contact_surname)
-        self.assertEqual("contactEmail", collection_org.contact_email)
-        self.assertEqual("cz", collection_org.country)
-        self.assertEqual("alias", collection_org.alias)
-        self.assertEqual("url", collection_org.url)
-        self.assertEqual("description", collection_org.description)
-        self.assertEqual("LifeStyle", collection_org.dataset_type)
-        self.assertEqual("Human", collection_org.sample_source)
-        self.assertEqual("Environment", collection_org.sample_collection_setting)
-        self.assertEqual(["CaseControl"], collection_org.collection_design)
-        self.assertEqual(["CommercialUse"], collection_org.use_and_access_conditions)
-        self.assertEqual(["publication"], collection_org.publications)
-        self.assertEqual("AOLKUVBPQS", collection_org.collection_org_fhir_id)
-        self.assertEqual("biobankFhirId",collection_org.managing_biobank_fhir_id)
-
-
+        self.assertEqual(example_collection_org.identifier, collection_org.identifier)
+        self.assertEqual(example_collection_org.name, collection_org.name)
+        self.assertEqual(example_collection_org.managing_biobank_id, collection_org.managing_biobank_id)
+        self.assertEqual(example_collection_org.contact_name, collection_org.contact_name)
+        self.assertEqual(example_collection_org.contact_surname, collection_org.contact_surname)
+        self.assertEqual(example_collection_org.contact_email, collection_org.contact_email)
+        self.assertEqual(example_collection_org.country, collection_org.country)
+        self.assertEqual(example_collection_org.alias, collection_org.alias)
+        self.assertEqual(example_collection_org.url, collection_org.url)
+        self.assertEqual(example_collection_org.description, collection_org.description)
+        self.assertEqual(example_collection_org.dataset_type, collection_org.dataset_type)
+        self.assertEqual(example_collection_org.sample_source, collection_org.sample_source)
+        self.assertEqual(example_collection_org.sample_collection_setting, collection_org.sample_collection_setting)
+        self.assertEqual(example_collection_org.collection_design, collection_org.collection_design)
+        self.assertEqual(example_collection_org.use_and_access_conditions, collection_org.use_and_access_conditions)
+        self.assertEqual(example_collection_org.publications, collection_org.publications)
+        self.assertEqual("TestFHIRId", collection_org.collection_org_fhir_id)
+        self.assertEqual("biobankFHIRId", collection_org.managing_biobank_fhir_id)

@@ -5,10 +5,10 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.group import Group
 from fhirclient.models.meta import Meta
 
-from src.MIABIS_on_FHIR.util._constants import DEFINITION_BASE_URL
 from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
 from src.MIABIS_on_FHIR.util._util import create_fhir_identifier
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.config import FHIRConfig
 
 
 class Network:
@@ -129,7 +129,7 @@ class Network:
     def _parse_extensions(extensions: list[dict]) -> dict:
         parsed_extensions = {"member_collection_fhir_ids": [], "member_biobank_fhir_ids": []}
         for extension in extensions:
-            if extension["url"] == "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity":
+            if extension["url"] == FHIRConfig.MEMBER_V5_EXTENSION:
                 ref_type, reference = get_nested_value(extension, ["valueReference", "reference"]).split("/")
                 if ref_type == "Group":
                     parsed_extensions["member_collection_fhir_ids"].append(reference)
@@ -137,24 +137,16 @@ class Network:
                     parsed_extensions["member_biobank_fhir_ids"].append(reference)
         return parsed_extensions
 
-    # TODO member colelction - "formal parts of collection stored in collection_org resource - is type of Organization - no need to specify if member is collection or biobank, both same resource
     def to_fhir(self, network_organization_fhir_id: str = None, member_collection_fhir_ids: list[str] = None,
                 member_biobank_fhir_ids: list[str] = None) -> Group:
         network_organization_fhir_id = network_organization_fhir_id or self.managing_network_org_id
         if network_organization_fhir_id is None:
             raise ValueError("Managing biobank FHIR id must be provided either as an argument or as a property.")
-
         member_collection_fhir_ids = member_collection_fhir_ids or self.members_collections_fhir_ids
-        if member_collection_fhir_ids is None:
-            raise ValueError("Members collections FHIR ids must be provided either as an argument or as a property.")
-
         member_biobank_fhir_ids = member_biobank_fhir_ids or self.members_biobanks_fhir_ids
-        if member_biobank_fhir_ids is None:
-            raise ValueError("Members biobanks FHIR ids must be provided either as an argument or as a property.")
-
         network = Group()
         network.meta = Meta()
-        network.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Network"]
+        network.meta.profile = [FHIRConfig.get_meta_profile_url("network")]
         network.identifier = [create_fhir_identifier(self.identifier)]
         network.name = self._name
         network.active = True
@@ -172,7 +164,7 @@ class Network:
     @staticmethod
     def __create_member_extension(member_type: str, member_fhir_id: str):
         extension = Extension()
-        extension.url = "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity"
+        extension.url = FHIRConfig.MEMBER_V5_EXTENSION
         extension.valueReference = FHIRReference()
         extension.valueReference.reference = f"{member_type}/{member_fhir_id}"
         return extension

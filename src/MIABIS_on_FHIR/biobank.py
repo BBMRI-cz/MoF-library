@@ -10,6 +10,7 @@ from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_contac
 from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_contact, create_country_of_residence, \
     create_codeable_concept_extension, create_string_extension
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.config import FHIRConfig
 
 
 class Biobank:
@@ -231,35 +232,40 @@ class Biobank:
         parsed_extension = {"infrastructural_capabilities": [], "organisational_capabilities": [],
                             "bioprocessing_and_analysis_capabilities": [], "quality_management_standards": [],
                             "juristic_person": None, "description": None}
-
+        infrastruct_url = FHIRConfig.get_extension_url("biobank", "infrastructural_capabilities")
+        org_capability_url = FHIRConfig.get_extension_url("biobank", "organisational_capabilities")
+        bioprocess__url = FHIRConfig.get_extension_url("biobank", "bioprocessing_and_analysis_capabilities")
+        quality_url = FHIRConfig.get_extension_url("biobank", "quality_management_standard")
+        juristic_url = FHIRConfig.get_extension_url("biobank", "juristic_person")
+        description_url = FHIRConfig.get_extension_url("biobank", "description")
         for extension in extensions:
             ext_type = extension["url"].replace(f"{DEFINITION_BASE_URL}/", "", 1)
-            match ext_type:
-                case "infrastructural-capabilities":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extension["infrastructural_capabilities"].append(value)
-                case "organisational-capabilities":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extension["organisational_capabilities"].append(value)
-                case "bioprocessing-and-analysis-capabilities":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extension["bioprocessing_and_analysis_capabilities"].append(value)
-                case "quality-management-standards":
-                    value = get_nested_value(extension, ["valueString"])
-                    if value is not None:
-                        parsed_extension["quality_management_standards"].append(value)
-                case "juristic-person":
-                    value = get_nested_value(extension, ["valueString"])
-                    parsed_extension["juristic_person"] = value
-                case "description":
-                    value = get_nested_value(extension, ["valueString"])
-                    if value is not None:
-                        parsed_extension["description"] = value
-                case _:
-                    pass
+            extension_url = extension["url"]
+            if extension_url == infrastruct_url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extension["infrastructural_capabilities"].append(value)
+            elif extension_url == org_capability_url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extension["organisational_capabilities"].append(value)
+            elif extension_url == bioprocess__url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extension["bioprocessing_and_analysis_capabilities"].append(value)
+            elif extension_url == quality_url:
+                value = get_nested_value(extension, ["valueString"])
+                if value is not None:
+                    parsed_extension["quality_management_standards"].append(value)
+            elif extension_url == juristic_url:
+                value = get_nested_value(extension, ["valueString"])
+                parsed_extension["juristic_person"] = value
+            elif extension_url == description_url:
+                value = get_nested_value(extension, ["valueString"])
+                if value is not None:
+                    parsed_extension["description"] = value
+            else:
+                continue
         for key, value in parsed_extension.items():
             if isinstance(value, list) and value == []:
                 parsed_extension[key] = None
@@ -269,8 +275,9 @@ class Biobank:
         """Return biobank representation in FHIR"""
         fhir_organization = Organization()
         fhir_organization.meta = Meta()
-        fhir_organization.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/miabis-biobank"]
+        fhir_organization.meta.profile = [FHIRConfig.get_meta_profile_url("biobank")]
         fhir_organization.identifier = [create_fhir_identifier(self.identifier)]
+        fhir_organization.identifier[0].system = "http://www.bbmri-eric.eu/"
         fhir_organization.name = self.name
         fhir_organization.alias = [self.alias]
         fhir_organization.contact = [create_contact(self.contact_name, self.contact_surname, self.contact_email)]
@@ -280,37 +287,36 @@ class Biobank:
             for capability in self.infrastructural_capabilities:
                 extensions.append(
                     create_codeable_concept_extension(
-                        DEFINITION_BASE_URL + "/StructureDefinition/miabis-infrastructural-capabilities-extension",
-                        DEFINITION_BASE_URL + "ValueSet/miabis-infrastructural-capabilities-vs",
+                        FHIRConfig.get_extension_url("biobank", "infrastructural_capabilities"),
+                        FHIRConfig.get_code_system_url("biobank", "infrastructural_capabilities"),
                         capability))
         if self.organisational_capabilities is not None:
             for capability in self.organisational_capabilities:
                 extensions.append(
                     create_codeable_concept_extension(
-                        DEFINITION_BASE_URL + "/StructureDefinition/miabis-organisational-capabilities-extension",
-                        DEFINITION_BASE_URL + "/ValueSet/miabis-organisational-capabilities-vs",
+                        FHIRConfig.get_extension_url("biobank", "organisational_capabilities"),
+                        FHIRConfig.get_code_system_url("biobank", "ogranisational_capabilities"),
                         capability))
         if self.bioprocessing_and_analysis_capabilities is not None:
             for capability in self.bioprocessing_and_analysis_capabilities:
                 extensions.append(
                     create_codeable_concept_extension(
-                        DEFINITION_BASE_URL + "/StructureDefinition/miabis-bioprocessing"
-                                              "-and-analytical-capabilities-extension",
-                        DEFINITION_BASE_URL + "//ValueSet/miabis-bioprocessing-and-analytical-capabilities-vs",
+                        FHIRConfig.get_extension_url("biobank", "bioprocessing_and_analysis_capabilities"),
+                        FHIRConfig.get_code_system_url("biobank", "bioprocessing_and_analysis_capabilities"),
                         capability))
         if self.quality__management_standards is not None:
             for standard in self.quality__management_standards:
                 extensions.append(
                     create_string_extension(
-                        DEFINITION_BASE_URL + "/StructureDefinition/miabis-quality-management-standard-extension",
+                        FHIRConfig.get_extension_url("biobank", "quality_management_standard"),
                         standard))
         if self.juristic_person is not None:
             extensions.append(
-                create_string_extension(DEFINITION_BASE_URL + "/StructureDefinition/miabis-juristic-person-extension",
+                create_string_extension(FHIRConfig.get_extension_url("biobank", "juristic_person"),
                                         self.juristic_person))
         if self.description is not None:
             extensions.append(create_string_extension(
-                DEFINITION_BASE_URL + "/StructureDefinition/miabis-organization-description-extension",
+                FHIRConfig.get_extension_url("biobank","description"),
                 self.description))
         if extensions:
             fhir_organization.extension = extensions
