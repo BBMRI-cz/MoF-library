@@ -1,17 +1,9 @@
 import unittest
 
-from MIABIS_on_FHIR.condition import Condition
+from src.MIABIS_on_FHIR.condition import Condition
 
 
 class TestCondition(unittest.TestCase):
-    condition_json = {'id': 'MJASFOPOIN', 'meta': {'profile': ['http://example.com/StructureDefinition/Condition']},
-                      'code': {'coding': [{'code': 'C51', 'system': 'http://hl7.org/fhir/sid/icd-10'}]}, 'stage': [{
-            'assessment': [
-                {
-                    'reference': 'DiagnosticReport/diagRepFhir1'},
-                {
-                    'reference': 'DiagnosticReport/diagRepFhir2'}]}],
-                      'subject': {'reference': 'Patient/patientFhirId'}, 'resourceType': 'Condition'}
 
     def test_condition_init(self):
         condition = Condition("patientId")
@@ -64,9 +56,12 @@ class TestCondition(unittest.TestCase):
         self.assertEqual("DiagnosticReport/diagnosisFhirId2", condition_fhir.stage[0].assessment[1].reference)
 
     def test_condition_from_json_ok(self):
-        condition = Condition.from_json(self.condition_json, "patientId")
-        self.assertEqual("MJASFOPOIN", condition.condition_fhir_id)
-        self.assertEqual("patientFhirId", condition.patient_fhir_id)
-        self.assertEqual(["diagRepFhir1", "diagRepFhir2"], condition.diagnosis_report_fhir_ids)
-        self.assertEqual("C51", condition.icd_10_code)
-        self.assertEqual("MJASFOPOIN", condition.condition_fhir_id)
+        example_condition = Condition("donorId", "C51")
+        example_fhir = example_condition.to_fhir("donorFHIRId", ["drFHIRId1", "drFHIRId2"])
+        example_fhir.id = "TestFHIRId"
+        condition = Condition.from_json(example_fhir.as_json(),"donorId")
+        self.assertEqual("TestFHIRId", condition.condition_fhir_id)
+        self.assertEqual("donorFHIRId", condition.patient_fhir_id)
+        self.assertEqual(example_condition.patient_identifier, condition.patient_identifier)
+        self.assertEqual(["drFHIRId1", "drFHIRId2"], condition.diagnosis_report_fhir_ids)
+        self.assertEqual(example_condition.icd_10_code, condition.icd_10_code)

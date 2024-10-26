@@ -9,11 +9,13 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
-from MIABIS_on_FHIR._constants import MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_reference_id
-from MIABIS_on_FHIR._util import create_fhir_identifier, create_codeable_concept, create_codeable_concept_extension
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from MIABIS_on_FHIR.storage_temperature import StorageTemperature
+from src.MIABIS_on_FHIR.util._constants import DETAILED_MATERIAL_TYPE_CODES, DEFINITION_BASE_URL
+from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
+from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_codeable_concept, \
+    create_codeable_concept_extension
+from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
+from src.config import FHIRConfig
 
 
 class Sample:
@@ -73,8 +75,9 @@ class Sample:
 
     @material_type.setter
     def material_type(self, material_type: str):
-        if material_type not in MATERIAL_TYPE_CODES:
-            raise ValueError(f"Material type {material_type} is not valid. Valid values are: {MATERIAL_TYPE_CODES}")
+        if material_type not in DETAILED_MATERIAL_TYPE_CODES:
+            raise ValueError(
+                f"Material type {material_type} is not valid. Valid values are: {DETAILED_MATERIAL_TYPE_CODES}")
         self._material_type = material_type
 
     @property
@@ -197,11 +200,11 @@ class Sample:
 
         specimen = Specimen()
         specimen.meta = Meta()
-        specimen.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Specimen"]
+        specimen.meta.profile = [FHIRConfig.get_meta_profile_url("sample")]
         specimen.identifier = [create_fhir_identifier(self.identifier)]
         specimen.subject = FHIRReference()
         specimen.subject.reference = f"Patient/{subject_fhir_id}"
-        specimen.type = create_codeable_concept(DEFINITION_BASE_URL + "/ValueSet/miabis-material-type-VS",
+        specimen.type = create_codeable_concept(FHIRConfig.get_value_set_url("sample", "detailed_sample_type"),
                                                 self.material_type)
         if self.collected_datetime is not None or self.body_site is not None:
             specimen.collection = SpecimenCollection()
@@ -214,8 +217,8 @@ class Sample:
             specimen.processing = [SpecimenProcessing()]
             specimen.processing[0].extension = [
                 create_codeable_concept_extension(
-                    DEFINITION_BASE_URL + "/StructureDefinition/miabis-sample-storage-temperature-extension",
-                    DEFINITION_BASE_URL + "/StorageTemperatureCS", self.storage_temperature.value)]
+                    FHIRConfig.get_extension_url("sample", "storage_temperature"),
+                    FHIRConfig.get_value_set_url("sample", "storage_temperature"), self.storage_temperature.value)]
         if self.use_restrictions is not None:
             specimen.note = [Annotation()]
             specimen.note[0].text = self.use_restrictions

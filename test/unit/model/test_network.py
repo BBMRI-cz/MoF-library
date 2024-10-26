@@ -1,22 +1,9 @@
 import unittest
 
-from MIABIS_on_FHIR.network import Network
+from src.MIABIS_on_FHIR.network import Network
 
 
 class TestNetwork(unittest.TestCase):
-    network_json = {'id': 'SKJAOWSQEMJ', 'meta': {'profile': ['http://example.com/StructureDefinition/Network']},
-                    'extension': [{'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity',
-                                   'valueReference': {'reference': 'Group/collFhirId1'}},
-                                  {'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity',
-                                   'valueReference': {'reference': 'Group/collFhirId2'}}, {
-                                      'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity'
-                                      , 'valueReference': {'reference': 'Organization/bioFhirId1'}}, {
-                                      'url': 'http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity'
-                                      , 'valueReference': {'reference': 'Organization/bioFhirId2'}}], 'active': True,
-                    'actual': True, 'identifier': [{'value': 'networkId'}],
-                    'managingEntity': {'reference': 'Organization/bioFhirId'}, 'name': 'networkName', 'type': 'person',
-                    'resourceType': 'Group'}
-
     def test_network_init(self):
         network = Network("networkId", "networkName", "biobankId", ["collMemID1, collemMemID2"],
                           ["bioMemID1, bioMemID2"])
@@ -86,15 +73,19 @@ class TestNetwork(unittest.TestCase):
         self.assertEqual("Organization/biobankFhirId2", network_fhir.extension[3].valueReference.reference)
 
     def test_network_from_json(self):
-        network = Network.from_json(self.network_json, "biobankId", ["collid1", "collid2"],
+        example_network = Network("networkId", "networkName", "biobankId", ["collid"])
+        example_fhir = example_network.to_fhir("biobankFhirId", ["collfhirid1", "collfhirid2"],
+                                               ["biobankFhirId1", "biobankFhirId2"])
+        example_fhir.id = "TestFHIRId"
+        network = Network.from_json(example_fhir.as_json(), "biobankId", ["collid1", "collid2"],
                                     ["biobankid1", "biobankid2"])
         self.assertIsInstance(network, Network)
-        self.assertEqual("networkId", network.identifier)
-        self.assertEqual("networkName", network.name)
-        self.assertEqual("biobankId", network.managing_network_org_id)
+        self.assertEqual(example_network.identifier, network.identifier)
+        self.assertEqual(example_network.name, network.name)
+        self.assertEqual(example_network.managing_network_org_id, network.managing_network_org_id)
         self.assertEqual(["collid1", "collid2"], network.members_collections_ids)
         self.assertEqual(["biobankid1", "biobankid2"], network.members_biobanks_ids)
-        self.assertEqual("SKJAOWSQEMJ", network.network_fhir_id)
-        self.assertEqual("bioFhirId", network.managing_biobank_fhir_id)
-        self.assertEqual(["collFhirId1", "collFhirId2"], network.members_collections_fhir_ids)
-        self.assertEqual(["bioFhirId1", "bioFhirId2"], network.members_biobanks_fhir_ids)
+        self.assertEqual("TestFHIRId", network.network_fhir_id)
+        self.assertEqual("biobankFhirId", network.managing_network_org_fhir_id)
+        self.assertEqual(["collfhirid1", "collfhirid2"], network.members_collections_fhir_ids)
+        self.assertEqual(["biobankFhirId1", "biobankFhirId2"], network.members_biobanks_fhir_ids)

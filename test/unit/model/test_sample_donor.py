@@ -1,18 +1,11 @@
 import unittest
 from datetime import datetime
 
-from MIABIS_on_FHIR.sample_donor import SampleDonor
-from MIABIS_on_FHIR.gender import Gender
+from src.MIABIS_on_FHIR.sample_donor import SampleDonor
+from src.MIABIS_on_FHIR.gender import Gender
 
 
 class TestSampleDonor(unittest.TestCase):
-    donor_json = {'meta': {'versionId': '1', 'lastUpdated': '2024-07-30T07:47:50.796Z',
-                           'profile': ['https://fhir.bbmri.de/StructureDefinition/Patient']}, 'birthDate': '2022-10-20',
-                  'resourceType': 'Patient', 'extension': [
-            {'url': 'https://example.org/StructureDefinition/datasetType',
-             'valueCodeableConcept': {'coding': [{'code': 'Other'}]}}], 'id': 'DEICTQNW6TXY6FFC',
-                  'identifier': [{'value': 'donorId'}], 'gender': 'male'}
-
     def test_sample_donor_init(self):
         patient = SampleDonor("testId")
         self.assertIsInstance(patient, SampleDonor)
@@ -99,9 +92,12 @@ class TestSampleDonor(unittest.TestCase):
         self.assertEqual("Lifestyle", donor_fhir.extension[0].valueCodeableConcept.coding[0].code)
 
     def test_sample_donor_from_json(self):
-        donor = SampleDonor.from_json(self.donor_json)
-        self.assertEqual("donorId", donor.identifier)
-        self.assertEqual(Gender.MALE, donor.gender)
-        self.assertEqual(datetime(year=2022, month=10, day=20), donor.date_of_birth)
-        self.assertEqual("Other", donor.dataset_type)
-        self.assertEqual("DEICTQNW6TXY6FFC", donor.donor_fhir_id)
+        example_donor = SampleDonor("patientId", Gender.FEMALE, datetime(year=2022, month=10, day=20), "Lifestyle")
+        example_fhir = example_donor.to_fhir()
+        example_fhir.id = "TestFHIRId"
+        donor = SampleDonor.from_json(example_fhir.as_json())
+        self.assertEqual(example_donor.identifier, donor.identifier)
+        self.assertEqual(example_donor.gender, donor.gender)
+        self.assertEqual(example_donor.date_of_birth, donor.date_of_birth)
+        self.assertEqual(example_donor.dataset_type, donor.dataset_type)
+        self.assertEqual("TestFHIRId", donor.donor_fhir_id)

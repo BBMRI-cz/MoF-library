@@ -10,13 +10,12 @@ class StorageTemperature(Enum):
     Liquid Nitrogen
     Room temperature
     Other storage temperature"""
-    TEMPERATURE_2_TO_10 = "temperature2to10"
-    TEMPERATURE_MINUS_18_TO_MINUS_35 = "temperature-18to-35"
-    TEMPERATURE_MINUS_60_TO_MINUS_85 = "temperature-60to-85"
-    TEMPERATURE_GN = "temperatureGN"
-    TEMPERATURE_LN = "temperatureLN"
-    TEMPERATURE_ROOM = "temperatureRoom"
-    TEMPERATURE_OTHER = "temperatureOther"
+    TEMPERATURE_2_TO_10 = "2to10"
+    TEMPERATURE_MINUS_18_TO_MINUS_35 = "-18to-35"
+    TEMPERATURE_MINUS_60_TO_MINUS_85 = "-60to-85"
+    TEMPERATURE_LN = "LN"
+    TEMPERATURE_ROOM = "RT"
+    TEMPERATURE_OTHER = "Other"
 
     @classmethod
     def list(cls):

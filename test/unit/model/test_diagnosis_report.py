@@ -1,73 +1,81 @@
 import unittest
 
-from MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
+from src.MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
 
 
 class TestDiagnosisReport(unittest.TestCase):
-    diagnosis_report_json = {'id': 'ASCXXEDSKHGO',
-                             'meta': {'profile': ['http://example.com/StructureDefinition/DiagnosisReport']},
-                             'code': {'coding': [{'code': 'True', 'system': 'http://example.com/multipleDiagnosis'}]},
-                             'identifier': [{'value': 'sampleId'}], 'result': [{'reference': 'Observation/obsFhirId1'},
-                                                                               {'reference': 'Observation/ObsFhirId2'}],
-                             'specimen': [{'reference': 'Specimen/sampleFhirId'}], 'status': 'final',
-                             'resourceType': 'DiagnosticReport'}
-
     def test_diagnosis_report_init(self):
-        diagnosis_report = DiagnosisReport("sampleId", ["obsId"])
+        diagnosis_report = DiagnosisReport("sampleId", "donorId")
         self.assertIsInstance(diagnosis_report, DiagnosisReport)
         self.assertEqual("sampleId", diagnosis_report.sample_identifier)
+        self.assertEqual("donorId", diagnosis_report.patient_identifier)
+
+    def test_diagnosis_report_init_optional_params(self):
+        diagnosis_report = DiagnosisReport("sampleId", "donorId", ["obsId"], "diagId")
+        self.assertIsInstance(diagnosis_report, DiagnosisReport)
+        self.assertEqual("sampleId", diagnosis_report.sample_identifier)
+        self.assertEqual("donorId", diagnosis_report.patient_identifier)
         self.assertEqual(["obsId"], diagnosis_report.observations_identifiers)
+        self.assertEqual("diagId", diagnosis_report.diagnosis_report_identifier)
 
     def test_diagnosis_report_invalid_sample_identifier_type_innit(self):
         with self.assertRaises(TypeError):
-            DiagnosisReport(37, ["obsId"])
+            DiagnosisReport(37, "donorId")
 
-    def test_diagnosis_report_invalid_observations_identifier_type_innit(self):
+    def test_diagnosis_report_invalid_patient_identifier_type_innit(self):
         with self.assertRaises(TypeError):
             DiagnosisReport("sampleId", 37)
 
     def test_diagnosis_report_set_sample_identifier_ok(self):
-        diagnosis_report = DiagnosisReport("sampleId", ["obsId"])
+        diagnosis_report = DiagnosisReport("sampleId", "donorId")
         diagnosis_report.sample_identifier = "newId"
         self.assertEqual("newId", diagnosis_report.sample_identifier)
 
     def test_diagnosis_report_set_sample_identifier_invalid(self):
-        diagnosis_report = DiagnosisReport("sampleId", ["obsId"])
+        diagnosis_report = DiagnosisReport("sampleId", "donorId")
         with self.assertRaises(TypeError):
             diagnosis_report.sample_identifier = 37
 
-    def test_diagnosis_report_set_observations_identifier_ok(self):
-        diagnosis_report = DiagnosisReport("sampleId", ["obsId"])
-        diagnosis_report.observations_identifiers = ["newIds"]
-        self.assertEqual(["newIds"], diagnosis_report.observations_identifiers)
+    def test_diagnosis_report_set_patient_identifier_ok(self):
+        diagnosis_report = DiagnosisReport("sampleId", "donorId")
+        diagnosis_report.patient_identifier = "newDonorId"
+        self.assertEqual("newDonorId", diagnosis_report.patient_identifier)
 
-    def test_diagnosis_report_set_observations_identifier_invalid(self):
-        diagnosis_report = DiagnosisReport("sampleId", ["obsId"])
+    def test_diagnosis_report_set_patient_identifier_invalid(self):
+        diagnosis_report = DiagnosisReport("sampleId", "donorId")
         with self.assertRaises(TypeError):
             diagnosis_report.observations_identifiers = 37
 
     def test_diagnosis_report_to_fhir_ok(self):
-        diagnosis_report = DiagnosisReport("sampleId", ["obsId"])
-        diagnosis_report_fhir = diagnosis_report.to_fhir("sampleFhirId", ["obsFhirId"])
-        self.assertEqual("sampleId", diagnosis_report_fhir.identifier[0].value)
+        diagnosis_report = DiagnosisReport("sampleId", "donorId", diagnosis_report_identifier="diagnosisReportId")
+        diagnosis_report_fhir = diagnosis_report.to_fhir("sampleFhirId", "donorFhirId", ["obsFhirId"])
+        self.assertEqual("diagnosisReportId", diagnosis_report_fhir.identifier[0].value)
         self.assertEqual("Observation/obsFhirId", diagnosis_report_fhir.result[0].reference)
+        self.assertEqual("Patient/donorFhirId", diagnosis_report_fhir.subject.reference)
+        self.assertEqual("Specimen/sampleFhirId", diagnosis_report_fhir.specimen[0].reference)
         self.assertEqual("final", diagnosis_report_fhir.status)
 
     def test_diagnosis_report_multiple_observations_ok(self):
-        diagnosis_report = DiagnosisReport("sampleId", ["obsId", "obsId2"])
+        diagnosis_report = DiagnosisReport("sampleId", "donorId", observations_identifiers=["obsId", "obsId2"])
         self.assertEqual("obsId", diagnosis_report.observations_identifiers[0])
         self.assertEqual("obsId2", diagnosis_report.observations_identifiers[1])
 
     def test_diagnosis_report_multiple_observations_to_fhir_ok(self):
-        diagnosis_report = DiagnosisReport("sampleId", ["obsId", "obsId2"])
-        diagnosis_report_fhir = diagnosis_report.to_fhir("sampleFhirId", ["obsFhirId", "obsFhirId2"])
+        diagnosis_report = DiagnosisReport("sampleId", "donorId")
+        diagnosis_report_fhir = diagnosis_report.to_fhir("sampleFhirId", "donorFhirId", ["obsFhirId", "obsFhirId2"])
+        self.assertEqual("Patient/donorFhirId", diagnosis_report_fhir.subject.reference)
+        self.assertEqual("Specimen/sampleFhirId", diagnosis_report_fhir.specimen[0].reference)
         self.assertEqual("Observation/obsFhirId", diagnosis_report_fhir.result[0].reference)
         self.assertEqual("Observation/obsFhirId2", diagnosis_report_fhir.result[1].reference)
         self.assertEqual("final", diagnosis_report_fhir.status)
 
     def test_diagnosis_report_from_json(self):
-        diagnosis_report = DiagnosisReport.from_json(self.diagnosis_report_json, ["obsId", "obsId2"])
-        self.assertEqual("sampleId", diagnosis_report.sample_identifier)
-        self.assertEqual(["obsId", "obsId2"], diagnosis_report.observations_identifiers)
-        self.assertEqual("ASCXXEDSKHGO", diagnosis_report.diagnosis_report_fhir_id)
-        self.assertEqual(["obsFhirId1", "ObsFhirId2"], diagnosis_report.observations_fhir_identifiers)
+        example_diagnosis_report = DiagnosisReport("sampleId", "donorId")
+        example_fhir = example_diagnosis_report.to_fhir("sampleFhirId", "donorFhirId", ["obsFhirId", "obsFhirId2"])
+        example_fhir.id = "TestFHIRId"
+        diagnosis_report = DiagnosisReport.from_json(example_fhir.as_json(), "sampleId", "donorId")
+        self.assertEqual(example_diagnosis_report.sample_identifier, diagnosis_report.sample_identifier)
+        self.assertEqual("TestFHIRId", diagnosis_report.diagnosis_report_fhir_id)
+        self.assertEqual(["obsFhirId", "obsFhirId2"], diagnosis_report.observations_fhir_identifiers)
+        self.assertEqual("sampleFhirId", diagnosis_report.sample_fhir_id)
+        self.assertEqual("donorFhirId", diagnosis_report.patient_fhir_id)

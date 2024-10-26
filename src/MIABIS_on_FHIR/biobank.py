@@ -3,13 +3,14 @@ from typing import Self
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
-from MIABIS_on_FHIR._constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
+from src.MIABIS_on_FHIR.util._constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
     BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
     BIOBANK_ORGANISATIONAL_CAPABILITIES, DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_contact
-from MIABIS_on_FHIR._util import create_fhir_identifier, create_contact, create_country_of_residence, \
+from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_contact
+from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_contact, create_country_of_residence, \
     create_codeable_concept_extension, create_string_extension
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.config import FHIRConfig
 
 
 class Biobank:
@@ -19,7 +20,7 @@ class Biobank:
                  contact_email: str, infrastructural_capabilities: list[str] = None,
                  organisational_capabilities: list[str] = None,
                  bioprocessing_and_analysis_capabilities: list[str] = None,
-                 quality__management_standards: list[str] = None, juristic_person: str = None):
+                 quality__management_standards: list[str] = None, juristic_person: str = None, description: str = None):
         """
         :param identifier: Biobank identifier same format as in the BBMRI-ERIC directory.
         :param name: name of the biobank
@@ -49,6 +50,7 @@ class Biobank:
         self.quality__management_standards = quality__management_standards
         self.infrastructural_capabilities = infrastructural_capabilities
         self.organisational_capabilities = organisational_capabilities
+        self.description = description
         self.bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
         self._biobank_fhir_id = None
 
@@ -174,6 +176,16 @@ class Biobank:
         self._juristic_person = juristic_person
 
     @property
+    def description(self) -> str:
+        return self._description
+
+    @description.setter
+    def description(self, description: str):
+        if description is not None and not isinstance(description, str):
+            raise TypeError("Description must be a string.")
+        self._description = description
+
+    @property
     def biobank_fhir_id(self) -> str:
         return self._biobank_fhir_id
 
@@ -198,10 +210,11 @@ class Biobank:
             bioprocessing = parsed_extension["bioprocessing_and_analysis_capabilities"]
             quality_standards = parsed_extension["quality_management_standards"]
             juristic_person = parsed_extension["juristic_person"]
+            description = parsed_extension["description"]
 
             instance = cls(identifier, name, alias, country, contact["name"], contact["surname"], contact["email"],
-                       infrastructural_capabilities, organisational_capabilities, bioprocessing, quality_standards,
-                       juristic_person)
+                           infrastructural_capabilities, organisational_capabilities, bioprocessing, quality_standards,
+                           juristic_person, description)
             instance._biobank_fhir_id = biobank_fhir_id
             return instance
         except KeyError:
@@ -218,42 +231,53 @@ class Biobank:
 
         parsed_extension = {"infrastructural_capabilities": [], "organisational_capabilities": [],
                             "bioprocessing_and_analysis_capabilities": [], "quality_management_standards": [],
-                            "juristic_person": None}
-
+                            "juristic_person": None, "description": None}
+        infrastruct_url = FHIRConfig.get_extension_url("biobank", "infrastructural_capabilities")
+        org_capability_url = FHIRConfig.get_extension_url("biobank", "organisational_capabilities")
+        bioprocess__url = FHIRConfig.get_extension_url("biobank", "bioprocessing_and_analysis_capabilities")
+        quality_url = FHIRConfig.get_extension_url("biobank", "quality_management_standard")
+        juristic_url = FHIRConfig.get_extension_url("biobank", "juristic_person")
+        description_url = FHIRConfig.get_extension_url("biobank", "description")
         for extension in extensions:
             ext_type = extension["url"].replace(f"{DEFINITION_BASE_URL}/", "", 1)
-            match ext_type:
-                case "infrastructural-capabilities":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extension["infrastructural_capabilities"].append(value)
-                case "organisational-capabilities":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extension["organisational_capabilities"].append(value)
-                case "bioprocessing-and-analysis-capabilities":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extension["bioprocessing_and_analysis_capabilities"].append(value)
-                case "quality-management-standards":
-                    value = get_nested_value(extension, ["valueString"])
-                    if value is not None:
-                        parsed_extension["quality_management_standards"].append(extension["valueString"])
-                case "juristic-person":
-                    value = get_nested_value(extension, ["valueString"])
-                    if value is not None:
-                        parsed_extension["juristic_person"] = extension["valueString"]
-                case _:
-                    pass
+            extension_url = extension["url"]
+            if extension_url == infrastruct_url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extension["infrastructural_capabilities"].append(value)
+            elif extension_url == org_capability_url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extension["organisational_capabilities"].append(value)
+            elif extension_url == bioprocess__url:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extension["bioprocessing_and_analysis_capabilities"].append(value)
+            elif extension_url == quality_url:
+                value = get_nested_value(extension, ["valueString"])
+                if value is not None:
+                    parsed_extension["quality_management_standards"].append(value)
+            elif extension_url == juristic_url:
+                value = get_nested_value(extension, ["valueString"])
+                parsed_extension["juristic_person"] = value
+            elif extension_url == description_url:
+                value = get_nested_value(extension, ["valueString"])
+                if value is not None:
+                    parsed_extension["description"] = value
+            else:
+                continue
+        for key, value in parsed_extension.items():
+            if isinstance(value, list) and value == []:
+                parsed_extension[key] = None
         return parsed_extension
-
 
     def to_fhir(self) -> Organization:
         """Return biobank representation in FHIR"""
         fhir_organization = Organization()
         fhir_organization.meta = Meta()
-        fhir_organization.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Biobank"]
+        fhir_organization.meta.profile = [FHIRConfig.get_meta_profile_url("biobank")]
         fhir_organization.identifier = [create_fhir_identifier(self.identifier)]
+        fhir_organization.identifier[0].system = "http://www.bbmri-eric.eu/"
         fhir_organization.name = self.name
         fhir_organization.alias = [self.alias]
         fhir_organization.contact = [create_contact(self.contact_name, self.contact_surname, self.contact_email)]
@@ -262,28 +286,38 @@ class Biobank:
         if self.infrastructural_capabilities is not None:
             for capability in self.infrastructural_capabilities:
                 extensions.append(
-                    create_codeable_concept_extension(DEFINITION_BASE_URL + "/infrastructural-capabilities",
-                                                      DEFINITION_BASE_URL + "/infrastructural-capabilities-vs",
-                                                      capability))
+                    create_codeable_concept_extension(
+                        FHIRConfig.get_extension_url("biobank", "infrastructural_capabilities"),
+                        FHIRConfig.get_code_system_url("biobank", "infrastructural_capabilities"),
+                        capability))
         if self.organisational_capabilities is not None:
             for capability in self.organisational_capabilities:
                 extensions.append(
-                    create_codeable_concept_extension(DEFINITION_BASE_URL + "/organisational-capabilities",
-                                                      DEFINITION_BASE_URL + "/organisational-capabilities-vs",
-                                                      capability))
+                    create_codeable_concept_extension(
+                        FHIRConfig.get_extension_url("biobank", "organisational_capabilities"),
+                        FHIRConfig.get_code_system_url("biobank", "ogranisational_capabilities"),
+                        capability))
         if self.bioprocessing_and_analysis_capabilities is not None:
             for capability in self.bioprocessing_and_analysis_capabilities:
                 extensions.append(
                     create_codeable_concept_extension(
-                        DEFINITION_BASE_URL + "/bioprocessing-and-analysis-capabilities",
-                        DEFINITION_BASE_URL + "/bioprocessing-and-analysis-capabilities-vs", capability))
+                        FHIRConfig.get_extension_url("biobank", "bioprocessing_and_analysis_capabilities"),
+                        FHIRConfig.get_code_system_url("biobank", "bioprocessing_and_analysis_capabilities"),
+                        capability))
         if self.quality__management_standards is not None:
             for standard in self.quality__management_standards:
                 extensions.append(
-                    create_string_extension(DEFINITION_BASE_URL + "/quality-management-standards", standard))
+                    create_string_extension(
+                        FHIRConfig.get_extension_url("biobank", "quality_management_standard"),
+                        standard))
         if self.juristic_person is not None:
             extensions.append(
-                create_string_extension(DEFINITION_BASE_URL + "/juristic-person", self.juristic_person))
+                create_string_extension(FHIRConfig.get_extension_url("biobank", "juristic_person"),
+                                        self.juristic_person))
+        if self.description is not None:
+            extensions.append(create_string_extension(
+                FHIRConfig.get_extension_url("biobank","description"),
+                self.description))
         if extensions:
             fhir_organization.extension = extensions
         return fhir_organization
@@ -295,4 +329,3 @@ class Biobank:
                 as the FHIR ID is generated by the server and is not known in advance."""
         biobank.id = self.biobank_fhir_id
         return biobank
-

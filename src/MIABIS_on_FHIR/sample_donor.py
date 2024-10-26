@@ -6,11 +6,12 @@ from fhirclient.models.fhirdate import FHIRDate
 from fhirclient.models.meta import Meta
 from fhirclient.models.patient import Patient
 
-from MIABIS_on_FHIR._constants import DONOR_DATASET_TYPE, DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value
-from MIABIS_on_FHIR._util import create_fhir_identifier, create_codeable_concept_extension
-from MIABIS_on_FHIR.gender import Gender
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.MIABIS_on_FHIR.util._constants import DONOR_DATASET_TYPE, DEFINITION_BASE_URL
+from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value
+from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_codeable_concept_extension
+from src.MIABIS_on_FHIR.gender import Gender
+from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.config import FHIRConfig
 
 
 class SampleDonor:
@@ -123,7 +124,7 @@ class SampleDonor:
         """Return sample donor representation in FHIR"""
         fhir_patient = Patient()
         fhir_patient.meta = Meta()
-        fhir_patient.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Patient"]
+        fhir_patient.meta.profile = [FHIRConfig.get_meta_profile_url("donor")]
         fhir_patient.identifier = [create_fhir_identifier(self.identifier)]
         extensions: list[Extension] = []
         if self.gender is not None:
@@ -133,8 +134,9 @@ class SampleDonor:
             fhir_patient.birthDate.date = self.date_of_birth.date()
         if self.dataset_type is not None:
             extensions.append(
-                create_codeable_concept_extension(DEFINITION_BASE_URL + "/StructureDefinition/dataset-type-extension",
-                                                  DEFINITION_BASE_URL + "/dataset-type-vs", self.dataset_type))
+                create_codeable_concept_extension(FHIRConfig.get_extension_url("donor", "dataset_type"),
+                                                  FHIRConfig.get_value_set_url("donor", "dataset_type"),
+                                                  self.dataset_type))
         if extensions:
             fhir_patient.extension = extensions
         return fhir_patient

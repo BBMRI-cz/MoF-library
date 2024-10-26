@@ -1,3 +1,5 @@
 simple-icd-10
 fhirclient~=4.2.0
 requests~=2.32.3
+pytest
+python-dateutil

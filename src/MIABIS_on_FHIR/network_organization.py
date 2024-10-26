@@ -4,11 +4,12 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
-from MIABIS_on_FHIR._constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_contact, parse_reference_id
-from MIABIS_on_FHIR._util import create_fhir_identifier, create_contact, create_country_of_residence, \
+from src.MIABIS_on_FHIR.util._constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
+from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_contact, parse_reference_id
+from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_contact, create_country_of_residence, \
     create_codeable_concept_extension, create_string_extension
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.config import FHIRConfig
 
 
 class NetworkOrganization:
@@ -17,7 +18,7 @@ class NetworkOrganization:
 
     def __init__(self, identifier: str, name: str, managing_biobank_id: str,
                  contact_name: str = None, contact_surname: str = None, contact_email: str = None, country: str = None,
-                 common_collaboration_topics: list[str] = None, juristic_person: str = None):
+                 common_collaboration_topics: list[str] = None, juristic_person: str = None, description: str = None):
         """
         :param identifier: network organizational identifier
         :param name: name of the network
@@ -35,6 +36,7 @@ class NetworkOrganization:
         self.country = country
         self.juristic_person = juristic_person
         self.common_collaboration_topics = common_collaboration_topics
+        self.description = description
         self._network_org_fhir_id = None
         self._managing_biobank_fhir_id = None
 
@@ -139,6 +141,16 @@ class NetworkOrganization:
     def managing_biobank_fhir_id(self) -> str:
         return self._managing_biobank_fhir_id
 
+    @property
+    def description(self) -> str:
+        return self._description
+
+    @description.setter
+    def description(self, description: str):
+        if description is not None and not isinstance(description, str):
+            raise TypeError("Description must be string")
+        self._description = description
+
     @classmethod
     def from_json(cls, network_json: dict, managing_biobank_id: str) -> Self:
         try:
@@ -151,7 +163,7 @@ class NetworkOrganization:
             parsed_extensions = cls._parse_extensions(network_json.get("extension", []))
             instance = cls(identifier, name, managing_biobank_id, contact["name"], contact["surname"], contact["email"],
                            country, parsed_extensions["common_collaboration_topics"],
-                           parsed_extensions["juristic_person"])
+                           parsed_extensions["juristic_person"], parsed_extensions["description"])
             instance._network_org_fhir_id = network_org_fhir_id
             instance._managing_biobank_fhir_id = managing_biobank_fhir_id
             return instance
@@ -160,18 +172,24 @@ class NetworkOrganization:
 
     @staticmethod
     def _parse_extensions(extensions: dict) -> dict:
-        parsed_extension = {"common_collaboration_topics": [], "juristic_person": None}
+        parsed_extension = {"common_collaboration_topics": [], "juristic_person": None, "description": None}
+        common_coll_topic_extension: str = FHIRConfig.get_extension_url("network_organization","common_collaboration_topics")
+        juristic_person_extension : str = FHIRConfig.get_extension_url("network_organization", "juristic_person")
+        description_extension: str = FHIRConfig.get_extension_url("network_organization","description")
         for extension in extensions:
-            match extension["url"].replace(f"{DEFINITION_BASE_URL}/StructureDefinition/", "", 1):
-                case "common-collaboration-topics":
-                    value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
-                    if value is not None:
-                        parsed_extension["common_collaboration_topics"].append(value)
-                case "juristic-person":
-                    value = get_nested_value(extension, ["valueString"])
-                    if value is not None:
-                        parsed_extension["juristic_person"] = value
-
+            extension_url = extension["url"]
+            if extension_url == common_coll_topic_extension:
+                value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
+                if value is not None:
+                    parsed_extension["common_collaboration_topics"].append(value)
+            elif extension_url == juristic_person_extension:
+                value = get_nested_value(extension, ["valueString"])
+                parsed_extension["juristic_person"] = value
+            elif extension_url == description_extension:
+                value = get_nested_value(extension, ["valueString"])
+                parsed_extension["description"] = value
+            else:
+                continue
         if not parsed_extension["common_collaboration_topics"]:
             parsed_extension["common_collaboration_topics"] = None
         return parsed_extension
@@ -182,7 +200,7 @@ class NetworkOrganization:
             raise ValueError("Managing biobank FHIR ID must be provided either as an argument or as an property.")
         network = Organization()
         network.meta = Meta()
-        network.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Network"]
+        network.meta.profile = [FHIRConfig.get_meta_profile_url("network_organization")]
         network.identifier = [create_fhir_identifier(self.identifier)]
         network.name = self._name
         network.active = True
@@ -195,12 +213,16 @@ class NetworkOrganization:
             for topic in self._common_collaboration_topics:
                 extensions.append(
                     create_codeable_concept_extension(
-                        DEFINITION_BASE_URL + "/StructureDefinition/common-collaboration-topics",
-                        DEFINITION_BASE_URL + "/common-collaboration-topics-vs", topic))
+                        FHIRConfig.get_extension_url("network_organization", "common_collaboration_topics"),
+                        FHIRConfig.get_code_system_url("network_organization", "common_collaboration_topics"), topic))
         if self._juristic_person is not None:
             extensions.append(
-                create_string_extension(DEFINITION_BASE_URL + "/StructureDefinition/juristic-person",
+                create_string_extension(FHIRConfig.get_extension_url("network_organization", "juristic_person"),
                                         self._juristic_person))
+        if self._description is not None:
+            extensions.append(
+                create_string_extension(FHIRConfig.get_extension_url("network_organization", "description"),
+                                        self._description))
         network.extension = extensions
         return network
 

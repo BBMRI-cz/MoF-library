@@ -1,21 +1,9 @@
 import unittest
 
-from MIABIS_on_FHIR.network_organization import NetworkOrganization
+from src.MIABIS_on_FHIR.network_organization import NetworkOrganization
 
 
 class TestNetworkOrganization(unittest.TestCase):
-    network_org_json = {'meta': {'profile': ['http://example.com/StructureDefinition/Network']}, 'extension': [
-        {'url': 'http://example.com/StructureDefinition/common-collaboration-topics', 'valueCodeableConcept': {
-            'coding': [{'code': 'Charter', 'system': 'http://example.com/common-collaboration-topics-vs'}]}},
-        {'url': 'http://example.com/StructureDefinition/juristic-person', 'valueString': 'juristicPerson'}],
-                        'active': True, 'id': 'DEIASWWMVLK', 'address': [{'country': 'cz'}],
-                        'contact': [
-                            {'name': {'family': 'contactSurname', 'given': ['contactName']},
-                             'telecom': [{'system': 'email', 'value': 'contactEmail'}]}],
-                        'identifier': [{'system': 'http://example.com/network', 'value': 'networkOrgId'}],
-                        'name': 'networkOrgName', 'partOf': {'reference': 'Organization/biobankFhirId'},
-                        'resourceType': 'Organization'}
-
     def test_network_org_required_params_init(self):
         network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId")
         self.assertIsInstance(network_org, NetworkOrganization)
@@ -199,15 +187,20 @@ class TestNetworkOrganization(unittest.TestCase):
         self.assertEqual("juristicPerson", network_org_fhir.extension[1].valueString)
 
     def test_network_org_from_json(self):
-        network_org = NetworkOrganization.from_json(self.network_org_json, "biobankId")
-        self.assertEqual("networkOrgId", network_org.identifier)
-        self.assertEqual("networkOrgName", network_org.name)
-        self.assertEqual("biobankId", network_org.managing_biobank_id)
-        self.assertEqual("contactName", network_org.contact_name)
-        self.assertEqual("contactSurname", network_org.contact_surname)
-        self.assertEqual("contactEmail", network_org.contact_email)
-        self.assertEqual("cz", network_org.country)
-        self.assertEqual(["Charter"], network_org.common_collaboration_topics)
-        self.assertEqual("juristicPerson", network_org.juristic_person)
+        example_network = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
+                                              "contactSurname", "contactEmail", "country", ["Charter"],
+                                              "juristicPerson")
+        example_fhir = example_network.to_fhir("biobankFhirId")
+        example_fhir.id = "TestFHIRId"
+        network_org = NetworkOrganization.from_json(example_fhir.as_json(), "biobankId")
+        self.assertEqual(example_network.identifier, network_org.identifier)
+        self.assertEqual(example_network.name, network_org.name)
+        self.assertEqual(example_network.managing_biobank_id, network_org.managing_biobank_id)
+        self.assertEqual(example_network.contact_name, network_org.contact_name)
+        self.assertEqual(example_network.contact_surname, network_org.contact_surname)
+        self.assertEqual(example_network.contact_email, network_org.contact_email)
+        self.assertEqual(example_network.country, network_org.country)
+        self.assertEqual(example_network.common_collaboration_topics, network_org.common_collaboration_topics)
+        self.assertEqual(example_network.juristic_person, network_org.juristic_person)
         self.assertEqual("biobankFhirId", network_org.managing_biobank_fhir_id)
-        self.assertEqual("DEIASWWMVLK", network_org.network_org_fhir_id)
+        self.assertEqual("TestFHIRId", network_org.network_org_fhir_id)

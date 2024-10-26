@@ -5,10 +5,10 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.group import Group
 from fhirclient.models.meta import Meta
 
-from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_reference_id
-from MIABIS_on_FHIR._util import create_fhir_identifier
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
+from src.MIABIS_on_FHIR.util._util import create_fhir_identifier
+from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.config import FHIRConfig
 
 
 class Network:
@@ -95,7 +95,7 @@ class Network:
         return self._network_fhir_id
 
     @property
-    def managing_biobank_fhir_id(self) -> str:
+    def managing_network_org_fhir_id(self) -> str:
         return self._managing_network_org_fhir_id
 
     @property
@@ -107,7 +107,7 @@ class Network:
         return self._members_biobanks_fhir_ids
 
     @classmethod
-    def from_json(cls, network_json: dict, managing_biobank_id: str, member_collection_ids: list[str],
+    def from_json(cls, network_json: dict, managing_network_org_id: str, member_collection_ids: list[str],
                   member_biobank_ids: list[str]) -> Self:
         try:
             identifier = get_nested_value(network_json, ["identifier", 0, "value"])
@@ -116,7 +116,7 @@ class Network:
             managing_biobank_fhir_id = parse_reference_id(
                 get_nested_value(network_json, ["managingEntity", "reference"]))
             extensions = cls._parse_extensions(network_json.get("extension", []))
-            instance = cls(identifier, name, managing_biobank_id, member_collection_ids, member_biobank_ids)
+            instance = cls(identifier, name, managing_network_org_id, member_collection_ids, member_biobank_ids)
             instance._network_fhir_id = network_fhir_id
             instance._managing_network_org_fhir_id = managing_biobank_fhir_id
             instance._members_collections_fhir_ids = extensions["member_collection_fhir_ids"]
@@ -129,7 +129,7 @@ class Network:
     def _parse_extensions(extensions: list[dict]) -> dict:
         parsed_extensions = {"member_collection_fhir_ids": [], "member_biobank_fhir_ids": []}
         for extension in extensions:
-            if extension["url"] == "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity":
+            if extension["url"] == FHIRConfig.MEMBER_V5_EXTENSION:
                 ref_type, reference = get_nested_value(extension, ["valueReference", "reference"]).split("/")
                 if ref_type == "Group":
                     parsed_extensions["member_collection_fhir_ids"].append(reference)
@@ -142,18 +142,11 @@ class Network:
         network_organization_fhir_id = network_organization_fhir_id or self.managing_network_org_id
         if network_organization_fhir_id is None:
             raise ValueError("Managing biobank FHIR id must be provided either as an argument or as a property.")
-
         member_collection_fhir_ids = member_collection_fhir_ids or self.members_collections_fhir_ids
-        if member_collection_fhir_ids is None:
-            raise ValueError("Members collections FHIR ids must be provided either as an argument or as a property.")
-
         member_biobank_fhir_ids = member_biobank_fhir_ids or self.members_biobanks_fhir_ids
-        if member_biobank_fhir_ids is None:
-            raise ValueError("Members biobanks FHIR ids must be provided either as an argument or as a property.")
-
         network = Group()
         network.meta = Meta()
-        network.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Network"]
+        network.meta.profile = [FHIRConfig.get_meta_profile_url("network")]
         network.identifier = [create_fhir_identifier(self.identifier)]
         network.name = self._name
         network.active = True
@@ -171,7 +164,7 @@ class Network:
     @staticmethod
     def __create_member_extension(member_type: str, member_fhir_id: str):
         extension = Extension()
-        extension.url = "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity"
+        extension.url = FHIRConfig.MEMBER_V5_EXTENSION
         extension.valueReference = FHIRReference()
         extension.valueReference.reference = f"{member_type}/{member_fhir_id}"
         return extension

@@ -21,8 +21,8 @@ pip install MIABIS_on_FHIR
 Here is how you can create a MIABIS on FHIR sample resource:
 
 ```python
-from MIABIS_on_FHIR.sample import Sample
-from MIABIS_on_FHIR.storage_temperature import StorageTemperature
+from src.MIABIS_on_FHIR import Sample
+from src.MIABIS_on_FHIR import StorageTemperature
 
 sample = Sample("sampleId", "donorId", "Blood", storage_temperature=StorageTemperature.TEMPERATURE_GN,
                 use_restrictions="No restrictions")

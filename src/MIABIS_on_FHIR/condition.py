@@ -6,15 +6,17 @@ from fhirclient.models.coding import Coding
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 
-from MIABIS_on_FHIR._constants import DEFINITION_BASE_URL
-from MIABIS_on_FHIR._parsing_util import get_nested_value, parse_reference_id
-from MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.MIABIS_on_FHIR.util._constants import DEFINITION_BASE_URL
+from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
+from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.MIABIS_on_FHIR.util._util import create_fhir_identifier
+from src.config import FHIRConfig
 
 
 class Condition:
     """Class representing a patients medical condition as defined by the MIABIS on FHIR profile."""
 
-    def __init__(self, patient_identifier: str, icd_10_code: str = None):
+    def __init__(self, patient_identifier: str, icd_10_code: str = None, condition_identifier: str = None):
         """
         :param icd_10_code: code of the diagnosis.
         THIS DIAGNOSIS REPRESENT CONDITION OF PATIENT THAT BIOBANK DOES NOT HAVE SPECIMEN FOR.
@@ -23,6 +25,7 @@ class Condition:
         """
         self.icd_10_code = icd_10_code
         self.patient_identifier = patient_identifier
+        self.condition_identifier = condition_identifier
         self._condition_fhir_id = None
         self._patient_fhir_id = None
         self._diagnosis_report_fhir_ids = None
@@ -48,6 +51,16 @@ class Condition:
         self._patient_identifier = patient_identifier
 
     @property
+    def condition_identifier(self) -> str:
+        return self._condition_identifier
+
+    @condition_identifier.setter
+    def condition_identifier(self, condition_identifier: str):
+        if condition_identifier is not None and not isinstance(condition_identifier, str):
+            raise TypeError("Condition identifier must be a string")
+        self._condition_identifier = condition_identifier
+
+    @property
     def condition_fhir_id(self) -> str:
         return self._condition_fhir_id
 
@@ -64,10 +77,13 @@ class Condition:
         try:
             condition_id = get_nested_value(condition_json, ["id"])
             patient_fhir_identifier = parse_reference_id(get_nested_value(condition_json, ["subject", "reference"]))
-            diagnosis_report_fhir_ids = cls.parse_diagnosis_reports(
-                get_nested_value(condition_json, ["stage", 0, "assessment"]))
+            diagnosis_reports = get_nested_value(condition_json, ["stage", 0, "assessment"])
+            if diagnosis_reports is None:
+                diagnosis_reports = []
+            diagnosis_report_fhir_ids = cls.parse_diagnosis_reports(diagnosis_reports)
             icd_10_code = get_nested_value(condition_json, ["code", "coding", 0, "code"])
-            instance = cls(patient_identifier, icd_10_code)
+            condition_identifier = get_nested_value(condition_json, ["identifier", 0, "value"])
+            instance = cls(patient_identifier, icd_10_code, condition_identifier)
             instance._condition_fhir_id = condition_id
             instance._patient_fhir_id = patient_fhir_identifier
             instance._diagnosis_report_fhir_ids = diagnosis_report_fhir_ids
@@ -95,12 +111,14 @@ class Condition:
             raise ValueError("Patient FHIR ID must be provided either as an argument or as an property.")
 
         diagnosis_report_fhir_ids = diagnosis_report_fhir_ids or self.diagnosis_report_fhir_ids
-        if not diagnosis_report_fhir_ids:
-            raise ValueError("Diagnosis report FHIR IDs must be provided either as an argument or as an property.")
+        if diagnosis_report_fhir_ids is None:
+            diagnosis_report_fhir_ids = []
 
         condition = fhir_condition.Condition()
         condition.meta = Meta()
-        condition.meta.profile = [DEFINITION_BASE_URL + "/StructureDefinition/Condition"]
+        condition.meta.profile = [FHIRConfig.get_meta_profile_url("condition")]
+        if self.condition_identifier is not None:
+            condition.identifier = create_fhir_identifier(self.condition_identifier)
         if self.icd_10_code is not None:
             condition.code = self.__create_icd_10_code()
         condition.subject = FHIRReference()
@@ -126,7 +144,7 @@ class Condition:
         code = CodeableConcept()
         code.coding = [Coding()]
         code.coding[0].code = self.__diagnosis_with_period()
-        code.coding[0].system = "http://hl7.org/fhir/sid/icd-10"
+        code.coding[0].system = FHIRConfig.DIAGNOSIS_CODE_SYSTEM
         return code
 
     def __diagnosis_with_period(self, ) -> str:
@@ -135,3 +153,11 @@ class Condition:
         if len(code) == 4 and "." not in code:
             return code[:3] + '.' + code[3:]
         return code
+
+    def add_fhir_id_to_condition(self, condition: fhir_condition.Condition) -> fhir_condition.Condition:
+        """Add FHIR id to the FHIR representation of the Condition. FHIR ID is necessary for updating the
+        resource on the server. This method should only be called if the Condition object was created by the
+        from_json method. Otherwise, the condition_fhir_id attribute is None,
+        as the FHIR ID is generated by the server and is not known in advance."""
+        condition.id = self.condition_fhir_id
+        return condition
