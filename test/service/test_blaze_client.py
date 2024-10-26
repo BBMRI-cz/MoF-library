@@ -2,6 +2,8 @@ import datetime
 import unittest
 
 import pytest as pytest
+import requests.exceptions
+from requests.exceptions import HTTPError
 
 from src.MIABIS_on_FHIR.biobank import Biobank
 from src.MIABIS_on_FHIR.collection import Collection
@@ -73,6 +75,9 @@ class TestBlazeService(unittest.TestCase):
                     self.blaze_service.delete_sample(sample_fhir_id)
             # condition_fhir_id = self.blaze_service.get_condition_fhir_id_by_donor_fhir_id()
             biobank_fhir_id = self.blaze_service.get_fhir_id("Organization", self.example_biobank.identifier)
+            if biobank_fhir_id is not None:
+                if not self.blaze_service.delete_biobank(biobank_fhir_id):
+                    raise Exception("could not delete biobank")
             collection_org_fhir_id = self.blaze_service.get_fhir_id("Organization",
                                                                     self.example_collection_org.identifier)
             if collection_org_fhir_id is not None:
@@ -82,15 +87,17 @@ class TestBlazeService(unittest.TestCase):
             if network_org_fhir_id is not None:
                 if not self.blaze_service.delete_network_organization(network_org_fhir_id):
                     raise Exception("could not delete network organization")
-            if biobank_fhir_id is not None:
-                if not self.blaze_service.delete_biobank(biobank_fhir_id):
-                    raise Exception("could not delete biobank")
         except NonExistentResourceException:
             pass
 
     def test_is_resource_present_in_blaze_true(self):
         donor_fhir_id = self.blaze_service.upload_donor(self.example_donor)
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Patient", donor_fhir_id))
+
+    def test_blaze_service_unreachable_raises_httpError(self):
+        blaze_service = BlazeClient("https://badUrl", "", "")
+        with self.assertRaises(requests.exceptions.ConnectionError):
+            blaze_service.upload_donor(self.example_donor)
 
     def test_is_resource_present_in_blaze_false(self):
         self.assertFalse(self.blaze_service.is_resource_present_in_blaze("Patient", "nonexistentId"))
@@ -135,6 +142,11 @@ class TestBlazeService(unittest.TestCase):
         self.assertEqual(donor.dataset_type, self.example_donor.dataset_type)
         self.assertEqual(donor.donor_fhir_id, donor_id)
 
+    def test_donor_from_json_nonexistent_id_raises_nonexistent_exception(self):
+        donor_id = self.blaze_service.upload_donor(self.example_donor)
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.build_donor_from_json("nonexistentId")
+
     def test_update_donor(self):
         donor_id = self.blaze_service.upload_donor(self.example_donor)
         self.assertIsNotNone(donor_id)
@@ -154,14 +166,22 @@ class TestBlazeService(unittest.TestCase):
         deleted = self.blaze_service.delete_donor(donor_fhir_id)
         self.assertTrue(deleted)
 
+    def test_delete_donor_with_nonexistent_id_raises_nonexistent_exception(self):
+        donor_fhir_id = self.blaze_service.upload_donor(self.example_donor)
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.delete_donor("nonexistentId")
+
     def test_upload_sample(self):
-        # donor = SampleDonor("donorId", Gender.MALE, datetime.datetime(year=2022, month=10, day=20), "Other")
         self.blaze_service.upload_donor(self.example_donor)
         sample_fhir_id = self.blaze_service.upload_sample(self.example_samples[0])
         sample_fhir_id2 = self.blaze_service.upload_sample(self.example_samples[1])
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Specimen", sample_fhir_id))
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Specimen", sample_fhir_id2))
         self.assertIsNotNone(sample_fhir_id)
+
+    def test_upload_sample_with_nonexistent_donor_raises_exception(self):
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_sample(self.example_samples[0])
 
     def test_build_sample_from_json(self):
         self.blaze_service.upload_donor(self.example_donor)
@@ -173,6 +193,12 @@ class TestBlazeService(unittest.TestCase):
         self.assertEqual(build_sample.material_type, self.example_samples[0].material_type)
         self.assertEqual(build_sample.storage_temperature, self.example_samples[0].storage_temperature)
         self.assertEqual(build_sample.collected_datetime, self.example_samples[0].collected_datetime)
+
+    def test_build_sample_from_json_nonexistent_id_raises_nonexistent_exception(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        sample_fhir_id = self.blaze_service.upload_sample(self.example_samples[0])
+        with self.assertRaises(NonExistentResourceException):
+            build_sample = self.blaze_service.build_sample_from_json("nonexistentId")
 
     def test_update_sample(self):
         self.blaze_service.upload_donor(self.example_donor)
@@ -186,12 +212,22 @@ class TestBlazeService(unittest.TestCase):
         self.assertEqual(updated_resource.identifier, update_sample.identifier)
         self.blaze_service.delete_sample(sample_fhir_id)
 
+    def test_update_sample_with_bad_json_resource_raises_http_error(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        sample_fhir_id = self.blaze_service.upload_sample(self.example_samples[0])
+        with self.assertRaises(HTTPError):
+            self.blaze_service.update_fhir_resource("Specimen", sample_fhir_id, self.example_donor.to_fhir().as_json())
+
     def test_delete_sample(self):
         self.blaze_service.upload_donor(self.example_donor)
         sample_fhir_id = self.blaze_service.upload_sample(self.example_samples[0])
         deleted = self.blaze_service.delete_sample(sample_fhir_id)
         self.assertFalse(self.blaze_service.is_resource_present_in_blaze("Specimen", "sampleId", "identifier"))
         self.assertTrue(deleted)
+
+    def test_delete_nonexistent_sample_raises_exception(self):
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.delete_sample("nonexistendId")
 
     def test_upload_observation(self):
         self.blaze_service.upload_donor(self.example_donor)
@@ -200,6 +236,15 @@ class TestBlazeService(unittest.TestCase):
         obs_fhir_id2 = self.blaze_service.upload_observation(self.example_observations[1])
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Observation", obs_fhir_id1))
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Observation", obs_fhir_id2))
+
+    def test_upload_observation_with_nonexistent_sample_riases_nonexistentresource_exception(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_observation(self.example_observations[0])
+
+    def test_upload_observation_with_nonexistent_donor_riases_nonexistentresource_exception(self):
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_observation(self.example_observations[0])
 
     def test_build_observation_from_json(self):
         donor_fhir_id = self.blaze_service.upload_donor(self.example_donor)
@@ -212,6 +257,13 @@ class TestBlazeService(unittest.TestCase):
         self.assertEqual(build_observation.diagnosis_observed_datetime,
                          self.example_observations[0].diagnosis_observed_datetime)
         self.assertEqual(build_observation.icd10_code, self.example_observations[0].icd10_code)
+
+    def test_build_observation_from_json_nonexistent_fhir_id_raises_nonexistent_exception(self):
+        donor_fhir_id = self.blaze_service.upload_donor(self.example_donor)
+        sample_fhir_id = self.blaze_service.upload_sample(self.example_samples[0])
+        obs_fhir_id1 = self.blaze_service.upload_observation(self.example_observations[0])
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.build_observation_from_json("nonexistentId")
 
     def test_update_observation(self):
         self.blaze_service.upload_donor(self.example_donor)
@@ -235,11 +287,27 @@ class TestBlazeService(unittest.TestCase):
         self.assertTrue(deleted)
         self.assertFalse(self.blaze_service.is_resource_present_in_blaze("Observation", observation_fhir_id))
 
+    def test_delete_observation_with_nonexistent_fhir_id_raises_nonexistent_exception(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        self.blaze_service.upload_sample(self.example_samples[0])
+        observation_fhir_id = self.blaze_service.upload_observation(self.example_observations[0])
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.delete_observation("nonexistentId")
+
     def test_upload_diagnosis_report(self):
         self.blaze_service.upload_donor(self.example_donor)
         self.blaze_service.upload_sample(self.example_samples[0])
         diagnosis_report_fhir_id = self.blaze_service.upload_diagnosis_report(self.example_diagnosis_reports[0])
         self.assertIsNotNone(diagnosis_report_fhir_id)
+
+    def test_upload_diagnosis_report_with_nonexistent_donor_raises_nonexistent_exception(self):
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_diagnosis_report(self.example_diagnosis_reports[0])
+
+    def test_upload_diagnosis_report_with_nonexistent_sample_raises_nonexistent_exception(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_diagnosis_report(self.example_diagnosis_reports[0])
 
     def test_build_diagnosis_report_from_json(self):
         donor_fhir_id = self.blaze_service.upload_donor(self.example_donor)
@@ -248,6 +316,13 @@ class TestBlazeService(unittest.TestCase):
         build_diagnosis_report = self.blaze_service.build_diagnosis_report_from_json(diagnosis_report_fhir_id)
         self.assertEqual(build_diagnosis_report.sample_fhir_id, sample_fhir_id)
         self.assertEqual(build_diagnosis_report.patient_fhir_id, donor_fhir_id)
+
+    def test_build_diagnosis_report_from_json_with_nonexistent_fhir_id_raises_nonexistent_exception(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        self.blaze_service.upload_sample(self.example_samples[0])
+        self.blaze_service.upload_diagnosis_report(self.example_diagnosis_reports[0])
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.build_diagnosis_report_from_json("nonexistentId")
 
     def test_upload_diagnosis_report_along_with_observations(self):
         self.blaze_service.upload_donor(self.example_donor)
@@ -281,8 +356,6 @@ class TestBlazeService(unittest.TestCase):
         deleted = self.blaze_service.delete_diagnosis_report(diagnosis_report_fhir_id)
         self.assertTrue(deleted)
 
-    # def test_add_existing_observation_to_diagnosis_report(self):
-    #     self.blaze_service.upload_
     def test_delete_diagnosis_report_with_observations(self):
         self.blaze_service.upload_donor(self.example_donor)
         self.blaze_service.upload_sample(self.example_samples[0])
@@ -312,6 +385,10 @@ class TestBlazeService(unittest.TestCase):
         condition_fhir_id = self.blaze_service.upload_condition(self.example_condition)
         self.assertIsNotNone(condition_fhir_id)
 
+    def test_upload_condition_with_nonexistent_donor_raises_nonexistent_exception(self):
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_condition(self.example_condition)
+
     def test_build_condition_from_json(self):
         donor_id = self.blaze_service.upload_donor(self.example_donor)
         condition_fhir_id = self.blaze_service.upload_condition(self.example_condition)
@@ -319,6 +396,12 @@ class TestBlazeService(unittest.TestCase):
         build_condition = self.blaze_service.build_condition_from_json(condition_fhir_id)
         self.assertEqual(build_condition.condition_fhir_id, condition_fhir_id)
         self.assertEqual(build_condition.patient_fhir_id, donor_id)
+
+    def test_build_condition_from_json_with_nonexistent_fhir_id_raises_nonexistent_exception(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        self.blaze_service.upload_condition(self.example_condition)
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.build_condition_from_json("nonexistentId")
 
     def test_update_condition(self):
         self.blaze_service.upload_donor(self.example_donor)
@@ -341,6 +424,23 @@ class TestBlazeService(unittest.TestCase):
         deleted = self.blaze_service.delete_condition(condition_fhir_id)
         self.assertTrue(deleted)
         self.assertFalse(self.blaze_service.is_resource_present_in_blaze("Condition", condition_fhir_id))
+
+    def test_delete_condition_with_diagnosis_reports(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        self.blaze_service.upload_sample(self.example_samples[0])
+        self.blaze_service.upload_observation(self.example_observations[0])
+        self.blaze_service.upload_diagnosis_report(self.example_diagnosis_reports[0])
+        condition_fhir_id = self.blaze_service.upload_condition(self.example_condition)
+        deleted = self.blaze_service.delete_condition(condition_fhir_id)
+        self.assertTrue(deleted)
+        self.assertFalse(self.blaze_service.is_resource_present_in_blaze("Condition", condition_fhir_id))
+
+    def test_delete_condition_with_nonexistent_fhir_id_raises_noexistent_exception(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        self.blaze_service.upload_sample(self.example_samples[0])
+        self.blaze_service.upload_condition(self.example_condition)
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.delete_condition("nonexistendId")
 
     def test_add_diagnosis_report_to_already_present_condition(self):
         self.blaze_service.upload_donor(self.example_donor)
@@ -397,10 +497,6 @@ class TestBlazeService(unittest.TestCase):
         self.assertEqual(diag_report_for_first_sample, diagnosis_reports_fhir_ids[0])
         self.assertEqual(diag_report_for_second_sample, diagnosis_reports_fhir_ids[1])
 
-    def test_get_identifier_by_fhir_id(self):
-        fhir_id = "NonExistentId"
-        identifier = self.blaze_service.get_identifier_by_fhir_id("Patient", fhir_id)
-
     def test_upload_biobank(self):
         biobank_fhir_id = self.blaze_service.upload_biobank(self.example_biobank)
         self.assertIsNotNone(biobank_fhir_id)
@@ -421,11 +517,44 @@ class TestBlazeService(unittest.TestCase):
         self.assertEqual(self.example_biobank.description, biobank.description)
         self.assertEqual(self.example_biobank.organisational_capabilities, biobank.organisational_capabilities)
 
+    def test_build_biobank_from_json_with_nonexistent_id_raises_nonexistent_exception(self):
+        self.blaze_service.upload_biobank(self.example_biobank)
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.build_biobank_from_json("nonexistentId")
+
     def test_upload_collection_organization(self):
         self.blaze_service.upload_biobank(self.example_biobank)
         collection_organization_id = self.blaze_service.upload_collection_organization(self.example_collection_org)
         self.assertIsNotNone(collection_organization_id)
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Organization", collection_organization_id))
+
+    def test_upload_collection_organization_with_nonexistent_biobank_raises_nonexistent_exception(self):
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_collection_organization(self.example_collection_org)
+
+    def test_build_collection_organization_from_json(self):
+        biobank_fhir_id = self.blaze_service.upload_biobank(self.example_biobank)
+        collection_organization_id = self.blaze_service.upload_collection_organization(self.example_collection_org)
+        collection_org = self.blaze_service.build_collection_organization_from_json(collection_organization_id)
+        self.assertEqual(collection_org.identifier, self.example_collection_org.identifier)
+        self.assertEqual(collection_org.name, self.example_collection_org.name)
+        self.assertEqual(collection_org.alias, self.example_collection_org.alias)
+        self.assertEqual(collection_org.collection_design, self.example_collection_org.collection_design)
+        self.assertEqual(collection_organization_id, collection_org.collection_org_fhir_id)
+        self.assertEqual(collection_org.dataset_type, self.example_collection_org.dataset_type)
+        self.assertEqual(collection_org.country, self.example_collection_org.country)
+        self.assertEqual(collection_org.contact_email, self.example_collection_org.contact_email)
+        self.assertEqual(collection_org.contact_name, self.example_collection_org.contact_name)
+        self.assertEqual(collection_org.contact_surname, self.example_collection_org.contact_surname)
+        self.assertEqual(collection_org.managing_biobank_id, self.example_collection_org.managing_biobank_id)
+        self.assertEqual(collection_org.publications, self.example_collection_org.publications)
+        self.assertEqual(collection_org.use_and_access_conditions,
+                         self.example_collection_org.use_and_access_conditions)
+        self.assertEqual(collection_org.sample_collection_setting,
+                         self.example_collection_org.sample_collection_setting)
+        self.assertEqual(collection_org.sample_source, self.example_collection_org.sample_source)
+        self.assertEqual(collection_org.description, self.example_collection_org.description)
+        self.assertEqual(biobank_fhir_id, collection_org.managing_biobank_fhir_id)
 
     def test_upload_collection(self):
         self.blaze_service.upload_biobank(self.example_biobank)
@@ -434,11 +563,57 @@ class TestBlazeService(unittest.TestCase):
         self.assertIsNotNone(collection_fhir_id)
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Group", collection_fhir_id))
 
+    def test_build_collection_from_json(self):
+        self.blaze_service.upload_biobank(self.example_biobank)
+        collection_org_fhir_id = self.blaze_service.upload_collection_organization(self.example_collection_org)
+        collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
+        collection = self.blaze_service.build_collection_from_json(collection_fhir_id)
+        self.assertEqual(self.example_collection.name, collection.name)
+        self.assertEqual(self.example_collection.identifier, collection.identifier)
+        self.assertEqual([], collection.sample_ids)
+        self.assertEqual(self.example_collection.number_of_subjects, collection.number_of_subjects)
+        self.assertEqual(self.example_collection.inclusion_criteria, collection.inclusion_criteria)
+        self.assertEqual(self.example_collection.diagnoses, collection.diagnoses)
+        self.assertEqual(self.example_collection.material_types, collection.material_types)
+        self.assertEqual(self.example_collection.storage_temperatures, collection.storage_temperatures)
+        self.assertEqual(self.example_collection.genders, collection.genders)
+        self.assertEqual(self.example_collection.age_range_low, collection.age_range_low)
+        self.assertEqual(self.example_collection.age_range_high, collection.age_range_high)
+        self.assertEqual(collection_fhir_id, collection.collection_fhir_id)
+        self.assertEqual(collection_org_fhir_id, collection.managing_collection_org_fhir_id)
+        self.assertEqual(self.example_collection.managing_collection_org_id, collection.managing_collection_org_id)
+
+    def test_upload_collection_with_nonexistent_organization_raises_nonexistent_exception(self):
+        self.blaze_service.upload_biobank(self.example_biobank)
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_collection(self.example_collection)
+
     def test_upload_network_organization(self):
         self.blaze_service.upload_biobank(self.example_biobank)
         network_org_fhir_id = self.blaze_service.upload_network_organization(self.example_network_org)
         self.assertIsNotNone(network_org_fhir_id)
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Organization", network_org_fhir_id))
+
+    def test_upload_network_organization_with_nonexistent_biobank_raises_nonexistent_exception(self):
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_network_organization(self.example_network_org)
+
+    def test_build_network_organization_from_json(self):
+        biobank_fhir_id = self.blaze_service.upload_biobank(self.example_biobank)
+        network_org_fhir_id = self.blaze_service.upload_network_organization(self.example_network_org)
+        network_org = self.blaze_service.build_network_org_from_json(network_org_fhir_id)
+        self.assertEqual(network_org.network_org_fhir_id, network_org_fhir_id)
+        self.assertEqual(network_org.name, self.example_network_org.name)
+        self.assertEqual(network_org.identifier, self.example_network_org.identifier)
+        self.assertEqual(network_org.contact_name, self.example_network_org.contact_name)
+        self.assertEqual(network_org.managing_biobank_fhir_id, biobank_fhir_id)
+        self.assertEqual(network_org.managing_biobank_id, self.example_network_org.managing_biobank_id)
+        self.assertEqual(network_org.description, self.example_network_org.description)
+        self.assertEqual(network_org.contact_surname, self.example_network_org.contact_surname)
+        self.assertEqual(network_org.contact_email, self.example_network_org.contact_email)
+        self.assertEqual(network_org.country, self.example_network_org.country)
+        self.assertEqual(network_org.juristic_person, self.example_network_org.juristic_person)
+        self.assertEqual(network_org.common_collaboration_topics, self.example_network_org.common_collaboration_topics)
 
     def test_upload_network(self):
         self.blaze_service.upload_biobank(self.example_biobank)
@@ -448,6 +623,28 @@ class TestBlazeService(unittest.TestCase):
         network_fhir_id = self.blaze_service.upload_network(self.example_network)
         self.assertIsNotNone(network_fhir_id)
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Group", network_fhir_id))
+
+    def test_upload_network_with_nonexistent_network_organization_raises_nonexistent_exception(self):
+        self.blaze_service.upload_biobank(self.example_biobank)
+        with self.assertRaises(NonExistentResourceException):
+            self.blaze_service.upload_network(self.example_network)
+
+    def test_build_network_from_json(self):
+        biobank_fhir_id = self.blaze_service.upload_biobank(self.example_biobank)
+        collection_org_fhir_id = self.blaze_service.upload_collection_organization(self.example_collection_org)
+        collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
+        network_org_fhir_id = self.blaze_service.upload_network_organization(self.example_network_org)
+        network_fhir_id = self.blaze_service.upload_network(self.example_network)
+        network = self.blaze_service.build_network_from_json(network_fhir_id)
+        self.assertEqual(network_fhir_id, network.network_fhir_id)
+        self.assertEqual(network_org_fhir_id, network.managing_network_org_fhir_id)
+        self.assertIn(biobank_fhir_id, network.members_biobanks_fhir_ids)
+        self.assertIn(collection_fhir_id, network.members_collections_fhir_ids)
+        self.assertEqual(self.example_network.name, network.name)
+        self.assertEqual(self.example_network.identifier, network.identifier)
+        self.assertEqual(self.example_network.managing_network_org_id, network.managing_network_org_id)
+        self.assertEqual(self.example_network.members_collections_ids, network.members_collections_ids)
+        self.assertEqual(self.example_network.members_biobanks_ids, network.members_biobanks_ids)
 
     def test_delete_biobank(self):
         biobank_fhir_id = self.blaze_service.get_fhir_id("Organization", self.example_biobank.identifier)
@@ -478,3 +675,78 @@ class TestBlazeService(unittest.TestCase):
         self.assertIn(self.example_samples[0].storage_temperature, updated_collection.storage_temperatures)
         self.assertIn(self.example_samples[1].storage_temperature, updated_collection.storage_temperatures)
         self.assertIn(self.example_donor.gender, updated_collection.genders)
+        self.assertIn(self.example_observations[0].icd10_code, updated_collection.diagnoses)
+        self.assertIn(self.example_observations[1].icd10_code, updated_collection.diagnoses)
+
+    def test_update_collection_values_after_deleting_sample(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        sample_fhir_id1 = self.blaze_service.upload_sample(self.example_samples[0])
+        self.blaze_service.upload_observation(self.example_observations[0])
+        self.blaze_service.upload_diagnosis_report(self.example_diagnosis_reports[0])
+        new_sample = Sample("newSampleId", "newDonorId", "Nail", datetime.datetime(year=2020, month=11, day=21),
+                            storage_temperature=StorageTemperature.TEMPERATURE_OTHER)
+        new_donor = SampleDonor("newDonorId", Gender.FEMALE, datetime.datetime(year=2000, month=10, day=20), "Other")
+        new_observation = Observation("B22", "newSampleId", "newDonorId",
+                                      datetime.datetime(year=2019, month=10, day=20))
+        new_diagnosis_report = DiagnosisReport("newSampleId", "newDonorId")
+        new_donor_fhir_id = self.blaze_service.upload_donor(new_donor)
+        new_sample_fhir_id = self.blaze_service.upload_sample(new_sample)
+        new_observation_fhir_id = self.blaze_service.upload_observation(new_observation)
+        new_diagnosis_report_fhir_id = self.blaze_service.upload_diagnosis_report(new_diagnosis_report)
+        self.blaze_service.upload_biobank(self.example_biobank)
+        self.blaze_service.upload_collection_organization(self.example_collection_org)
+        collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
+        updated = self.blaze_service.add_already_present_samples_to_existing_collection(
+            [sample_fhir_id1, new_sample_fhir_id], collection_fhir_id)
+        self.assertTrue(updated)
+
+        updated_collection = self.blaze_service.build_collection_from_json(collection_fhir_id)
+
+        self.assertEqual(updated_collection.number_of_subjects, 2)
+
+        self.assertIn(sample_fhir_id1, updated_collection.sample_fhir_ids)
+        self.assertIn(new_sample_fhir_id, updated_collection.sample_fhir_ids)
+
+        self.assertEqual(
+            new_observation.diagnosis_observed_datetime.year - new_donor.date_of_birth.year,
+            updated_collection.age_range_high)
+        self.assertEqual(
+            self.example_observations[0].diagnosis_observed_datetime.year - self.example_donor.date_of_birth.year,
+            updated_collection.age_range_low)
+
+        self.assertIn(self.example_samples[0].storage_temperature, updated_collection.storage_temperatures)
+        self.assertIn(new_sample.storage_temperature, updated_collection.storage_temperatures)
+
+        self.assertIn(self.example_donor.gender, updated_collection.genders)
+        self.assertIn(new_donor.gender, updated_collection.genders)
+
+        self.assertIn(self.example_observations[0].icd10_code, updated_collection.diagnoses)
+        self.assertIn(new_observation.icd10_code, updated_collection.diagnoses)
+
+        self.blaze_service.delete_donor(new_donor_fhir_id)
+        update_collection = self.blaze_service.update_collection_values(collection_fhir_id)
+        self.assertTrue(update_collection)
+
+        updated_collection = self.blaze_service.build_collection_from_json(collection_fhir_id)
+
+        self.assertEqual(updated_collection.number_of_subjects, 1)
+
+        self.assertEqual(
+            self.example_observations[0].diagnosis_observed_datetime.year - self.example_donor.date_of_birth.year,
+            updated_collection.age_range_low)
+
+        self.assertEqual(
+            self.example_observations[0].diagnosis_observed_datetime.year - self.example_donor.date_of_birth.year,
+            updated_collection.age_range_high)
+
+        self.assertIn(sample_fhir_id1, updated_collection.sample_fhir_ids)
+        self.assertNotIn(new_sample_fhir_id, updated_collection.sample_fhir_ids)
+
+        self.assertIn(self.example_samples[0].storage_temperature, updated_collection.storage_temperatures)
+        self.assertNotIn(new_sample.storage_temperature, updated_collection.storage_temperatures)
+
+        self.assertIn(self.example_donor.gender, updated_collection.genders)
+        self.assertNotIn(new_donor.gender, updated_collection.genders)
+
+        self.assertIn(self.example_observations[0].icd10_code, updated_collection.diagnoses)
+        self.assertNotIn(new_observation.icd10_code, updated_collection.diagnoses)
