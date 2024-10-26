@@ -1,6 +1,7 @@
 PYTHON_INTERPRETER = python3
 PYTEST_COMMAND = $(PYTHON_INTERPRETER) -m pytest
-PYTEST_ARGS = -v -p no:cacheprovider --cov-report=xml --cov=./
+PYTEST_ARGS = -v -p no:cacheprovide
+
 
 .PHONY: test setup clean validate
 setup: requirements.txt ## Install required packages
