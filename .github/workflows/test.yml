@@ -47,10 +47,6 @@ jobs:
       - name: Run unit tests
         run: make test
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          flags: unit
 
   integration-tests:
     needs: unit-tests
@@ -69,8 +65,3 @@ jobs:
 
       - name: Run integration tests
         run: make integration
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          flags: integration
