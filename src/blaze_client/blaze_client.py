@@ -13,13 +13,10 @@ from src.MIABIS_on_FHIR.network_organization import NetworkOrganization
 from src.MIABIS_on_FHIR.observation import Observation
 from src.MIABIS_on_FHIR.sample import Sample
 from src.MIABIS_on_FHIR.sample_donor import SampleDonor
-from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id, \
+from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_reference_id, \
     get_material_type_from_detailed_material_type
-from src.client.NonExistentResourceException import NonExistentResourceException
+from src.blaze_client.NonExistentResourceException import NonExistentResourceException
 
-
-# TODO add update collection, update network
-# TODO update methods- if there is no fhir_id (even when using the get_fhir_id method), throw an ValueException (or a custom one)
 
 class BlazeClient:
     """Class for handling communication with a blaze server,
@@ -107,7 +104,8 @@ class BlazeClient:
     def get_observation_fhir_ids_belonging_to_sample(self, sample_fhir_id: str) -> list[str]:
         """get all observations linked to a specific sample
         :param sample_fhir_id: fhir id of a sample for which the observations should be retrieved
-        :return list of fhir ids linked to a specific sample"""
+        :return list of fhir ids linked to a specific sample
+        :raises HTTPError: if the request to blaze fails"""
         response = self._session.get(f"{self._blaze_url}/Observation?specimen={sample_fhir_id}")
         self.__raise_for_status_extract_diagnostics_message(response)
         observations_fhir_ids = []
@@ -123,7 +121,8 @@ class BlazeClient:
     def get_diagnosis_report_fhir_id_belonging_to_sample(self, sample_fhir_id: str) -> str | None:
         """get diagnosis report which belongs to a specific sample
         :param sample_fhir_id: fhir id of sample that this diagnosis report belongs to
-        :return fhir id of the diagnosis report"""
+        :return fhir id of the diagnosis report
+        :raises HTTPError: if the request to blaze fails"""
         response = self._session.get(f"{self._blaze_url}/DiagnosticReport?specimen={sample_fhir_id}")
         self.__raise_for_status_extract_diagnostics_message(response)
         diagnosis_report_json = response.json()
@@ -132,7 +131,8 @@ class BlazeClient:
     def get_diagnosis_report_fhir_ids_belonging_to_patient(self, donor_fhir_id: str) -> list[str]:
         """get diagnosis reports fhir ids, which belong to a specific donor
         :param donor_fhir_id: fhir id of donor that these diagnosis reports belong to
-        :return list of  diagnosis fhir ids belonging to a specified donor """
+        :return list of  diagnosis fhir ids belonging to a specified donor
+        :raises HTTPError: if the request to blaze fails"""
         diagnosis_report_fhir_ids = []
         response = self._session.get(f"{self._blaze_url}/DiagnosticReport?subject={donor_fhir_id}")
         self.__raise_for_status_extract_diagnostics_message(response)
@@ -150,6 +150,7 @@ class BlazeClient:
         :param resource_fhir_id: the fhir id of the resource
         :param resource_json: the json representation of the resource
         :return: True if the resource was updated successfully
+        :raises NonExistentResourceException: if the resource cannot be found
         :raises HTTPError: if the request to blaze fails
         """
         response = self._session.put(f"{self._blaze_url}/{resource_type}/{resource_fhir_id}", json=resource_json)
@@ -161,6 +162,7 @@ class BlazeClient:
             :param donor: the donor to upload
             :raises HTTPError: if the request to blaze fails
             :return: the fhir id of the uploaded donor
+            :raises HTTPError: if the request to blaze fails
             """
         response = self._session.post(f"{self._blaze_url}/Patient", json=donor.to_fhir().as_json())
         self.__raise_for_status_extract_diagnostics_message(response)
@@ -171,6 +173,7 @@ class BlazeClient:
             :param sample: the sample to upload
             :raises HTTPError: if the request to blaze fails
             :return: the fhir id of the uploaded sample
+            :raises HTTPError: if the request to blaze fails
             """
         donor_fhir_id = sample.subject_fhir_id or self.get_fhir_id("Patient", sample.donor_identifier)
         if donor_fhir_id is None:
@@ -229,8 +232,8 @@ class BlazeClient:
     def upload_condition(self, condition: Condition) -> str:
         """Upload a condition to blaze.
             :param condition: the condition to upload
-            :param diagnosis_reports_fhir_ids: the fhir ids of the diagnosis reports in the condition
             :raises HTTPError: if the request to blaze fails
+            :raises NonExistentResourceException: if the resource cannot be found
             :return: the fhir id of the uploaded condition
             """
         donor_fhir_id = condition.patient_fhir_id or self.get_fhir_id("Patient", condition.patient_identifier)
@@ -262,6 +265,7 @@ class BlazeClient:
         Upload a collection organization resource to a blaze
         :param collection_org: collection organization resource to upload
         :raises: HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return: the fhir id of the uploaded collection organization"""
 
         managing_biobank_fhir_id = collection_org.managing_biobank_fhir_id or \
@@ -280,6 +284,7 @@ class BlazeClient:
         Upload a collection resource to blaze.
         :param collection: collection resource to upload
         :raises: HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return: the fhir id of the uploaded collection
         """
 
@@ -311,6 +316,7 @@ class BlazeClient:
         Upload a network organization resource to blaze.
         :param network_org: network organization resource to upload
         :raises: HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return: the fhir id of uploaded network organization
         """
         managing_biobank_fhir_id = network_org.managing_biobank_fhir_id \
@@ -328,7 +334,7 @@ class BlazeClient:
         """
         Upload a network resource to blaze.
         :param network: network resource to upload
-        :param managing_network_org_fhir_id: fhir id of the network_org that is linked to this network resource
+        :raises NonExistentResourceException: if the resource cannot be found
         :raises: HTTPError: if the request to blaze fails
         :return: the fhir id of uploaded network
         """
@@ -371,6 +377,8 @@ class BlazeClient:
     def build_donor_from_json(self, donor_fhir_id: str) -> SampleDonor:
         """Build Donor Object from json representation
         :param donor_fhir_id: FHIR ID of the Patient resource
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return SampleDonor Object"""
         if not self.is_resource_present_in_blaze("Patient", donor_fhir_id):
             raise NonExistentResourceException(f"Patient with fhir id {donor_fhir_id} is not present in blaze store")
@@ -381,6 +389,8 @@ class BlazeClient:
     def build_sample_from_json(self, sample_fhir_id: str) -> Sample:
         """Build Sample Object from json representation
         :param sample_fhir_id: FHIR ID of the Specimen resource
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return Sample Object"""
         if not self.is_resource_present_in_blaze("Specimen", sample_fhir_id):
             raise NonExistentResourceException(f"Sample with FHIR ID {sample_fhir_id} is not present in blaze store")
@@ -393,6 +403,8 @@ class BlazeClient:
     def build_observation_from_json(self, observation_fhir_id: str) -> Observation:
         """Build Observation Object from json representation
         :param observation_fhir_id: FHIR ID of the Observation resource
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return Observation Object"""
         if not self.is_resource_present_in_blaze("Observation", observation_fhir_id):
             raise NonExistentResourceException(
@@ -408,6 +420,8 @@ class BlazeClient:
     def build_diagnosis_report_from_json(self, diagnosis_report_fhir_id: str) -> DiagnosisReport:
         """Build DiagnosisReport object from json representation
         :param diagnosis_report_fhir_id: FHIR ID of the DiagnosticReport resource
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return DiagnosisReport Object"""
         if not self.is_resource_present_in_blaze("DiagnosticReport", diagnosis_report_fhir_id):
             raise NonExistentResourceException(
@@ -437,6 +451,8 @@ class BlazeClient:
     def build_condition_from_json(self, condition_fhir_id: str) -> Condition:
         """Build Condition object from json representation
         :param condition_fhir_id: FHIR ID of the Condition resource
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return Condition Object"""
         if not self.is_resource_present_in_blaze("Condition", condition_fhir_id):
             raise NonExistentResourceException(
@@ -453,6 +469,7 @@ class BlazeClient:
         :param collection_fhir_id: FHIR ID of the Collection resource
         :return: Collection object
         :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         """
         if not self.is_resource_present_in_blaze("Group", collection_fhir_id):
             raise NonExistentResourceException(
@@ -473,6 +490,8 @@ class BlazeClient:
     def build_collection_organization_from_json(self, collection_organization_fhir_id: str) -> CollectionOrganization:
         """Build a CollectionOrganization object from a json representation
         :param collection_organization_fhir_id: FHIR ID of the collection resource
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return CollectionOrganization Object"""
         if not self.is_resource_present_in_blaze("Organization", collection_organization_fhir_id):
             raise NonExistentResourceException(
@@ -486,6 +505,8 @@ class BlazeClient:
     def build_network_from_json(self, network_fhir_id: str) -> Network:
         """Build a Network object form a json representation
         :param network_fhir_id: FHIR ID of the network resource
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return Network Object"""
         if not self.is_resource_present_in_blaze("Group", network_fhir_id):
             raise NonExistentResourceException(f"Network with FHIR ID {network_fhir_id} is not present in blaze store")
@@ -505,6 +526,8 @@ class BlazeClient:
     def build_network_org_from_json(self, network_org_fhir_id: str) -> NetworkOrganization:
         """Build a NetworkOrganization object from a json representation
         :param network_org_fhir_id: FHIR ID of the network organization resource
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return NetworkOrganisation object"""
         if not self.is_resource_present_in_blaze("Organization", network_org_fhir_id):
             raise NonExistentResourceException(
@@ -518,6 +541,8 @@ class BlazeClient:
     def build_biobank_from_json(self, biobank_fhir_id: str) -> Biobank:
         """Build a Biobank object from a json representation
         :param biobank_fhir_id: FHIR ID of the biobank resource
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return Biobank object"""
         if not self.is_resource_present_in_blaze("Organization", biobank_fhir_id):
             raise NonExistentResourceException(f"Biobank with FHIR ID {biobank_fhir_id} is not present in blaze store")
@@ -526,7 +551,12 @@ class BlazeClient:
         return biobank
 
     def add_diagnosis_reports_to_condition(self, condition_fhir_id: str, diagnosis_report_fhir_ids: list[str]) -> bool:
-        """add new diagnosis to already present condition in the blaze store"""
+        """add new diagnosis to already present condition in the blaze store
+        :param condition_fhir_id: FHIR ID of the condition
+        :param diagnosis_report_fhir_ids: FHIR IDs of the diagnosis reports
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
+        :returns: True if the diagnosis reports were added successfully, false otherwise"""
         condition = self.build_condition_from_json(condition_fhir_id)
         for diagnosis_report_fhir_id in diagnosis_report_fhir_ids:
             if diagnosis_report_fhir_id not in condition.diagnosis_report_fhir_ids:
@@ -560,6 +590,8 @@ class BlazeClient:
         """Add samples already present in blaze to the collection
         :param sample_fhir_ids: FHIR IDs of samples to add to collection
         :param collection_fhir_id: FHIR ID of collection
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return: Bool indicating outcome of this operation"""
         collection = self.build_collection_from_json(collection_fhir_id)
         samples = [self.build_sample_from_json(sample_fhir_id) for sample_fhir_id in sample_fhir_ids]
@@ -576,6 +608,8 @@ class BlazeClient:
         """Removes samples FHIR IDs that are not present in the blaze store from collection,and
         recalculates characteristics:
         :param collection_fhir_id: FHIR ID of collection
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return: Bool indicating if the collection was updated or not"""
         collection = self.build_collection_from_json(collection_fhir_id)
         sample_fhir_ids = collection.sample_fhir_ids
@@ -600,6 +634,7 @@ class BlazeClient:
         :param collection_fhir_id: the fhir id of the collection
         :return: updated collection object
         :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         """
         already_present_samples = [self.build_sample_from_json(sample_fhir_id) for sample_fhir_id in
                                    collection.sample_fhir_ids]
@@ -641,7 +676,9 @@ class BlazeClient:
 
     def get_observation_fhir_ids_belonging_to_diagnosis_report(self, diagnosis_report_fhir_id: str) -> list[str]:
         """Get observation FHIR IDs belonging to a diagnosis report
-        :param diagnosis_report_fhir_id: FHIR ID of diagnosis report"""
+        :param diagnosis_report_fhir_id: FHIR ID of diagnosis report
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found"""
         diagnosis_report = self.build_diagnosis_report_from_json(diagnosis_report_fhir_id)
         if diagnosis_report.observations_fhir_identifiers is None:
             return []
@@ -650,6 +687,8 @@ class BlazeClient:
     def __get_diagnoses_of_sample(self, sample_fhir_id: str) -> list[str]:
         """Get all diagnoses that are linked to a sample
         :param sample_fhir_id: FHIR ID of sample
+        :raises HTTPError: if the request to blaze fails
+        :raises NonExistentResourceException: if the resource cannot be found
         :return: List of diagnoses codes"""
         diagnoses = []
         observation_fhir_ids = self.get_observation_fhir_ids_belonging_to_sample(sample_fhir_id)

@@ -4,12 +4,12 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
-from src.MIABIS_on_FHIR.util._constants import NETWORK_COMMON_COLLAB_TOPICS, DEFINITION_BASE_URL
-from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_contact, parse_reference_id
-from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_contact, create_country_of_residence, \
-    create_codeable_concept_extension, create_string_extension
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from src.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.constants import NETWORK_COMMON_COLLAB_TOPICS
+from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_contact, parse_reference_id
+from src.MIABIS_on_FHIR.util.util import create_fhir_identifier, create_contact, create_country_of_residence, \
+    create_codeable_concept_extension, create_string_extension
 
 
 class NetworkOrganization:

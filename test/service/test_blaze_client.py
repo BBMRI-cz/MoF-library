@@ -17,8 +17,8 @@ from src.MIABIS_on_FHIR.observation import Observation
 from src.MIABIS_on_FHIR.sample import Sample
 from src.MIABIS_on_FHIR.sample_donor import SampleDonor
 from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
-from src.client.NonExistentResourceException import NonExistentResourceException
-from src.client.blaze_client import BlazeClient
+from src.blaze_client.NonExistentResourceException import NonExistentResourceException
+from src.blaze_client.blaze_client import BlazeClient
 
 
 class TestBlazeService(unittest.TestCase):

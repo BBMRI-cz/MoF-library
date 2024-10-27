@@ -9,16 +9,15 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
-from src.MIABIS_on_FHIR.util._constants import COLLECTION_INCLUSION_CRITERIA, COLLECTION_MATERIAL_TYPE_CODES, \
-    DEFINITION_BASE_URL
-from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
-from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_integer_extension, \
-    create_codeable_concept_extension, \
-    create_codeable_concept
 from src.MIABIS_on_FHIR.gender import Gender
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
 from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
-from src.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.constants import COLLECTION_INCLUSION_CRITERIA, COLLECTION_MATERIAL_TYPE_CODES
+from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_reference_id
+from src.MIABIS_on_FHIR.util.util import create_fhir_identifier, create_integer_extension, \
+    create_codeable_concept_extension, \
+    create_codeable_concept
 
 
 class Collection:
@@ -40,7 +39,7 @@ class Collection:
         :param storage_temperatures: List of storage temperatures of the samples in the collection.
         :param material_types: List of material types of the samples in the collection.
         :param diagnoses: List of diagnoses of the subjects in the collection.
-         Available values in the _constants.py file
+         Available values in the constants.py file
         :param number_of_subjects: Number of subjects in the collection.
         :param inclusion_criteria: Inclusion criteria for the subjects in the collection.
         :param sample_ids: List of sample identifiers belonging to the collection.

@@ -6,14 +6,13 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
-from src.MIABIS_on_FHIR.util._constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, \
-    COLLECTION_SAMPLE_SOURCE, COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS
-from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_contact, parse_reference_id
-from src.MIABIS_on_FHIR.util._util import create_country_of_residence, create_contact, \
-    create_codeable_concept_extension, \
-    create_string_extension, create_fhir_identifier
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from src.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.constants import COLLECTION_DESIGN, COLLECTION_SAMPLE_COLLECTION_SETTING, \
+    COLLECTION_SAMPLE_SOURCE, COLLECTION_DATASET_TYPE, COLLECTION_USE_AND_ACCESS_CONDITIONS
+from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_contact, parse_reference_id
+from src.MIABIS_on_FHIR.util.util import create_country_of_residence, create_contact, create_codeable_concept_extension, \
+    create_string_extension, create_fhir_identifier
 
 
 class CollectionOrganization:
@@ -43,12 +42,12 @@ class CollectionOrganization:
         :param alias: Alias of the collection.
         :param url: URL of the collection.
         :param description: Description of the collection.
-        :param dataset_type: Type of the dataset. Available values in the _constants.py file
-        :param sample_source: Source of the samples. Available values in the _constants.py file
-        :param sample_collection_setting: Setting of the sample collection. Available values in the _constants.py file
-        :param collection_design: Design of the collection. Available values in the _constants.py file
+        :param dataset_type: Type of the dataset. Available values in the constants.py file
+        :param sample_source: Source of the samples. Available values in the constants.py file
+        :param sample_collection_setting: Setting of the sample collection. Available values in the constants.py file
+        :param collection_design: Design of the collection. Available values in the constants.py file
         :param use_and_access_conditions: Conditions for use and access of the collection.
-         Available values in the _constants.py file
+         Available values in the constants.py file
         :param publications: Publications related to the collection.
         """
 
