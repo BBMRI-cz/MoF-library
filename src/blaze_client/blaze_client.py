@@ -674,6 +674,29 @@ class BlazeClient:
             collection.number_of_subjects += count_of_new_subjects
         return collection
 
+    def get_collection_fhir_id_by_sample_fhir_identifier(self, sample_fhir_id: str) -> str | None:
+        """Get Collection FHIR id which contains provided sample FHIR ID, if there is one
+        :param sample_fhir_id: FHIR ID of the sample
+        :return: collection FHIR id if there is collection which contains this sample, None otherwise"""
+        return self.__get_group_fhir_id_by_resource_fhir_identifier(sample_fhir_id)
+
+    def get_network_fhir_id_by_member_fhir_identifier(self, member_fhir_id: str) -> str | None:
+        """Get Network FHIR id which contains provided member FHIR ID (either collection resource of biobank resource),
+         if there is one
+        :param member_fhir_id: FHIR ID of the member of network
+        :return: network FHIR id if there is network which contains this member, None otherwise"""
+        return self.__get_group_fhir_id_by_resource_fhir_identifier(member_fhir_id)
+
+    def __get_group_fhir_id_by_resource_fhir_identifier(self, resource_fhir_id: str) -> str | None:
+        """Get Group FHIR id which contains provided FHIR_ID or resource, if there is one
+        :param resource_fhir_id: FHIR ID of the resource
+        :return: Group resource FHIR ID if there is group which
+        contains reference to resource_fhir_id, none otherwise"""
+        response = self._session.get(f"{self._blaze_url}/Group?groupMember={resource_fhir_id}")
+        self.__raise_for_status_extract_diagnostics_message(response)
+        response_json = response.json()
+        return get_nested_value(response_json, ["entry", 0, "resource", "id"])
+
     def get_observation_fhir_ids_belonging_to_diagnosis_report(self, diagnosis_report_fhir_id: str) -> list[str]:
         """Get observation FHIR IDs belonging to a diagnosis report
         :param diagnosis_report_fhir_id: FHIR ID of diagnosis report
@@ -737,6 +760,7 @@ class BlazeClient:
         patient_entry = self.__create_delete_bundle_entry("Patient", donor_fhir_id)
         entries.append(patient_entry)
         sample_fhir_ids = self.__get_all_sample_fhir_ids_belonging_to_patient(donor_fhir_id)
+        delete_from_collection = self.__delete_sample_references_from_collections(sample_fhir_ids)
         condition_fhir_id = self.__get_condition_fhir_id_by_donor_identifier(donor_fhir_id)
         for sample_fhir_id in sample_fhir_ids:
             sample_entries = self.delete_sample(sample_fhir_id, True, True)
@@ -750,6 +774,33 @@ class BlazeClient:
         response = self._session.post(f"{self._blaze_url}", json=bundle.as_json())
         self.__raise_for_status_extract_diagnostics_message(response)
         return response.status_code == 200 or response.status_code == 204
+
+    def __delete_sample_references_from_collections(self, sample_fhir_ids: list[str]) -> bool:
+        """
+        :param sample_fhir_ids:
+        :return:
+        """
+        entries = []
+        collection_sample_fhir_ids_map = {}
+        for sample_fhir_id in sample_fhir_ids:
+            collection_fhir_id = self.get_collection_fhir_id_by_sample_fhir_identifier(sample_fhir_id)
+            if collection_fhir_id is None:
+                continue
+            if collection_fhir_id not in collection_sample_fhir_ids_map:
+
+                collection_sample_fhir_ids_map[collection_fhir_id] = set()
+                collection_sample_fhir_ids_map[collection_fhir_id].add(sample_fhir_id)
+            else:
+                collection_sample_fhir_ids_map[collection_fhir_id].add(sample_fhir_id)
+        for collection_fhir_id, sample_fhir_ids_set in collection_sample_fhir_ids_map.items():
+            updated_collection = self.__delete_samples_from_collection(collection_fhir_id, list(sample_fhir_ids_set))
+            entries.append(self.__create_bundle_entry_for_updating_collection(updated_collection))
+        if entries is None:
+            return True
+        bundle = self.__create_bundle(entries)
+        response = self._session.post(f"{self._blaze_url}", json=bundle.as_json())
+        self.__raise_for_status_extract_diagnostics_message(response)
+        return 200 <= response.status_code < 300
 
     def delete_condition(self, condition_fhir_id: str, part_of_bundle: bool = False) -> list[BundleEntry] | bool:
         """Delete a condition from blaze.
@@ -792,6 +843,8 @@ class BlazeClient:
                 f"sample is not present in the blaze store.")
         specimen_entry = self.__create_delete_bundle_entry("Specimen", sample_fhir_id)
         entries.append(specimen_entry)
+        if not part_of_deleting_patient:
+            self.__delete_sample_references_from_collections([sample_fhir_id])
         observations_linked_to_sample_fhir_ids = self.get_observation_fhir_ids_belonging_to_sample(sample_fhir_id)
         set_observations_linked_to_sample = set(observations_linked_to_sample_fhir_ids)
         diagnosis_reports_fhir_ids = self.__get_diagnosis_reports_fhir_id_by_sample_identifier(sample_fhir_id)
@@ -902,6 +955,15 @@ class BlazeClient:
         update_network_fhir = network.add_fhir_id_to_network(network.to_fhir())
         return self.update_fhir_resource("Group", network_fhir_id, update_network_fhir.as_json())
 
+    def __delete_samples_from_collection(self, collection_fhir_id: str, sample_fhir_ids: list[str]) -> Collection:
+        collection = self.build_collection_from_json(collection_fhir_id)
+        sample_fhir_ids_set = set(collection.sample_fhir_ids)
+        for sample_fhir_id in sample_fhir_ids:
+            if sample_fhir_id in sample_fhir_ids_set:
+                sample_fhir_ids_set.remove(sample_fhir_id)
+        collection._sample_fhir_ids = list(sample_fhir_ids_set)
+        return collection
+
     def delete_collection_organization(self, collection_organization_fhir_id: str, part_of_bundle: bool = False) \
             -> list[BundleEntry] | bool:
         """delete collection organization from blaze store. WARNING: deleting collection organization
@@ -921,9 +983,10 @@ class BlazeClient:
             f"{self._blaze_url}/Group?managing-entity={collection_organization_fhir_id}")
         response_json = collection_response.json()
         if response_json["total"] != 0:
-            collection_fhir_id = get_nested_value(response_json, ["entry", 0, "resource", "id"])
-            collection_entries = self.delete_collection(collection_fhir_id, True)
-            entries.extend(collection_entries)
+            for entry in response_json["entry"]:
+                collection_fhir_id = get_nested_value(entry, ["resource", "id"])
+                collection_entries = self.delete_collection(collection_fhir_id, True)
+                entries.extend(collection_entries)
         if part_of_bundle:
             return entries
         bundle = self.__create_bundle(entries)
@@ -970,9 +1033,10 @@ class BlazeClient:
             f"{self._blaze_url}/Group?managing-entity={network_organization_fhir_id}")
         response_json = network_response.json()
         if response_json["total"] != 0:
-            network_fhir_id = get_nested_value(response_json, ["entry", 0, "resource", "id"])
-            network_entries = self.delete_network(network_fhir_id, True)
-            entries.extend(network_entries)
+            for entry in response_json["entry"]:
+                network_fhir_id = get_nested_value(entry, ["resource", "id"])
+                network_entries = self.delete_network(network_fhir_id, True)
+                entries.extend(network_entries)
         if part_of_bundle:
             return entries
         bundle = self.__create_bundle(entries)
@@ -1141,3 +1205,13 @@ class BlazeClient:
         entry.request.method = "DELETE"
         entry.request.url = f"{resource_type}/{resource_fhir_id}"
         return entry
+
+    @staticmethod
+    def __create_bundle_entry_for_updating_collection(collection: Collection) -> BundleEntry:
+        collection_fhir = collection.add_fhir_id_to_collection(collection.to_fhir())
+        collection_entry = BundleEntry()
+        collection_entry.resource = collection_fhir
+        collection_entry.request = BundleEntryRequest()
+        collection_entry.request.method = "PUT"
+        collection_entry.request.url = f"Group/{collection.collection_fhir_id}"
+        return collection_entry
