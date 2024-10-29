@@ -3,14 +3,14 @@ from typing import Self
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
-from src.MIABIS_on_FHIR.util._constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
+from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
+from src.MIABIS_on_FHIR.util.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
     BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
     BIOBANK_ORGANISATIONAL_CAPABILITIES, DEFINITION_BASE_URL
-from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_contact
-from src.MIABIS_on_FHIR.util._util import create_fhir_identifier, create_contact, create_country_of_residence, \
+from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_contact
+from src.MIABIS_on_FHIR.util.util import create_fhir_identifier, create_contact, create_country_of_residence, \
     create_codeable_concept_extension, create_string_extension
-from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from src.config import FHIRConfig
 
 
 class Biobank:
@@ -30,14 +30,14 @@ class Biobank:
         :param contact_surname: surname of the contact person
         :param contact_email: email of the contact person
         :param infrastructural_capabilities: The technical infrastructural capabilities that
-        the biobank can offer to the clients. Available values in the _constants.py file
+        the biobank can offer to the clients. Available values in the constants.py file
         :param organisational_capabilities: The organisational capabilities and services that
-        the biobank can provide to support clients. Available values in the _constants.py file
+        the biobank can provide to support clients. Available values in the constants.py file
         :param bioprocessing_and_analysis_capabilities: The bioprocessing and analytical services
-        that the biobank can offer to the clients. Available values in the _constants.py file
+        that the biobank can offer to the clients. Available values in the constants.py file
         :param quality__management_standards: The standards that the biobank is certified or accredited for.
         :param juristic_person: The legal entity that is responsible for the biobank.
-        Available values in the _constants.py file
+        Available values in the constants.py file
         """
         self.identifier = identifier
         self.name = name
@@ -316,7 +316,7 @@ class Biobank:
                                         self.juristic_person))
         if self.description is not None:
             extensions.append(create_string_extension(
-                FHIRConfig.get_extension_url("biobank","description"),
+                FHIRConfig.get_extension_url("biobank", "description"),
                 self.description))
         if extensions:
             fhir_organization.extension = extensions

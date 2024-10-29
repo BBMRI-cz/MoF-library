@@ -1,4 +1,5 @@
 from typing import Self
+
 import fhirclient.models.condition as fhir_condition
 import simple_icd_10 as icd10
 from fhirclient.models.codeableconcept import CodeableConcept
@@ -6,11 +7,10 @@ from fhirclient.models.coding import Coding
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 
-from src.MIABIS_on_FHIR.util._constants import DEFINITION_BASE_URL
-from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from src.MIABIS_on_FHIR.util._util import create_fhir_identifier
-from src.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_reference_id
+from src.MIABIS_on_FHIR.util.util import create_fhir_identifier
 
 
 class Condition:

@@ -3,6 +3,8 @@ import unittest
 
 import pytest as pytest
 import requests.exceptions
+from fhirclient.models.bundle import Bundle, BundleEntry, BundleEntryRequest
+from fhirclient.models.patient import Patient
 from requests.exceptions import HTTPError
 
 from src.MIABIS_on_FHIR.biobank import Biobank
@@ -17,8 +19,8 @@ from src.MIABIS_on_FHIR.observation import Observation
 from src.MIABIS_on_FHIR.sample import Sample
 from src.MIABIS_on_FHIR.sample_donor import SampleDonor
 from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
-from src.client.NonExistentResourceException import NonExistentResourceException
-from src.client.blaze_client import BlazeClient
+from src.blaze_client.NonExistentResourceException import NonExistentResourceException
+from src.blaze_client.blaze_client import BlazeClient
 
 
 class TestBlazeService(unittest.TestCase):
@@ -660,8 +662,10 @@ class TestBlazeService(unittest.TestCase):
         self.blaze_service.upload_observation(self.example_observations[1])
         self.blaze_service.upload_diagnosis_report(self.example_diagnosis_reports[0])
         self.blaze_service.upload_biobank(self.example_biobank)
+        self.blaze_service.upload_network_organization(self.example_network_org)
         self.blaze_service.upload_collection_organization(self.example_collection_org)
         collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
+        self.blaze_service.upload_network(self.example_network)
         # sample_fhir_id = self.blaze_service.get_fhir_id("Specimen", "sampleId")
         # sample_json = self.blaze_service.get_fhir_resource_as_json("Specimen", sample_fhir_id)
         # sample = Sample.from_json(sample_json, "donorId")
@@ -750,3 +754,21 @@ class TestBlazeService(unittest.TestCase):
 
         self.assertIn(self.example_observations[0].icd10_code, updated_collection.diagnoses)
         self.assertNotIn(new_observation.icd10_code, updated_collection.diagnoses)
+
+    def test_delete_sample_present_in_collection(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        sample_fhir_id1 = self.blaze_service.upload_sample(self.example_samples[0])
+        self.blaze_service.upload_observation(self.example_observations[0])
+        self.blaze_service.upload_diagnosis_report(self.example_diagnosis_reports[0])
+        self.blaze_service.upload_biobank(self.example_biobank)
+        self.blaze_service.upload_collection_organization(self.example_collection_org)
+        collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
+        # sample_fhir_id = self.blaze_service.get_fhir_id("Specimen", "sampleId")
+        # sample_json = self.blaze_service.get_fhir_resource_as_json("Specimen", sample_fhir_id)
+        # sample = Sample.from_json(sample_json, "donorId")
+        updated = self.blaze_service.add_already_present_samples_to_existing_collection(
+            [sample_fhir_id1], collection_fhir_id)
+        self.assertTrue(updated)
+        deleted = self.blaze_service.delete_sample(sample_fhir_id1)
+        self.assertTrue(deleted)
+

@@ -1,22 +1,20 @@
 from datetime import datetime
-from dateutil import parser as date_parser
 from typing import Self
 
 import fhirclient.models.observation as fhir_observation
 import simple_icd_10 as icd10
+from dateutil import parser as date_parser
 from dateutil.parser import ParserError
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
-from fhirclient.models.fhirdate import FHIRDate
 from fhirclient.models.fhirdatetime import FHIRDateTime
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 
-from src.MIABIS_on_FHIR.util._constants import DEFINITION_BASE_URL
-from src.MIABIS_on_FHIR.util._parsing_util import get_nested_value, parse_reference_id
-from src.MIABIS_on_FHIR.util._util import create_fhir_identifier
 from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from src.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.config import FHIRConfig
+from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_reference_id
+from src.MIABIS_on_FHIR.util.util import create_fhir_identifier
 
 
 class Observation:
