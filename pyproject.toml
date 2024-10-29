@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MIABIS_on_FHIR"
-version = "1.0.0"
+version = "1.1.1dev01"
 description = "Library containing classes for easier handling of data according to the MIABIS on FHIR profile"
 readme = "README.md"
 authors = [{"name" = "Simon Konar", "email" = "simon.konar@gmail.com"}]
@@ -16,13 +16,21 @@ classifiers = [
 keywords = ["MIABIS", "FHIR", "model" , "profile", "data", "handling"]
 dependencies = [
     "simple-icd-10 >= 2.0.0",
-    "fhirclient >= 4.2.1"
+    "fhirclient >= 4.2.1",
+    "requests >= 2.32",
+    "python-dateutil >= 2.9.0"
+
 ]
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
- test=["requests >= 2.32.0"]
+ test=["pytest >= 8.3.0"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
 
 
 [tool.setuptools.packages.find]
+where = ["src"]
+include = ["MIABIS_on_FHIR*", "blaze_client*"]
 exclude =["test*"]
