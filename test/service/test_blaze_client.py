@@ -3,24 +3,22 @@ import unittest
 
 import pytest as pytest
 import requests.exceptions
-from fhirclient.models.bundle import Bundle, BundleEntry, BundleEntryRequest
-from fhirclient.models.patient import Patient
 from requests.exceptions import HTTPError
 
-from src.MIABIS_on_FHIR.biobank import Biobank
-from src.MIABIS_on_FHIR.collection import Collection
-from src.MIABIS_on_FHIR.collection_organization import CollectionOrganization
-from src.MIABIS_on_FHIR.condition import Condition
-from src.MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
-from src.MIABIS_on_FHIR.gender import Gender
-from src.MIABIS_on_FHIR.network import Network
-from src.MIABIS_on_FHIR.network_organization import NetworkOrganization
-from src.MIABIS_on_FHIR.observation import Observation
-from src.MIABIS_on_FHIR.sample import Sample
-from src.MIABIS_on_FHIR.sample_donor import SampleDonor
-from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
-from src.blaze_client.NonExistentResourceException import NonExistentResourceException
-from src.blaze_client.blaze_client import BlazeClient
+from miabis_model import Biobank
+from miabis_model import Collection
+from miabis_model.collection_organization import CollectionOrganization
+from miabis_model import Condition
+from miabis_model import DiagnosisReport
+from miabis_model import Gender
+from miabis_model import Network
+from miabis_model import NetworkOrganization
+from miabis_model.observation import Observation
+from miabis_model import Sample
+from miabis_model import SampleDonor
+from miabis_model import StorageTemperature
+from blaze_client import NonExistentResourceException
+from blaze_client.blaze_client import BlazeClient
 
 
 class TestBlazeService(unittest.TestCase):

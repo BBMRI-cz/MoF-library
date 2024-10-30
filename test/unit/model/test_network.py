@@ -1,6 +1,6 @@
 import unittest
 
-from src.MIABIS_on_FHIR.network import Network
+from miabis_model import Network
 
 
 class TestNetwork(unittest.TestCase):

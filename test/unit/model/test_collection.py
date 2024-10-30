@@ -2,9 +2,9 @@ import unittest
 
 from fhirclient.models.group import Group
 
-from src.MIABIS_on_FHIR.collection import Collection
-from src.MIABIS_on_FHIR.gender import Gender
-from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
+from miabis_model import Collection
+from miabis_model import Gender
+from miabis_model import StorageTemperature
 
 
 class TestCollection(unittest.TestCase):

@@ -3,19 +3,19 @@ from fhirclient.models.bundle import Bundle, BundleEntry, BundleEntryRequest
 from requests import Response
 from requests.adapters import HTTPAdapter, Retry
 
-from src.MIABIS_on_FHIR.biobank import Biobank
-from src.MIABIS_on_FHIR.collection import Collection
-from src.MIABIS_on_FHIR.collection_organization import CollectionOrganization
-from src.MIABIS_on_FHIR.condition import Condition
-from src.MIABIS_on_FHIR.diagnosis_report import DiagnosisReport
-from src.MIABIS_on_FHIR.network import Network
-from src.MIABIS_on_FHIR.network_organization import NetworkOrganization
-from src.MIABIS_on_FHIR.observation import Observation
-from src.MIABIS_on_FHIR.sample import Sample
-from src.MIABIS_on_FHIR.sample_donor import SampleDonor
-from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_reference_id, \
+from miabis_model.biobank import Biobank
+from miabis_model.collection import Collection
+from miabis_model.collection_organization import CollectionOrganization
+from miabis_model.condition import Condition
+from miabis_model.diagnosis_report import DiagnosisReport
+from miabis_model.network import Network
+from miabis_model.network_organization import NetworkOrganization
+from miabis_model.observation import Observation
+from miabis_model.sample import Sample
+from miabis_model.sample_donor import SampleDonor
+from miabis_model.util.parsing_util import get_nested_value, parse_reference_id, \
     get_material_type_from_detailed_material_type
-from src.blaze_client.NonExistentResourceException import NonExistentResourceException
+from blaze_client.NonExistentResourceException import NonExistentResourceException
 
 
 class BlazeClient:

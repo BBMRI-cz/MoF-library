@@ -9,13 +9,13 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
-from src.MIABIS_on_FHIR.gender import Gender
-from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
-from src.MIABIS_on_FHIR.util.config import FHIRConfig
-from src.MIABIS_on_FHIR.util.constants import COLLECTION_INCLUSION_CRITERIA, COLLECTION_MATERIAL_TYPE_CODES
-from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_reference_id
-from src.MIABIS_on_FHIR.util.util import create_fhir_identifier, create_integer_extension, \
+from miabis_model.gender import Gender
+from miabis_model.incorrect_json_format import IncorrectJsonFormatException
+from miabis_model.storage_temperature import StorageTemperature
+from miabis_model.util.config import FHIRConfig
+from miabis_model.util.constants import COLLECTION_INCLUSION_CRITERIA, COLLECTION_MATERIAL_TYPE_CODES
+from miabis_model.util.parsing_util import get_nested_value, parse_reference_id
+from miabis_model.util.util import create_fhir_identifier, create_integer_extension, \
     create_codeable_concept_extension, \
     create_codeable_concept
 
