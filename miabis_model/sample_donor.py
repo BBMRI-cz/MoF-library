@@ -6,12 +6,12 @@ from fhirclient.models.fhirdate import FHIRDate
 from fhirclient.models.meta import Meta
 from fhirclient.models.patient import Patient
 
-from src.MIABIS_on_FHIR.gender import Gender
-from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from src.MIABIS_on_FHIR.util.config import FHIRConfig
-from src.MIABIS_on_FHIR.util.constants import DONOR_DATASET_TYPE
-from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value
-from src.MIABIS_on_FHIR.util.util import create_fhir_identifier, create_codeable_concept_extension
+from miabis_model.gender import Gender
+from miabis_model.incorrect_json_format import IncorrectJsonFormatException
+from miabis_model.util.config import FHIRConfig
+from miabis_model.util.constants import DONOR_DATASET_TYPE
+from miabis_model.util.parsing_util import get_nested_value
+from miabis_model.util.util import create_fhir_identifier, create_codeable_concept_extension
 
 
 class SampleDonor:

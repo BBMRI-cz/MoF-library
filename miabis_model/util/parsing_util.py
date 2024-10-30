@@ -1,7 +1,7 @@
 from dateutil import parser as date_parser
 from datetime import date
 
-from src.MIABIS_on_FHIR.util.constants import DETAILED_MATERIAL_TYPE_TO_COLLECTION_MATERIAL_TYPE_MAP
+from miabis_model.util.constants import DETAILED_MATERIAL_TYPE_TO_COLLECTION_MATERIAL_TYPE_MAP
 
 
 def get_nested_value(data: dict, keys: list):

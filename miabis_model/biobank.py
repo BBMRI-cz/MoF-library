@@ -3,13 +3,13 @@ from typing import Self
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
-from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from src.MIABIS_on_FHIR.util.config import FHIRConfig
-from src.MIABIS_on_FHIR.util.constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
+from miabis_model.incorrect_json_format import IncorrectJsonFormatException
+from miabis_model.util.config import FHIRConfig
+from miabis_model.util.constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
     BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
     BIOBANK_ORGANISATIONAL_CAPABILITIES, DEFINITION_BASE_URL
-from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_contact
-from src.MIABIS_on_FHIR.util.util import create_fhir_identifier, create_contact, create_country_of_residence, \
+from miabis_model.util.parsing_util import get_nested_value, parse_contact
+from miabis_model.util.util import create_fhir_identifier, create_contact, create_country_of_residence, \
     create_codeable_concept_extension, create_string_extension
 
 

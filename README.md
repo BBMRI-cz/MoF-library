@@ -14,8 +14,8 @@ The MIABIS on FHIR profile full specification along with the guide is available 
 
 ## Modules
 
-### 1. `MIABIS_on_FHIR`
-The `MIABIS_on_FHIR` module includes a set of classes to help developers:
+### 1. `miabis_model`
+The `miabis_model` module includes a set of classes to help developers:
 - **Create** MIABIS on FHIR resources.
 - **Read** and **validate** these resources.
 - **Convert** resources to and from JSON format.
@@ -37,14 +37,14 @@ This package is ideal for developers looking to work with MIABIS on FHIR resourc
 
 ## Installation
 ```bash 
-pip install MIABIS_on_FHIR
+pip install miabis_model
 ```
 ## How to use
 Here is how you can create a MIABIS on FHIR sample resource:
 
 ```python
-from MIABIS_on_FHIR import Sample
-from MIABIS_on_FHIR import StorageTemperature
+from miabis_model import Sample
+from miabis_model import StorageTemperature
 
 sample = Sample("sampleId", "donorId", "Urine", storage_temperature=StorageTemperature.TEMPERATURE_ROOM,
                 use_restrictions="No restrictions")
@@ -58,12 +58,12 @@ Here is an example on how to communicate with blaze server via the BlazeClient:
 
 ```python
 import datetime
-from MIABIS_on_FHIR import Gender
+from miabis_model import Gender
 from blaze_client import BlazeClient
-from MIABIS_on_FHIR import SampleDonor
+from miabis_model import SampleDonor
 
-client = BlazeClient("example_url","username","password")
+client = BlazeClient("example_url", "username", "password")
 
-donor = SampleDonor("donorId", Gender.MALE, birth_date=datetime.datetime(year=2000,month=12,day=12))
+donor = SampleDonor("donorId", Gender.MALE, birth_date=datetime.datetime(year=2000, month=12, day=12))
 donor_fhir_id = client.upload_donor(donor)
 ```

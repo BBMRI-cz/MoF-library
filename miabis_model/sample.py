@@ -9,12 +9,12 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
-from src.MIABIS_on_FHIR.incorrect_json_format import IncorrectJsonFormatException
-from src.MIABIS_on_FHIR.storage_temperature import StorageTemperature
-from src.MIABIS_on_FHIR.util.config import FHIRConfig
-from src.MIABIS_on_FHIR.util.constants import DETAILED_MATERIAL_TYPE_CODES
-from src.MIABIS_on_FHIR.util.parsing_util import get_nested_value, parse_reference_id
-from src.MIABIS_on_FHIR.util.util import create_fhir_identifier, create_codeable_concept, \
+from miabis_model.incorrect_json_format import IncorrectJsonFormatException
+from miabis_model.storage_temperature import StorageTemperature
+from miabis_model.util.config import FHIRConfig
+from miabis_model.util.constants import DETAILED_MATERIAL_TYPE_CODES
+from miabis_model.util.parsing_util import get_nested_value, parse_reference_id
+from miabis_model.util.util import create_fhir_identifier, create_codeable_concept, \
     create_codeable_concept_extension
 
 

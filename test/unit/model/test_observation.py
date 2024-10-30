@@ -1,7 +1,7 @@
 import datetime
 import unittest
 
-from src.MIABIS_on_FHIR.observation import Observation
+from miabis_model.observation import Observation
 
 
 class TestObservation(unittest.TestCase):

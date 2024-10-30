@@ -1,8 +1,8 @@
 import unittest
 from datetime import datetime
 
-from src.MIABIS_on_FHIR.sample_donor import SampleDonor
-from src.MIABIS_on_FHIR.gender import Gender
+from miabis_model import SampleDonor
+from miabis_model import Gender
 
 
 class TestSampleDonor(unittest.TestCase):
