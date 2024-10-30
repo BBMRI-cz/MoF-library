@@ -43,8 +43,8 @@ pip install MIABIS_on_FHIR
 Here is how you can create a MIABIS on FHIR sample resource:
 
 ```python
-from src.MIABIS_on_FHIR import Sample
-from src.MIABIS_on_FHIR import StorageTemperature
+from MIABIS_on_FHIR import Sample
+from MIABIS_on_FHIR import StorageTemperature
 
 sample = Sample("sampleId", "donorId", "Urine", storage_temperature=StorageTemperature.TEMPERATURE_ROOM,
                 use_restrictions="No restrictions")
@@ -58,9 +58,9 @@ Here is an example on how to communicate with blaze server via the BlazeClient:
 
 ```python
 import datetime
-from src.MIABIS_on_FHIR import Gender
-from src.blaze_client import BlazeClient
-from src.MIABIS_on_FHIR import SampleDonor
+from MIABIS_on_FHIR import Gender
+from blaze_client import BlazeClient
+from MIABIS_on_FHIR import SampleDonor
 
 client = BlazeClient("example_url","username","password")
 
