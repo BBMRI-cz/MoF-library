@@ -36,6 +36,8 @@ class BlazeClient:
                         status_forcelist=[500, 502, 503, 504])
         session = requests.Session()
         session.mount('http://', HTTPAdapter(max_retries=retries))
+        header = {"Prefer": "handling=strict"}
+        session.headers.update(header)
         session.auth = (blaze_username, blaze_password)
         self._session = session
 
