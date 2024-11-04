@@ -673,9 +673,6 @@ class TestBlazeService(unittest.TestCase):
         self.blaze_service.upload_collection_organization(self.example_collection_org)
         collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
         self.blaze_service.upload_network(self.example_network)
-        # sample_fhir_id = self.blaze_service.get_fhir_id("Specimen", "sampleId")
-        # sample_json = self.blaze_service.get_fhir_resource_as_json("Specimen", sample_fhir_id)
-        # sample = Sample.from_json(sample_json, "donorId")
         updated = self.blaze_service.add_already_present_samples_to_existing_collection(
             [sample_fhir_id1, sample_fhir_id2], collection_fhir_id)
         self.assertTrue(updated)
