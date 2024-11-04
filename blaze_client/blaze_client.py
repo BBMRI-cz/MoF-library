@@ -1,3 +1,5 @@
+from typing import Generator, Any
+
 import requests
 from fhirclient.models.bundle import Bundle, BundleEntry, BundleEntryRequest
 from requests import Response
@@ -145,6 +147,14 @@ class BlazeClient:
             diagnosis_report_fhir_id = get_nested_value(entry, ["resource", "id"])
             diagnosis_report_fhir_ids.append(diagnosis_report_fhir_id)
         return diagnosis_report_fhir_ids
+
+    def get_condition_by_patient_fhir_id(self, patient_fhir_id: str):
+        response = self._session.get(f"{self._blaze_url}/Condition?subject={patient_fhir_id}")
+        self.__raise_for_status_extract_diagnostics_message(response)
+        response_json = response.json()
+        if response_json["total"] == 0:
+            return None
+        return get_nested_value(response_json, ["entry", 0, "resource", "id"])
 
     def update_fhir_resource(self, resource_type: str, resource_fhir_id: str, resource_json: dict) -> bool:
         """Update a FHIR resource in blaze.
@@ -596,12 +606,15 @@ class BlazeClient:
         :raises NonExistentResourceException: if the resource cannot be found
         :return: Bool indicating outcome of this operation"""
         collection = self.build_collection_from_json(collection_fhir_id)
-        samples = [self.build_sample_from_json(sample_fhir_id) for sample_fhir_id in sample_fhir_ids]
-        collection = self.__update_collection_characteristics_from_samples(samples, collection)
+        sample_generator_for_characteristics = (self.build_sample_from_json(sample_fhir_id) for sample_fhir_id in
+                                                sample_fhir_ids)
+
+        collection = self.__update_collection_characteristics_from_samples(sample_generator_for_characteristics,
+                                                                           collection)
         already_present_samples_set = set(collection.sample_fhir_ids)
-        for sample in samples:
-            if sample.sample_fhir_id not in already_present_samples_set:
-                already_present_samples_set.add(sample.sample_fhir_id)
+        for sample_fhir_id in sample_fhir_ids:
+            if sample_fhir_id not in already_present_samples_set:
+                already_present_samples_set.add(sample_fhir_id)
         collection._sample_fhir_ids = list(already_present_samples_set)
         collection = collection.add_fhir_id_to_collection(collection.to_fhir())
         return self.update_fhir_resource("Group", collection_fhir_id, collection.as_json())
@@ -615,7 +628,7 @@ class BlazeClient:
         :return: Bool indicating if the collection was updated or not"""
         collection = self.build_collection_from_json(collection_fhir_id)
         sample_fhir_ids = collection.sample_fhir_ids
-        present_samples = [self.build_sample_from_json(sample_fhir_id) for sample_fhir_id in collection.sample_fhir_ids]
+        present_samples = (self.build_sample_from_json(sample_fhir_id) for sample_fhir_id in collection.sample_fhir_ids)
         collection._sample_fhir_ids = []
         collection.age_range_low = 0
         collection.age_range_high = 0
@@ -629,7 +642,7 @@ class BlazeClient:
         collection_fhir = collection.add_fhir_id_to_collection(collection.to_fhir())
         return self.update_fhir_resource("Group", collection.collection_fhir_id, collection_fhir.as_json())
 
-    def __update_collection_characteristics_from_samples(self, samples: list[Sample],
+    def __update_collection_characteristics_from_samples(self, samples: Generator[Sample, Any, None],
                                                          collection: Collection) -> Collection:
         """update the characteristics for collection with new values from the samples.
         :param samples: the samples to calculate the characteristics from
@@ -638,8 +651,8 @@ class BlazeClient:
         :raises HTTPError: if the request to blaze fails
         :raises NonExistentResourceException: if the resource cannot be found
         """
-        already_present_samples = [self.build_sample_from_json(sample_fhir_id) for sample_fhir_id in
-                                   collection.sample_fhir_ids]
+        already_present_samples = (self.build_sample_from_json(sample_fhir_id) for sample_fhir_id in
+                                   collection.sample_fhir_ids)
         donor_fhir_ids = set([sample.subject_fhir_id for sample in already_present_samples])
         count_of_new_subjects = 0
 
@@ -652,13 +665,14 @@ class BlazeClient:
             sample_material_type = get_material_type_from_detailed_material_type(sample.material_type)
             if donor.gender not in collection.genders:
                 collection.genders.append(donor.gender)
-            if sample.storage_temperature not in collection.storage_temperatures:
+            if sample.storage_temperature is not None and \
+                    sample.storage_temperature not in collection.storage_temperatures:
                 collection.storage_temperatures.append(sample.storage_temperature)
-            if sample_material_type not in collection.material_types:
+            if sample_material_type is not None and sample_material_type not in collection.material_types:
                 collection.material_types.append(sample_material_type)
             sample_diagnoses = self.__get_diagnoses_of_sample(sample_fhir_id)
             for diagnosis in sample_diagnoses:
-                if diagnosis not in collection.diagnoses:
+                if diagnosis is not None and diagnosis not in collection.diagnoses:
                     collection.diagnoses.append(diagnosis)
             ages_at_diagnosis = self.__get_age_at_the_time_of_diagnosis(sample_fhir_id, donor.donor_fhir_id)
             for age in ages_at_diagnosis:
