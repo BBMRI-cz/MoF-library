@@ -230,7 +230,7 @@ class Collection:
             characteristics = cls._get_characteristics(collection_json["characteristic"])
             managing_collection_fhir_id = parse_reference_id(
                 get_nested_value(collection_json, ["managingEntity", "reference"]))
-            extensions = cls._get_extensions(collection_json["extension"])
+            extensions = cls._get_extensions(collection_json.get("extension", []))
             instance = cls(identifier, name, managing_collection_organization_id, characteristics["sex"],
                            characteristics["material_type"], characteristics["age_range_low"],
                            characteristics["age_range_high"], characteristics["storage_temperature"],
