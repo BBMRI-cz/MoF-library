@@ -48,8 +48,8 @@ class TestBlazeService(unittest.TestCase):
                                                     "description",
                                                     "LifeStyle", "Human", "Environment", ["CaseControl"],
                                                     ["CommercialUse"], ["publication"])
-    example_collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"],
-                                    inclusion_criteria=["HealthStatus"])
+    example_collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"],)
+                                    # inclusion_criteria=["HealthStatus"])
 
     example_network_org = NetworkOrganization("networkOrgId", "networkOrgName", "biobankId", "contactName",
                                               "contactSurname", "contactEmail", "country", ["Charter"],
@@ -101,6 +101,15 @@ class TestBlazeService(unittest.TestCase):
 
     def test_is_resource_present_in_blaze_false(self):
         self.assertFalse(self.blaze_service.is_resource_present_in_blaze("Patient", "nonexistentId"))
+
+    def test_is_resource_present_in_blaze_with_search_param_true(self):
+        self.blaze_service.upload_donor(self.example_donor)
+        self.assertTrue(
+            self.blaze_service.is_resource_present_in_blaze("Patient", self.example_donor.identifier, "identifier"))
+
+    def test_is_resource_present_in_blaze_with_search_param_false(self):
+        self.assertFalse(
+            self.blaze_service.is_resource_present_in_blaze("Patient", "nonexistentIdentifier", "identifier"))
 
     def test_get_fhir_resource_as_json_existing(self):
         donor_fhir_id = self.blaze_service.upload_donor(self.example_donor)
@@ -769,4 +778,3 @@ class TestBlazeService(unittest.TestCase):
         self.assertTrue(updated)
         deleted = self.blaze_service.delete_sample(sample_fhir_id1)
         self.assertTrue(deleted)
-
