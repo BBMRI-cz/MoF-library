@@ -1,7 +1,9 @@
 """Module for handling SampleCollection operations"""
+import uuid
 from typing import Self
 
 import simple_icd_10 as icd10
+from fhirclient.models.bundle import Bundle
 from fhirclient.models.extension import Extension
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.group import Group, GroupCharacteristic
@@ -9,6 +11,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.quantity import Quantity
 from fhirclient.models.range import Range
 
+from miabis_model.collection_organization import _CollectionOrganization
 from miabis_model.gender import Gender
 from miabis_model.incorrect_json_format import IncorrectJsonFormatException
 from miabis_model.storage_temperature import StorageTemperature
@@ -17,20 +20,35 @@ from miabis_model.util.constants import COLLECTION_INCLUSION_CRITERIA, COLLECTIO
 from miabis_model.util.parsing_util import get_nested_value, parse_reference_id
 from miabis_model.util.util import create_fhir_identifier, create_integer_extension, \
     create_codeable_concept_extension, \
-    create_codeable_concept
+    create_codeable_concept, create_post_bundle_entry, create_bundle
 
 
 class Collection:
     """Sample Collection represents a set of samples with at least one common characteristic."""
 
     # TODO age range units
-    def __init__(self, identifier: str, name: str, managing_collection_org_id: str, genders: list[Gender],
+    def __init__(self, identifier: str, name: str, managing_biobank_id: str, contact_name: str, contact_surname: str,
+                 contact_email: str,
+                 country: str, genders: list[Gender],
                  material_types: list[str], age_range_low: int = None, age_range_high: int = None,
                  storage_temperatures: list[StorageTemperature] = None, diagnoses: list[str] = None,
-                 number_of_subjects: int = None, inclusion_criteria: list[str] = None, sample_ids: list[str] = None):
+                 number_of_subjects: int = None, inclusion_criteria: list[str] = None, sample_ids: list[str] = None,
+                 alias: str = None,
+                 url: str = None,
+                 description: str = None,
+                 dataset_type: str = None,
+                 sample_source: str = None,
+                 sample_collection_setting: str = None, collection_design: list[str] = None,
+                 use_and_access_conditions: list[str] = None,
+                 publications: list[str] = None
+                 ):
         """
         :param identifier: Collection identifier same format as in the BBMRI-ERIC directory.
         :param name: Name of the collection.
+        :param managing_biobank_id: Identifier of the biobank managing the collection.
+        :param contact_name: Name of the contact person for the collection.
+        :param contact_surname: Surname of the contact person for the collection.
+        :param contact_email: Email of the contact person for the collection.
         :param description: Description of the collection.
         :param managing_biobank_id: Identifier of the collection-organization resource.
         :param age_range_low: Lower bound of the age range of the subjects in the collection.
@@ -43,10 +61,20 @@ class Collection:
         :param number_of_subjects: Number of subjects in the collection.
         :param inclusion_criteria: Inclusion criteria for the subjects in the collection.
         :param sample_ids: List of sample identifiers belonging to the collection.
+        :param alias: Alias of the collection.
+        :param url: URL of the collection.
+        :param description: Description of the collection.
+        :param dataset_type: Type of the dataset. Available values in the constants.py file
+        :param sample_source: Source of the samples. Available values in the constants.py file
+        :param sample_collection_setting: Setting of the sample collection. Available values in the constants.py file
+        :param collection_design: Design of the collection. Available values in the constants.py file
+        :param use_and_access_conditions: Conditions for use and access of the collection.
+         Available values in the constants.py file
+        :param publications: Publications related to the collection.
         """
         self.identifier: str = identifier
         self.name: str = name
-        self.managing_collection_org_id: str = managing_collection_org_id
+        self.managing_collection_org_id: str = identifier
         self.age_range_low: int = age_range_low
         self.age_range_high: int = age_range_high
         self.genders = genders
@@ -62,9 +90,77 @@ class Collection:
         self.number_of_subjects = number_of_subjects
         self.sample_ids = sample_ids
         self.inclusion_criteria = inclusion_criteria
+
+        self._collection_org = _CollectionOrganization(identifier=identifier, name=name,
+                                                       managing_biobank_id=managing_biobank_id,
+                                                       contact_name=contact_name, contact_surname=contact_surname,
+                                                       contact_email=contact_email, country=country, alias=alias,
+                                                       url=url, description=description, dataset_type=dataset_type,
+                                                       sample_source=sample_source,
+                                                       sample_collection_setting=sample_collection_setting,
+                                                       collection_design=collection_design,
+                                                       use_and_access_conditions=use_and_access_conditions,
+                                                       publications=publications)
+
         self._collection_fhir_id = None
         self._managing_collection_org_fhir_id = None
         self._sample_fhir_ids = None
+
+    @property
+    def managing_biobank_id(self):
+        return self._collection_org.managing_biobank_id
+
+    @property
+    def publications(self) -> list[str]:
+        return self._collection_org.publications
+
+    @property
+    def use_and_access_conditions(self) -> list[str]:
+        return self._collection_org.use_and_access_conditions
+
+    @property
+    def collection_design(self) -> list[str]:
+        return self._collection_org.collection_design
+
+    @property
+    def sample_collection_setting(self) -> str:
+        return self._collection_org.sample_collection_setting
+
+    @property
+    def sample_source(self) -> str:
+        return self._collection_org.sample_source
+
+    @property
+    def dataset_type(self) -> str:
+        return self._collection_org.dataset_type
+
+    @property
+    def description(self) -> str:
+        return self._collection_org.description
+
+    @property
+    def url(self) -> str:
+        return self._collection_org.url
+
+    @property
+    def alias(self) -> str:
+        return self._collection_org.alias
+
+    @property
+    def country(self) -> str:
+        return self._collection_org.country
+
+    @property
+    def contact_email(self) -> str:
+        return self._collection_org.contact_email
+
+    @property
+    def contact_surname(self) -> str:
+        return self._collection_org.contact_surname
+
+    @property
+    def contact_name(self) -> str:
+        return self._collection_org.contact_name
 
     @property
     def identifier(self) -> str:
@@ -215,11 +311,12 @@ class Collection:
         return self._sample_fhir_ids
 
     @classmethod
-    def from_json(cls, collection_json: dict, managing_collection_organization_id: str, sample_ids: list[str]) -> Self:
+    def from_json(cls, collection_json: dict, collection_org_json: dict, managing_biobank_id: str,
+                  sample_ids: list[str]) -> Self:
         """
         Parse a JSON object into a MoFCollection object.
         :param collection_json: json object representing the collection.
-        :param managing_collection_organization_id: id of collection-organization usually given by the institution (not a FHIR id!)
+        :param managing_biobank_id: id of biobank usually given by the institution (not a FHIR id!)
         :param sample_ids: list of sample ids belonging to the collection, given by the institution (not FHIR ids!)
         :return: MoFCollection object
         """
@@ -231,14 +328,29 @@ class Collection:
             managing_collection_fhir_id = parse_reference_id(
                 get_nested_value(collection_json, ["managingEntity", "reference"]))
             extensions = cls._get_extensions(collection_json.get("extension", []))
-            instance = cls(identifier, name, managing_collection_organization_id, characteristics["sex"],
-                           characteristics["material_type"], characteristics["age_range_low"],
-                           characteristics["age_range_high"], characteristics["storage_temperature"],
-                           characteristics["diagnosis"], extensions["number_of_subjects"],
-                           extensions["inclusion_criteria"], sample_ids)
+            coll_org_instance = _CollectionOrganization.from_json(collection_org_json, managing_biobank_id)
+            instance = cls(identifier=identifier, name=name, managing_biobank_id=managing_biobank_id,
+                           contact_name=coll_org_instance.contact_name,
+                           contact_surname=coll_org_instance.contact_surname,
+                           contact_email=coll_org_instance.contact_email, country=coll_org_instance.country,
+                           genders=characteristics["sex"], material_types=characteristics["material_type"],
+                           age_range_low=characteristics["age_range_low"],
+                           age_range_high=characteristics["age_range_high"],
+                           storage_temperatures=characteristics["storage_temperature"],
+                           diagnoses=characteristics["diagnosis"],
+                           number_of_subjects=extensions["number_of_subjects"],
+                           inclusion_criteria=extensions["inclusion_criteria"], sample_ids=sample_ids,
+                           alias=coll_org_instance.alias, url=coll_org_instance.url,
+                           description=coll_org_instance.description, dataset_type=coll_org_instance.dataset_type,
+                           sample_source=coll_org_instance.sample_source,
+                           sample_collection_setting=coll_org_instance.sample_collection_setting,
+                           collection_design=coll_org_instance.collection_design,
+                           use_and_access_conditions=coll_org_instance.use_and_access_conditions,
+                           publications=coll_org_instance.publications)
             instance._collection_fhir_id = collection_fhir_id
             instance._managing_collection_org_fhir_id = managing_collection_fhir_id
             instance._sample_fhir_ids = extensions["sample_fhir_ids"]
+            instance._collection_org = coll_org_instance
             return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into MoFCollection")
@@ -392,6 +504,18 @@ class Collection:
                 as the FHIR ID is generated by the server and is not known in advance."""
         collection.id = self.collection_fhir_id
         return collection
+
+    def build_bundle_for_upload(self, biobank_fhir_id: str, sample_fhir_ids: list[str] = None) -> Bundle:
+        temporary_collection_org_id = str(uuid.uuid4())
+        temporary_collection_id = str(uuid.uuid4())
+        collection_org_fhir = self._collection_org.to_fhir(biobank_fhir_id)
+        collection_fhir = self.to_fhir(temporary_collection_org_id, sample_fhir_ids)
+        collection_fhir.managingEntity.reference = temporary_collection_org_id
+        collection_entry = create_post_bundle_entry("Group", collection_fhir, temporary_collection_id)
+        collection_org_entry = create_post_bundle_entry("Organization", collection_org_fhir,
+                                                        temporary_collection_org_id)
+        bundle = create_bundle([collection_entry, collection_org_entry])
+        return bundle
 
     @staticmethod
     def __create_member_extension(sample_fhir_id: str):

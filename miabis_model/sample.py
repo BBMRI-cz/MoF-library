@@ -1,7 +1,9 @@
+import uuid
 from datetime import datetime
 from typing import Self
 
 from fhirclient.models.annotation import Annotation
+from fhirclient.models.bundle import BundleEntry, BundleEntryRequest, Bundle
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.fhirdatetime import FHIRDateTime
@@ -9,13 +11,14 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
+from miabis_model import _Observation, _DiagnosisReport
 from miabis_model.incorrect_json_format import IncorrectJsonFormatException
 from miabis_model.storage_temperature import StorageTemperature
 from miabis_model.util.config import FHIRConfig
 from miabis_model.util.constants import DETAILED_MATERIAL_TYPE_CODES
 from miabis_model.util.parsing_util import get_nested_value, parse_reference_id
 from miabis_model.util.util import create_fhir_identifier, create_codeable_concept, \
-    create_codeable_concept_extension
+    create_codeable_concept_extension, create_post_bundle_entry, create_bundle
 
 
 class Sample:
@@ -23,19 +26,21 @@ class Sample:
 
     def __init__(self, identifier: str, donor_identifier: str, material_type: str, collected_datetime: datetime = None,
                  body_site: str = None, body_site_system: str = None, storage_temperature: StorageTemperature = None,
-                 use_restrictions: str = None):
+                 use_restrictions: str = None,
+                 diagnoses_with_observed_datetime: list[tuple[str, datetime | None]] = None):
         """
         :param identifier: Sample organizational identifier
-        :param donor_id: Donor organizational identifier
+        :param donor_identifier: Donor organizational identifier
         :param material_type: Sample type. E.g. tissue, plasma...
         :param collected_datetime: Date and time of sample collection
         :param body_site: The anatomical location from which the sample was collected
         :param body_site_system: The system to which the body site belongs
         :param storage_temperature: Temperature at which the sample is stored
         :param use_restrictions: Restrictions on the use of the sample
+        :param diagnosis_icd10_codes:  list of icd10 codes of the diagnoses linked to this sample
+        :param diagnoses_observed_datetime:  list of times when the diagnosis was first observed
         """
         self.identifier = identifier
-        # self._donor_identifier = donor_identifier
         self.material_type = material_type
         self.collected_datetime = collected_datetime
         self.donor_identifier = donor_identifier
@@ -43,8 +48,25 @@ class Sample:
         self.body_site_system = body_site_system
         self.storage_temperature = storage_temperature
         self.use_restrictions = use_restrictions
+        self._observations = []
+        if diagnoses_with_observed_datetime is None:
+            diagnoses_with_observed_datetime = []
+        for diagnosis_code, observed_datetime in diagnoses_with_observed_datetime:
+            observation = _Observation(diagnosis_code, identifier, donor_identifier, observed_datetime)
+            self._observations.append(observation)
+        self._diagnosis_report = _DiagnosisReport(self.identifier, donor_identifier)
         self._subject_fhir_id = None
         self._sample_fhir_id = None
+        self._diagnosis_report_fhir_id = None
+        self._observation_fhir_ids = None
+
+    @property
+    def diagnoses_icd10_code_with_observed_datetime(self) -> list[tuple[str, datetime | None]]:
+        diagnoses_icd10_code_with_observed_datetime = []
+        for observation in self._observations:
+            diagnoses_icd10_code_with_observed_datetime.append(
+                (observation.icd10_code, observation.diagnosis_observed_datetime))
+        return diagnoses_icd10_code_with_observed_datetime
 
     @property
     def identifier(self) -> str:
@@ -146,7 +168,8 @@ class Sample:
         return self._sample_fhir_id
 
     @classmethod
-    def from_json(cls, sample_json: dict, donor_identifier: str) -> Self:
+    def from_json(cls, sample_json: dict, observation_jsons: list[dict], diagnosis_report_json: dict,
+                  donor_identifier: str) -> Self:
         """
         Build MoFSample from FHIR json representation
         :param sample_json: json the sample should be build from
@@ -162,8 +185,17 @@ class Sample:
             body_site_system = get_nested_value(sample_json, ["collection", "bodySite", "coding", 0, "system"])
             storage_temperature = cls._parse_storage_temperature(sample_json)
             use_restrictions = get_nested_value(sample_json, ["note", 0, "text"])
-            instance = cls(identifier, donor_identifier, material_type, collected_datetime, body_site, body_site_system,
-                           storage_temperature, use_restrictions)
+            observation_instances = []
+            for observation_json in observation_jsons:
+                observation_instances.append(_Observation.from_json(observation_json, donor_identifier, identifier))
+            diagnosis_report_instance = _DiagnosisReport.from_json(diagnosis_report_json, identifier, donor_identifier)
+            diagnosis_report_json = _DiagnosisReport.from_json(diagnosis_report_json, identifier, donor_identifier)
+            instance = cls(identifier=identifier, donor_identifier=donor_identifier, material_type=material_type,
+                           collected_datetime=collected_datetime, body_site=body_site,
+                           body_site_system=body_site_system,
+                           storage_temperature=storage_temperature, use_restrictions=use_restrictions)
+            instance._observations = observation_instances
+            instance._diagnosis_report = diagnosis_report_instance
             instance._subject_fhir_id = parse_reference_id(get_nested_value(sample_json, ["subject", "reference"]))
             instance._sample_fhir_id = sample_fhir_id
             return instance
@@ -190,7 +222,6 @@ class Sample:
 
     def to_fhir(self, subject_fhir_id: str = None) -> Specimen:
         """return sample representation in FHIR format
-        :param material_type_map: Mapping of material types to FHIR codes
         :param subject_fhir_id: FHIR ID of the subject to which the sample belongs"""
 
         subject_fhir_id = subject_fhir_id or self.subject_fhir_id
@@ -231,6 +262,32 @@ class Sample:
         :param sample: Sample FHIR object"""
         sample.id = self.sample_fhir_id
         return sample
+
+    def build_bundle_for_upload(self, subject_fhir_id: str) -> Bundle:
+        sample_bundle_temporary_id = str(uuid.uuid4())
+        observation_temporary_ids = []
+        diagnosis_report_temporary_id = str(uuid.uuid4())
+        sample_fhir = self.to_fhir(subject_fhir_id)
+        observations_fhir = []
+        for observation in self._observations:
+            observation_temporary_ids.append(str(uuid.uuid4()))
+            observation_fhir = observation.to_fhir(subject_fhir_id, sample_bundle_temporary_id)
+            observation_fhir.specimen.reference = sample_bundle_temporary_id
+            observations_fhir.append(observation_fhir)
+        diagnosis_report_fhir = self._diagnosis_report.to_fhir(sample_bundle_temporary_id, subject_fhir_id,
+                                                               observation_temporary_ids)
+        diagnosis_report_fhir.specimen[0].reference = sample_bundle_temporary_id
+        for i, observation_temporary_id in enumerate(observation_temporary_ids):
+            diagnosis_report_fhir.result[i].reference = observation_temporary_ids[i]
+
+        entries = [create_post_bundle_entry("Specimen", sample_fhir, sample_bundle_temporary_id)]
+        entries.extend(
+            [create_post_bundle_entry("Observation", observation_fhir, observation_temporary_ids[i]) for
+             i, observation_fhir in enumerate(observations_fhir)])
+        entries.append(create_post_bundle_entry("DiagnosticReport", diagnosis_report_fhir,
+                                                diagnosis_report_temporary_id))
+        bundle = create_bundle(entries)
+        return bundle
 
     def __create_body_site(self) -> CodeableConcept:
         """Create body site codeable concept."""

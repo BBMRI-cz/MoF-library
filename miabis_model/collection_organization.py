@@ -15,7 +15,7 @@ from miabis_model.util.util import create_country_of_residence, create_contact, 
     create_string_extension, create_fhir_identifier
 
 
-class CollectionOrganization:
+class _CollectionOrganization:
     """Sample Collection represents a set of samples with at least one common characteristic."""
 
     # TODO age range units

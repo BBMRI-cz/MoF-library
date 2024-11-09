@@ -12,13 +12,13 @@ from miabis_model.util.util import create_fhir_identifier, create_contact, creat
     create_codeable_concept_extension, create_string_extension
 
 
-class NetworkOrganization:
+class _NetworkOrganization:
     """Network Organization represent a formal part of a network member,
      like ist name, contact information, url, etc."""
 
-    def __init__(self, identifier: str, name: str, managing_biobank_id: str,
-                 contact_name: str = None, contact_surname: str = None, contact_email: str = None, country: str = None,
-                 common_collaboration_topics: list[str] = None, juristic_person: str = None, description: str = None):
+    def __init__(self, identifier: str, name: str, managing_biobank_id: str, contact_email: str, country: str,
+                 juristic_person: str, contact_name: str = None, contact_surname: str = None,
+                 common_collaboration_topics: list[str] = None, description: str = None):
         """
         :param identifier: network organizational identifier
         :param name: name of the network
@@ -161,9 +161,12 @@ class NetworkOrganization:
             contact = parse_contact(network_json.get("contact", [{}])[0])
             country = get_nested_value(network_json, ["address", 0, "country"])
             parsed_extensions = cls._parse_extensions(network_json.get("extension", []))
-            instance = cls(identifier, name, managing_biobank_id, contact["name"], contact["surname"], contact["email"],
-                           country, parsed_extensions["common_collaboration_topics"],
-                           parsed_extensions["juristic_person"], parsed_extensions["description"])
+            instance = cls(identifier=identifier, name=name, managing_biobank_id=managing_biobank_id,
+                           contact_name=contact["name"],
+                           contact_surname=contact["surname"], contact_email=contact["email"], country=country,
+                           common_collaboration_topics=parsed_extensions["common_collaboration_topics"],
+                           juristic_person=parsed_extensions["juristic_person"],
+                           description=parsed_extensions["description"])
             instance._network_org_fhir_id = network_org_fhir_id
             instance._managing_biobank_fhir_id = managing_biobank_fhir_id
             return instance
@@ -173,9 +176,10 @@ class NetworkOrganization:
     @staticmethod
     def _parse_extensions(extensions: dict) -> dict:
         parsed_extension = {"common_collaboration_topics": [], "juristic_person": None, "description": None}
-        common_coll_topic_extension: str = FHIRConfig.get_extension_url("network_organization","common_collaboration_topics")
-        juristic_person_extension : str = FHIRConfig.get_extension_url("network_organization", "juristic_person")
-        description_extension: str = FHIRConfig.get_extension_url("network_organization","description")
+        common_coll_topic_extension: str = FHIRConfig.get_extension_url("network_organization",
+                                                                        "common_collaboration_topics")
+        juristic_person_extension: str = FHIRConfig.get_extension_url("network_organization", "juristic_person")
+        description_extension: str = FHIRConfig.get_extension_url("network_organization", "description")
         for extension in extensions:
             extension_url = extension["url"]
             if extension_url == common_coll_topic_extension:

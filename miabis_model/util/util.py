@@ -1,4 +1,5 @@
 from fhirclient.models.address import Address
+from fhirclient.models.bundle import BundleEntry, BundleEntryRequest, Bundle
 from fhirclient.models.codeableconcept import CodeableConcept
 from fhirclient.models.coding import Coding
 from fhirclient.models.contactpoint import ContactPoint
@@ -59,3 +60,21 @@ def create_country_of_residence(country: str) -> Address:
     address = Address()
     address.country = country
     return address
+
+
+def create_post_bundle_entry(resource_type: str, resource, temporary_id: str) -> BundleEntry:
+    entry = BundleEntry()
+    entry.request = BundleEntryRequest()
+    entry.fullUrl = temporary_id
+    entry.resource = resource
+    entry.request.method = "POST"
+    entry.request.url = f"/{resource_type}"
+    return entry
+
+
+def create_bundle(entries: list[BundleEntry]) -> Bundle:
+    """Create a bundle used for deleting multiple FHIR resources in a transaction"""
+    bundle = Bundle()
+    bundle.type = "transaction"
+    bundle.entry = entries
+    return bundle

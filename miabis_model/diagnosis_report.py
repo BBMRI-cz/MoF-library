@@ -12,7 +12,7 @@ from miabis_model.util.parsing_util import get_nested_value, parse_reference_id
 from miabis_model.util.util import create_fhir_identifier
 
 
-class DiagnosisReport:
+class _DiagnosisReport:
     """Class representing a diagnosis report in order to link a specimen to a Condition through this diagnosis report.
     as defined by the MIABIS on FHIR profile.
     """

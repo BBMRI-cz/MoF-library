@@ -1,21 +1,27 @@
+import uuid
 from typing import Self
 
+from fhirclient.models.bundle import Bundle
 from fhirclient.models.extension import Extension
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.group import Group
 from fhirclient.models.meta import Meta
 
+from miabis_model.network_organization import _NetworkOrganization
 from miabis_model.incorrect_json_format import IncorrectJsonFormatException
 from miabis_model.util.config import FHIRConfig
 from miabis_model.util.parsing_util import get_nested_value, parse_reference_id
-from miabis_model.util.util import create_fhir_identifier
+from miabis_model.util.util import create_fhir_identifier, create_post_bundle_entry, create_bundle
 
 
 class Network:
     """Class representing a group of interconnected biobanks or collections with defined common governance"""
 
-    def __init__(self, identifier: str, name: str, network_org_id: str, members_collections_ids: list[str] = None,
-                 members_biobanks_ids: list[str] = None):
+    def __init__(self, identifier: str, name: str, managing_biobank_id: str,
+                 contact_email: str, country: str, juristic_person: str,
+                 members_collections_ids: list[str] = None,
+                 members_biobanks_ids: list[str] = None, contact_name: str = None, contact_surname: str = None,
+                 common_collaboration_topics: list[str] = None, description: str = None):
         """
         :param identifier: network organizational identifier
         :param name: name of the network
@@ -26,13 +32,51 @@ class Network:
         """
         self.identifier = identifier
         self.name = name
-        self.managing_network_org_id = network_org_id
+        self.managing_network_org_id = identifier
         self.members_collections_ids = members_collections_ids
         self.members_biobanks_ids = members_biobanks_ids
+        self._network_org = _NetworkOrganization(identifier=identifier, name=name,
+                                                 managing_biobank_id=managing_biobank_id, contact_name=contact_name,
+                                                 contact_surname=contact_surname, contact_email=contact_email,
+                                                 country=country,
+                                                 common_collaboration_topics=common_collaboration_topics,
+                                                 juristic_person=juristic_person, description=description)
         self._network_fhir_id = None
         self._managing_network_org_fhir_id = None
         self._members_biobanks_fhir_ids = None
         self._members_collections_fhir_ids = None
+
+    @property
+    def description(self):
+        return self._network_org.description
+
+    @property
+    def juristic_person(self) -> str:
+        return self._network_org.juristic_person
+
+    @property
+    def common_collaboration_topics(self) -> list[str]:
+        return self._network_org.common_collaboration_topics
+
+    @property
+    def country(self) -> str:
+        return self._network_org.country
+
+    @property
+    def contact_email(self) -> str:
+        return self._network_org.contact_email
+
+    @property
+    def contact_surname(self) -> str:
+        return self._network_org.contact_surname
+
+    @property
+    def contact_name(self) -> str:
+        return self._network_org.contact_name
+
+    @property
+    def managing_biobank_id(self) -> str:
+        return self._network_org.managing_biobank_id
 
     @property
     def identifier(self) -> str:
@@ -107,7 +151,8 @@ class Network:
         return self._members_biobanks_fhir_ids
 
     @classmethod
-    def from_json(cls, network_json: dict, managing_network_org_id: str, member_collection_ids: list[str],
+    def from_json(cls, network_json: dict, network_org_json: dict, managing_biobank_id: str,
+                  member_collection_ids: list[str],
                   member_biobank_ids: list[str]) -> Self:
         try:
             identifier = get_nested_value(network_json, ["identifier", 0, "value"])
@@ -116,9 +161,19 @@ class Network:
             managing_biobank_fhir_id = parse_reference_id(
                 get_nested_value(network_json, ["managingEntity", "reference"]))
             extensions = cls._parse_extensions(network_json.get("extension", []))
-            instance = cls(identifier, name, managing_network_org_id, member_collection_ids, member_biobank_ids)
+            network_org_instance = _NetworkOrganization.from_json(network_org_json, managing_biobank_id)
+            instance = cls(identifier=identifier, name=name, managing_biobank_id=managing_biobank_id,
+                           contact_name=network_org_instance.contact_name,
+                           contact_surname=network_org_instance.contact_surname,
+                           contact_email=network_org_instance.contact_email, country=network_org_instance.country,
+                           juristic_person=network_org_instance.juristic_person,
+                           members_collections_ids=member_collection_ids,
+                           members_biobanks_ids=member_biobank_ids,
+                           common_collaboration_topics=network_org_instance.common_collaboration_topics,
+                           description=network_org_instance.description)
             instance._network_fhir_id = network_fhir_id
             instance._managing_network_org_fhir_id = managing_biobank_fhir_id
+            instance._network_org = network_org_instance
             instance._members_collections_fhir_ids = extensions["member_collection_fhir_ids"]
             instance._members_biobanks_fhir_ids = extensions["member_biobank_fhir_ids"]
             return instance
@@ -160,6 +215,18 @@ class Network:
         for member_biobank_fhir_id in member_biobank_fhir_ids if member_biobank_fhir_ids is not None else []:
             network.extension.append(self.__create_member_extension("Organization", member_biobank_fhir_id))
         return network
+
+    def build_bundle_for_upload(self, managing_biobank_fhir_id: str, member_collection_fhir_ids: list[str] = None,
+                                member_biobank_fhir_ids: list[str] = None) -> Bundle:
+        network_org_temporary_id = str(uuid.uuid4())
+        network_temporary_id = str(uuid.uuid4())
+        network_org_fhir = self._network_org.to_fhir(managing_biobank_fhir_id)
+        network_fhir = self.to_fhir(network_org_temporary_id, member_collection_fhir_ids, member_biobank_fhir_ids)
+        network_fhir.managingEntity.reference = network_org_temporary_id
+        network_entry = create_post_bundle_entry("Group", network_fhir, network_temporary_id)
+        network_org_entry = create_post_bundle_entry("Organization", network_org_fhir, network_org_temporary_id)
+        bundle = create_bundle([network_entry, network_org_entry])
+        return bundle
 
     @staticmethod
     def __create_member_extension(member_type: str, member_fhir_id: str):
