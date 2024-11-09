@@ -69,17 +69,13 @@ class TestBlazeService(unittest.TestCase):
                                                      "description",
                                                      "LifeStyle", "Human", "Environment", ["CaseControl"],
                                                      ["CommercialUse"], ["publication"])
-    # example_collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"],)
-    #                                 # inclusion_criteria=["HealthStatus"])
-    #
+
     example_network_org = _NetworkOrganization(identifier="networkId", name="networkName",
                                                managing_biobank_id="biobankId", contact_email="contactEmail",
                                                contact_surname="contactSurname", contact_name="contactName",
                                                country="country", common_collaboration_topics=["Charter"],
                                                juristic_person="juristicPerson", description="description")
 
-    #
-    # example_network = Network("networkId", "networkName", "networkOrgId", ["collectionId"], ["biobankId"])
 
     @pytest.fixture(autouse=True)
     def run_around_tests(self):
@@ -423,6 +419,16 @@ class TestBlazeService(unittest.TestCase):
     def test_upload_condition_with_nonexistent_donor_raises_nonexistent_exception(self):
         with self.assertRaises(NonExistentResourceException):
             self.blaze_service.upload_condition(self.example_condition)
+
+    def test_get_condition_by_patient_fhir_id_ok(self):
+        donor_fhir_id = self.blaze_service.upload_donor(self.example_donor)
+        condition_fhir_id = self.blaze_service.upload_condition(self.example_condition)
+        self.assertEqual(condition_fhir_id, self.blaze_service.get_condition_by_patient_fhir_id(donor_fhir_id))
+
+    def test_get_condition_by_patient_fhir_id_false(self):
+        donor_fhir_id = self.blaze_service.upload_donor(self.example_donor)
+        condition_fhir_id = self.blaze_service.upload_condition(self.example_condition)
+        self.assertIsNone(self.blaze_service.get_condition_by_patient_fhir_id("nonexistentId"))
 
     def test_build_condition_from_json(self):
         donor_id = self.blaze_service.upload_donor(self.example_donor)
