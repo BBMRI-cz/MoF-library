@@ -2,210 +2,268 @@ import unittest
 
 from fhirclient.models.group import Group
 
-from miabis_model import Collection
+from miabis_model import Collection, _CollectionOrganization
 from miabis_model import Gender
 from miabis_model import StorageTemperature
 
 
 class TestCollection(unittest.TestCase):
     def test_collection_init(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"], age_range_low=10, age_range_high=100,
+                                storage_temperatures=[StorageTemperature.TEMPERATURE_LN], diagnoses=["C51"],
+                                number_of_subjects=10, inclusion_criteria=["Sex"], sample_ids=["sampleId"],
+                                alias="collectionAlias", url="urlExample.com", description="description",
+                                dataset_type="LifeStyle", sample_source="Human",
+                                sample_collection_setting="Environment", collection_design=["CaseControl"],
+                                use_and_access_conditions=["CommercialUse"], publications=["publication"])
         self.assertIsInstance(collection, Collection)
         self.assertEqual("collectionId", collection.identifier)
         self.assertEqual("collectionName", collection.name)
-        self.assertEqual("collectionOrgId", collection.managing_collection_org_id)
-        self.assertEqual(0, collection.age_range_low)
-        self.assertEqual(100, collection.age_range_high)
+        self.assertEqual("biobankId", collection.managing_biobank_id)
+        self.assertEqual("collectionId", collection.managing_collection_org_id)
+        self.assertEqual("contactName", collection.contact_name)
+        self.assertEqual("contactSurname", collection.contact_surname)
+        self.assertEqual("contactEmail", collection.contact_email)
+        self.assertEqual("CZ", collection.country)
         self.assertEqual([Gender.MALE], collection.genders)
+        self.assertEqual(["Urine"], collection.material_types)
+        self.assertEqual(10, collection.age_range_low)
+        self.assertEqual(100, collection.age_range_high)
         self.assertEqual([StorageTemperature.TEMPERATURE_LN], collection.storage_temperatures)
-        self.assertEqual(["DNA"], collection.material_types)
+        self.assertEqual(["C51"], collection.diagnoses)
+        self.assertEqual(10, collection.number_of_subjects)
+        self.assertEqual(["Sex"], collection.inclusion_criteria)
+        self.assertEqual(["sampleId"], collection.sample_ids)
+        self.assertEqual("collectionAlias", collection.alias)
+        self.assertEqual("urlExample.com", collection.url)
+        self.assertEqual("description", collection.description)
+        self.assertEqual("LifeStyle", collection.dataset_type)
+        self.assertEqual("Human", collection.sample_source)
+        self.assertEqual("Environment", collection.sample_collection_setting)
+        self.assertEqual(["CaseControl"], collection.collection_design)
+        self.assertEqual(["CommercialUse"], collection.use_and_access_conditions)
+        self.assertEqual(["publication"], collection.publications)
 
     def test_collection_invalid_identifier_type_innit(self):
         with self.assertRaises(TypeError):
-            collection = Collection(37, "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                    [StorageTemperature.TEMPERATURE_LN])
+            collection = Collection(identifier=37, name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"])
 
     def test_collection_invalid_name_type_innit(self):
         with self.assertRaises(TypeError):
-            collection = Collection("collectionId", 22, "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                    [StorageTemperature.TEMPERATURE_LN])
+            collection = Collection(identifier="collectionId", name=37, managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"])
 
     def test_collection_invalid_managing_biobank_id_type_innit(self):
         with self.assertRaises(TypeError):
-            collection = Collection("collectionId", "collectionName", 22, [Gender.MALE], ["DNA"], 0, 100,
-                                    [StorageTemperature.TEMPERATURE_LN])
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id=37,
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"])
 
     def test_collection_invalid_age_range_low_type_innit(self):
         with self.assertRaises(TypeError):
-            collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], "0",
-                                    100,
-                                    [StorageTemperature.TEMPERATURE_LN])
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"], age_range_low="Bad")
 
     def test_collection_invalid_age_range_high_type_innit(self):
         with self.assertRaises(TypeError):
-            collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0,
-                                    "100",
-                                    [StorageTemperature.TEMPERATURE_LN])
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"], age_range_high="Bad")
 
     def test_collection_invalid_gender_type_init(self):
         with self.assertRaises(TypeError):
-            collection = Collection("collectionId", "collectionName", "collectionOrgId", "male", ["DNA"], 0, 100,
-                                    [StorageTemperature.TEMPERATURE_LN])
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders="Bad",
+                                    material_types=["Urine"])
 
     def test_collection_invalid_storage_temperature_type_init(self):
         with self.assertRaises(TypeError):
-            collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                    "storageTemp")
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"], storage_temperatures="Bad")
 
     def test_collection_invalid_material_type_type_init(self):
         with self.assertRaises(ValueError):
-            collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], [2], 0, 100,
-                                    [StorageTemperature.TEMPERATURE_LN])
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types="Bad")
 
     def test_collection_set_identifier_ok(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         collection.identifier = "newId"
         self.assertEqual("newId", collection.identifier)
 
     def test_collection_set_identifier_invalid(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         with self.assertRaises(TypeError):
             collection.identifier = 37
 
     def test_collection_set_name_ok(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         collection.name = "newName"
         self.assertEqual("newName", collection.name)
 
     def test_collection_set_name_invalid(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         with self.assertRaises(TypeError):
             collection.name = 37
 
-    def test_collection_set_managing_biobank_id_ok(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
-        collection.managing_biobank_id = "newBiobankId"
-        self.assertEqual("newBiobankId", collection.managing_biobank_id)
+    def test_collection_set_managing_collection_org_id_ok(self):
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
+        collection.managing_collection_org_id = "newBiobankId"
+        self.assertEqual("newBiobankId", collection.managing_collection_org_id)
 
     def test_collection_set_managing_biobank_id_invalid(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         with self.assertRaises(TypeError):
             collection.managing_collection_org_id = 37
 
     def test_collection_set_age_range_low_ok(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         collection.age_range_low = 10
         self.assertEqual(10, collection.age_range_low)
 
     def test_collection_set_age_range_low_invalid(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         with self.assertRaises(TypeError):
             collection.age_range_low = "10"
 
     def test_collection_set_age_range_high_ok(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         collection.age_range_high = 10
         self.assertEqual(10, collection.age_range_high)
 
     def test_collection_set_age_range_high_invalid(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         with self.assertRaises(TypeError):
             collection.age_range_high = "10"
 
     def test_collection_set_gender_ok(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         collection.genders = [Gender.FEMALE]
         self.assertEqual([Gender.FEMALE], collection.genders)
 
     def test_collection_set_gender_invalid(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         with self.assertRaises(TypeError):
             collection.genders = [37]
 
     def test_collection_set_storage_temperature_ok(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         collection.storage_temperatures = [StorageTemperature.TEMPERATURE_LN]
         self.assertEqual([StorageTemperature.TEMPERATURE_LN], collection.storage_temperatures)
 
     def test_collection_set_storage_temperature_invalid(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         with self.assertRaises(TypeError):
             collection.storage_temperatures = [37]
 
     def test_collection_set_material_type_ok(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         collection.material_types = ["RNA"]
         self.assertEqual(["RNA"], collection.material_types)
 
     def test_collection_set_material_type_invalid(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         with self.assertRaises(ValueError):
             collection.material_types = [37]
 
     def test_collection_optional_args_description_invalid(self):
         with self.assertRaises(TypeError):
-            collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                    [StorageTemperature.TEMPERATURE_LN],
-                                    description=37)
-
-    def test_collection_optional_args_diagnosis(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN], diagnoses=["C51"], number_of_subjects=10,
-                                inclusion_criteria=["Sex"], sample_ids=["samID1", "samID2"])
-        self.assertEqual(["C51"], collection.diagnoses)
-        self.assertEqual(10, collection.number_of_subjects)
-        self.assertEqual(["Sex"], collection.inclusion_criteria)
-        self.assertEqual(["samID1", "samID2"], collection.sample_ids)
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"], description=32)
 
     def test_collection_optional_args_diagnosis_invalid(self):
         with self.assertRaises(ValueError):
-            collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                    [StorageTemperature.TEMPERATURE_LN],
-                                    diagnoses=["C11111"])
-
-    def test_collection_optional_args_inclusion_criteria(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN],
-                                inclusion_criteria=["HealthStatus"])
-        self.assertEqual(["HealthStatus"], collection.inclusion_criteria)
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"], diagnoses=["C333333"])
 
     def test_collection_optional_args_inclusion_criteria_invalid(self):
-        with self.assertRaises(ValueError):
-            collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                    [StorageTemperature.TEMPERATURE_LN],
-                                    inclusion_criteria=["Invalid"])
-
-    def test_collection_optional_args_number_of_subject(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                [StorageTemperature.TEMPERATURE_LN],
-                                number_of_subjects=10)
-        self.assertEqual(10, collection.number_of_subjects)
+        with self.assertRaises(TypeError):
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"], inclusion_criteria="Invalid")
 
     def test_collection_optional_args_number_of_subject_invalid(self):
         with self.assertRaises(TypeError):
-            collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"], 0, 100,
-                                    [StorageTemperature.TEMPERATURE_LN],
-                                    number_of_subjects="10")
+            collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                    contact_name="contactName", contact_surname="contactSurname",
+                                    contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                    material_types=["Urine"], number_of_subjects="invalid")
 
     def test_collection_required_args_to_fhir(self):
-        collection = Collection("collectionId", "collectionName", "collectionOrgId", [Gender.MALE], ["DNA"])
+        collection = Collection(identifier="collectionId", name="collectionName", managing_biobank_id="biobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["Urine"])
         collection_fhir = collection.to_fhir("biobankFhirId", ["sampleFhirId1", "sampleFhirId2"])
         self.assertIsInstance(collection_fhir, Group)
         self.assertEqual(collection.identifier, collection_fhir.identifier[0].value)
@@ -219,10 +277,14 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(collection_fhir.extension[1].valueReference.reference, "Specimen/sampleFhirId2")
 
     def test_collection_optional_args_to_fhir(self):
-        collection = Collection("collectionId", "collectionName", "managingBiobankId", [Gender.MALE], ["DNA"], 0, 100,
-                                storage_temperatures=[StorageTemperature.TEMPERATURE_LN], diagnoses=["C51"],
-                                inclusion_criteria=["HealthStatus"], number_of_subjects=10
-                                )
+        collection = Collection(identifier="collectionId", name="collectionName",
+                                managing_biobank_id="managingBiobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                material_types=["DNA"], age_range_low=0, age_range_high=100, diagnoses=["C51"],
+                                inclusion_criteria=["HealthStatus"], number_of_subjects=10,
+                                storage_temperatures=[StorageTemperature.TEMPERATURE_LN])
+
         collection_fhir = collection.to_fhir("biobankFhirId", ["sampleFhirId1", "sampleFhirId2"])
         self.assertIsInstance(collection_fhir, Group)
         self.assertEqual(collection.identifier, collection_fhir.identifier[0].value)
@@ -244,15 +306,21 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(collection_fhir.extension[3].valueReference.reference, "Specimen/sampleFhirId2")
 
     def test_collection_from_json(self):
-        example_collection = Collection("collectionId", "collectionName", "managingBiobankId", [Gender.MALE], ["DNA"],
-                                        0, 100,
-                                        storage_temperatures=[StorageTemperature.TEMPERATURE_LN], diagnoses=["C51"],
+        example_collection = Collection(identifier="collectionId", name="collectionName",
+                                        managing_biobank_id="managingBiobankId",
+                                        contact_name="contactName", contact_surname="contactSurname",
+                                        contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                                        material_types=["DNA"], age_range_low=0, age_range_high=100, diagnoses=["C51"],
                                         inclusion_criteria=["HealthStatus"], number_of_subjects=10,
-                                        sample_ids=["sampleId1", "sampleId2"]
-                                        )
-        example_collection_fhir = example_collection.to_fhir("biobankFHIRId", ["sampleFHIRId1", "sampleFHIRId2"])
+                                        storage_temperatures=[StorageTemperature.TEMPERATURE_LN],
+                                        sample_ids=["sampleId1", "sampleId2"])
+        collection_org = example_collection._collection_org
+        collection_org_fhir = collection_org.to_fhir("biobankFHIRId")
+        collection_org_fhir.id = "TestOrgFHIRId"
+        collection_org_json = collection_org_fhir.as_json()
+        example_collection_fhir = example_collection.to_fhir("TestOrgFHIRId", ["sampleFHIRId1", "sampleFHIRId2"])
         example_collection_fhir.id = "TestFHIRId"
-        collection = Collection.from_json(example_collection_fhir.as_json(), "managingBiobankId",
+        collection = Collection.from_json(example_collection_fhir.as_json(), collection_org_json, "managingBiobankId",
                                           ["sampleId1", "sampleId2"])
         self.assertIsInstance(collection, Collection)
         self.assertEqual(example_collection.identifier, collection.identifier)
@@ -268,14 +336,23 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(example_collection.number_of_subjects, collection.number_of_subjects)
         self.assertEqual(example_collection.sample_ids, collection.sample_ids)
         self.assertEqual("TestFHIRId", collection.collection_fhir_id)
-        self.assertEqual("biobankFHIRId", collection.managing_collection_org_fhir_id)
+        self.assertEqual("TestOrgFHIRId", collection.managing_collection_org_fhir_id)
         self.assertEqual(["sampleFHIRId1", "sampleFHIRId2"], collection.sample_fhir_ids)
+        self.assertEqual(example_collection.contact_name, collection.contact_name)
+        self.assertEqual(example_collection.contact_email, collection.contact_email)
+        self.assertEqual(example_collection.contact_surname, collection.contact_surname)
+        self.assertEqual(example_collection.country, collection.country)
+        self.assertEqual("TestOrgFHIRId", collection._collection_org._collection_org_fhir_id)
+        self.assertEqual("biobankFHIRId", collection._collection_org._managing_biobank_fhir_id)
 
     def test_collection_to_fhir_empty_characteristics(self):
-        collection = Collection("collectionId", "collectionName", "managingBiobankId", [], [], 0, 100,
-                                [], diagnoses=[],
+        collection = Collection(identifier="collectionId", name="collectionName",
+                                managing_biobank_id="managingBiobankId",
+                                contact_name="contactName", contact_surname="contactSurname",
+                                contact_email="contactEmail", country="CZ", genders=[],
+                                material_types=[], age_range_low=0, age_range_high=100, diagnoses=[],
                                 inclusion_criteria=["HealthStatus"], number_of_subjects=10,
-                                )
+                                storage_temperatures=[])
         collection_fhir = collection.to_fhir("biobankFhirId", ["sampleFhirId1", "sampleFhirId2"])
         self.assertIsInstance(collection_fhir, Group)
         self.assertEqual(collection.identifier, collection_fhir.identifier[0].value)
