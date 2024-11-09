@@ -1,17 +1,34 @@
 import unittest
 from datetime import datetime
 
-from miabis_model import Sample
+from miabis_model import Sample, _DiagnosisReport
 from miabis_model import StorageTemperature
+from miabis_model import _Observation
 
 
 class TestSample(unittest.TestCase):
     def test_sample_necessary_args(self):
-        sample = Sample("sampleId", "donorId", "BuffyCoat")
+        sample = Sample(identifier="sampleId", donor_identifier="donorId", material_type="BuffyCoat")
         self.assertIsInstance(sample, Sample)
         self.assertEqual("sampleId", sample.identifier)
         self.assertEqual("donorId", sample.donor_identifier)
         self.assertEqual("BuffyCoat", sample.material_type)
+
+    def test_sample_optional_args(self):
+        sample = Sample(identifier="sampleId", donor_identifier="donorId", material_type="BuffyCoat",
+                        collected_datetime=datetime(year=2022, month=10, day=5),
+                        storage_temperature=StorageTemperature.TEMPERATURE_LN,
+                        diagnoses_with_observed_datetime=[("C51", datetime(year=2020, month=10, day=5)),
+                                                          ("C52", datetime(year=2029, month=10, day=5))])
+        self.assertIsInstance(sample, Sample)
+        self.assertIsInstance(sample._observations[0], _Observation)
+        self.assertIsInstance(sample._diagnosis_report, _DiagnosisReport)
+        self.assertEqual("sampleId", sample.identifier)
+        self.assertEqual("donorId", sample.donor_identifier)
+        self.assertEqual("BuffyCoat", sample.material_type)
+        self.assertEqual([("C51", datetime(year=2020, month=10, day=5)),
+                          ("C52", datetime(year=2029, month=10, day=5))],
+                         sample.diagnoses_icd10_code_with_observed_datetime)
 
     def test_sample_invalid_identifier_type_innit(self):
         with self.assertRaises(TypeError):
@@ -114,12 +131,26 @@ class TestSample(unittest.TestCase):
         self.assertEqual("No restrictions", sample_fhir.note[0].text)
 
     def test_sample_from_json(self):
-        example_sample = Sample("sampleId", "donorId", "BuffyCoat",
+        example_sample = Sample(identifier="sampleId", donor_identifier="donorId", material_type="BuffyCoat",
+                                collected_datetime=datetime(year=2022, month=10, day=5),
                                 storage_temperature=StorageTemperature.TEMPERATURE_LN,
-                                use_restrictions="No restrictions")
+                                diagnoses_with_observed_datetime=[("C51", datetime(year=2020, month=10, day=5)),
+                                                                  ("C52", datetime(year=2029, month=10, day=5))])
         example_fhir = example_sample.to_fhir("donorFhirId")
         example_fhir.id = "TestFHIRId"
-        sample = Sample.from_json(example_fhir.as_json(), "donorId")
+        observation_jsons = []
+        for i, observation in enumerate(example_sample._observations):
+            obs_fhir = observation.to_fhir("donorFhirId", "TestFHIRId")
+            obs_fhir.identifier = f"TestFhirObs{i}"
+            observation_jsons.append(observation.to_fhir("donorFhirId", "TestFHIRId").as_json())
+        diagnosis_report = example_sample._diagnosis_report.to_fhir("TestFHIRId", "donorFHIRId",
+                                                                    ["TestFhirObs0", ["testFhirOBs1"]])
+        sample = Sample.from_json(example_fhir.as_json(), observation_jsons, diagnosis_report.as_json(), "donorId")
+        self.assertIsInstance(sample, Sample)
+        self.assertEqual(sample.diagnoses_icd10_code_with_observed_datetime,
+                         [("C51", datetime(year=2020, month=10, day=5)),
+                          ("C52", datetime(year=2029, month=10, day=5))])
+        self.assertIsInstance(sample._diagnosis_report, _DiagnosisReport)
         self.assertEqual(example_sample.identifier, sample.identifier)
         self.assertEqual(example_sample.donor_identifier, sample.donor_identifier)
         self.assertEqual(example_sample.material_type, sample.material_type)

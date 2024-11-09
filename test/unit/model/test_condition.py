@@ -59,7 +59,7 @@ class TestCondition(unittest.TestCase):
         example_condition = Condition("donorId", "C51")
         example_fhir = example_condition.to_fhir("donorFHIRId", ["drFHIRId1", "drFHIRId2"])
         example_fhir.id = "TestFHIRId"
-        condition = Condition.from_json(example_fhir.as_json(),"donorId")
+        condition = Condition.from_json(example_fhir.as_json(), "donorId")
         self.assertEqual("TestFHIRId", condition.condition_fhir_id)
         self.assertEqual("donorFHIRId", condition.patient_fhir_id)
         self.assertEqual(example_condition.patient_identifier, condition.patient_identifier)

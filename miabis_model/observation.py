@@ -17,7 +17,7 @@ from miabis_model.util.parsing_util import get_nested_value, parse_reference_id
 from miabis_model.util.util import create_fhir_identifier
 
 
-class Observation:
+class _Observation:
     """Class representing Observation containing an ICD-10 code of deasese as defined by the MIABIS on FHIR profile."""
 
     def __init__(self, icd10_code: str, sample_identifier: str, patient_identifier: str,
