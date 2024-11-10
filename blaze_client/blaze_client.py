@@ -980,7 +980,8 @@ class BlazeClient:
         set_observations_linked_to_sample = set(observations_linked_to_sample_fhir_ids)
         diagnosis_reports_fhir_ids = self.__get_diagnosis_reports_fhir_id_by_sample_identifier(sample_fhir_id)
         for diagnosis_report_fhir_id in diagnosis_reports_fhir_ids:
-            observation_fhir_ids = self._get_observation_fhir_ids_belonging_to_diagnosis_report(diagnosis_report_fhir_id)
+            observation_fhir_ids = self._get_observation_fhir_ids_belonging_to_diagnosis_report(
+                diagnosis_report_fhir_id)
             diagnosis_report_entries = self._delete_diagnosis_report(diagnosis_report_fhir_id, True,
                                                                      part_of_deleting_patient)
             entries.extend(diagnosis_report_entries)
@@ -1391,7 +1392,8 @@ class BlazeClient:
     def __get_id_from_bundle_response(self, response: dict, resource_type: str) -> str:
         for entry in response.get("entry", []):
             full_url: str = get_nested_value(entry, ["response", "location"])
-            url_without_base = full_url[len(self._blaze_url) + 1:]
-            splitted_url = url_without_base.split("/")
-            if splitted_url[0] == resource_type:
-                return splitted_url[1]
+            split_url = full_url.split("/")
+            if resource_type in split_url:
+                resource_type_index = split_url.index(resource_type)
+                if resource_type_index + 1 < len(split_url):
+                    return split_url[resource_type_index + 1]
