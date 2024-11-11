@@ -408,3 +408,23 @@ class _CollectionOrganization:
         entity_reference = FHIRReference()
         entity_reference.reference = f"Organization/{managing_organization_fhir_id}"
         return entity_reference
+
+    def __eq__(self, other):
+        if not isinstance(other, _CollectionOrganization):
+            return False
+        return self.identifier == other.identifier and \
+            self.name == other.name and \
+            self.description == other.description and \
+            self.managing_biobank_id == other.managing_biobank_id and \
+            self.contact_name == other.contact_name and \
+            self.contact_surname == other.contact_surname and \
+            self.contact_email == other.contact_email and \
+            self.country == other.country and \
+            self.alias == other.alias and \
+            self.url == other.url and \
+            self.dataset_type == other.dataset_type and \
+            self.sample_source == other.sample_source and \
+            self.sample_collection_setting == other.sample_collection_setting and \
+            self.collection_design == other.collection_design and \
+            self.use_and_access_conditions == other.use_and_access_conditions and \
+            self.publications == other.publications

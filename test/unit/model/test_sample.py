@@ -146,16 +146,32 @@ class TestSample(unittest.TestCase):
         diagnosis_report = example_sample._diagnosis_report.to_fhir("TestFHIRId", "donorFHIRId",
                                                                     ["TestFhirObs0", ["testFhirOBs1"]])
         sample = Sample.from_json(example_fhir.as_json(), observation_jsons, diagnosis_report.as_json(), "donorId")
-        self.assertIsInstance(sample, Sample)
-        self.assertEqual(sample.diagnoses_icd10_code_with_observed_datetime,
-                         [("C51", datetime(year=2020, month=10, day=5)),
-                          ("C52", datetime(year=2029, month=10, day=5))])
-        self.assertIsInstance(sample._diagnosis_report, _DiagnosisReport)
-        self.assertEqual(example_sample.identifier, sample.identifier)
-        self.assertEqual(example_sample.donor_identifier, sample.donor_identifier)
-        self.assertEqual(example_sample.material_type, sample.material_type)
-        self.assertEqual(example_sample.collected_datetime, sample.collected_datetime)
-        self.assertEqual(example_sample.storage_temperature, sample.storage_temperature)
-        self.assertEqual(example_sample.use_restrictions, sample.use_restrictions)
+        self.assertEqual(example_sample, sample)
         self.assertEqual("donorFhirId", sample._subject_fhir_id)
         self.assertEqual("TestFHIRId", sample._sample_fhir_id)
+
+    def test_sample_eq(self):
+        sample1 = Sample(identifier="sampleId", donor_identifier="donorId", material_type="BuffyCoat",
+                         collected_datetime=datetime(year=2022, month=10, day=5),
+                         storage_temperature=StorageTemperature.TEMPERATURE_LN,
+                         diagnoses_with_observed_datetime=[("C51", datetime(year=2020, month=10, day=5)),
+                                                           ("C52", datetime(year=2029, month=10, day=5))])
+        sample2 = Sample(identifier="sampleId", donor_identifier="donorId", material_type="BuffyCoat",
+                         collected_datetime=datetime(year=2022, month=10, day=5),
+                         storage_temperature=StorageTemperature.TEMPERATURE_LN,
+                         diagnoses_with_observed_datetime=[("C51", datetime(year=2020, month=10, day=5)),
+                                                           ("C52", datetime(year=2029, month=10, day=5))])
+        self.assertEqual(sample1, sample2)
+
+    def test_sample_not_eq(self):
+        sample1 = Sample(identifier="sampleId", donor_identifier="donorId", material_type="BuffyCoat",
+                         collected_datetime=datetime(year=2022, month=10, day=5),
+                         storage_temperature=StorageTemperature.TEMPERATURE_LN,
+                         diagnoses_with_observed_datetime=[("C51", datetime(year=2020, month=10, day=5)),
+                                                           ("C52", datetime(year=2029, month=10, day=5))])
+        sample2 = Sample(identifier="sampleId", donor_identifier="donorId", material_type="BuffyCoat",
+                         collected_datetime=datetime(year=2022, month=10, day=5),
+                         storage_temperature=StorageTemperature.TEMPERATURE_LN,
+                         diagnoses_with_observed_datetime=[("C51", datetime(year=2020, month=10, day=5)),
+                                                           ])
+        self.assertNotEqual(sample1, sample2)

@@ -47,8 +47,10 @@ def create_fhir_identifier(identifier: str) -> Identifier:
 
 def create_contact(name: str, surname: str, email: str) -> OrganizationContact:
     contact = OrganizationContact()
+
     contact.name = HumanName()
-    contact.name.given = [name]
+    if name is not None:
+        contact.name.given = [name]
     contact.name.family = surname
     contact.telecom = [ContactPoint()]
     contact.telecom[0].system = "email"

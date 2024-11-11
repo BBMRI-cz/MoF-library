@@ -322,26 +322,18 @@ class TestCollection(unittest.TestCase):
         example_collection_fhir.id = "TestFHIRId"
         collection = Collection.from_json(example_collection_fhir.as_json(), collection_org_json, "managingBiobankId",
                                           ["sampleId1", "sampleId2"])
-        self.assertIsInstance(collection, Collection)
-        self.assertEqual(example_collection.identifier, collection.identifier)
-        self.assertEqual(example_collection.name, collection.name)
-        self.assertEqual(example_collection.managing_collection_org_id, collection.managing_collection_org_id)
+        self.assertEqual(example_collection, collection)
         self.assertEqual(example_collection.age_range_low, collection.age_range_low)
         self.assertEqual(example_collection.age_range_high, collection.age_range_high)
         self.assertEqual(example_collection.genders, collection.genders)
         self.assertEqual(example_collection.storage_temperatures, collection.storage_temperatures)
         self.assertEqual(example_collection.material_types, collection.material_types)
         self.assertEqual(example_collection.diagnoses, collection.diagnoses)
-        self.assertEqual(example_collection.inclusion_criteria, collection.inclusion_criteria)
         self.assertEqual(example_collection.number_of_subjects, collection.number_of_subjects)
         self.assertEqual(example_collection.sample_ids, collection.sample_ids)
         self.assertEqual("TestFHIRId", collection.collection_fhir_id)
         self.assertEqual("TestOrgFHIRId", collection.managing_collection_org_fhir_id)
         self.assertEqual(["sampleFHIRId1", "sampleFHIRId2"], collection.sample_fhir_ids)
-        self.assertEqual(example_collection.contact_name, collection.contact_name)
-        self.assertEqual(example_collection.contact_email, collection.contact_email)
-        self.assertEqual(example_collection.contact_surname, collection.contact_surname)
-        self.assertEqual(example_collection.country, collection.country)
         self.assertEqual("TestOrgFHIRId", collection._collection_org._collection_org_fhir_id)
         self.assertEqual("biobankFHIRId", collection._collection_org._managing_biobank_fhir_id)
 
@@ -361,3 +353,42 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(10, collection_fhir.extension[0].valueInteger)
         self.assertEqual("HealthStatus", collection_fhir.extension[1].valueCodeableConcept.coding[0].code)
         self.assertEqual(collection_fhir.extension[2].valueReference.reference, "Specimen/sampleFhirId1")
+
+    def test_collection_eq(self):
+        coll1 = Collection(identifier="collectionId", name="collectionName",
+                           managing_biobank_id="managingBiobankId",
+                           contact_name="contactName", contact_surname="contactSurname",
+                           contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                           material_types=["DNA"], age_range_low=0, age_range_high=100, diagnoses=["C51"],
+                           inclusion_criteria=["HealthStatus"], number_of_subjects=10,
+                           storage_temperatures=[StorageTemperature.TEMPERATURE_LN],
+                           sample_ids=["sampleId1", "sampleId2"])
+        coll2 = Collection(identifier="collectionId", name="collectionName",
+                           managing_biobank_id="managingBiobankId",
+                           contact_name="contactName", contact_surname="contactSurname",
+                           contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                           material_types=["DNA"], age_range_low=0, age_range_high=100, diagnoses=["C51"],
+                           inclusion_criteria=["HealthStatus"], number_of_subjects=10,
+                           storage_temperatures=[StorageTemperature.TEMPERATURE_LN],
+                           sample_ids=["sampleId1", "sampleId2"])
+
+        self.assertEqual(coll2, coll1)
+
+    def test_collection_not_eq(self):
+        coll1 = Collection(identifier="collectionId", name="collectionName",
+                           managing_biobank_id="managingBiobankId",
+                           contact_name="contactName", contact_surname="contactSurname",
+                           contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                           material_types=["DNA"], age_range_low=0, age_range_high=100, diagnoses=["C51"],
+                           inclusion_criteria=["HealthStatus"], number_of_subjects=10,
+                           storage_temperatures=[StorageTemperature.TEMPERATURE_LN],
+                           sample_ids=["sampleId1", "sampleId2"])
+        coll2 = Collection(identifier="differentId", name="collectionName",
+                           managing_biobank_id="managingBiobankId",
+                           contact_name="contactName", contact_surname="contactSurname",
+                           contact_email="contactEmail", country="CZ", genders=[Gender.MALE],
+                           material_types=["DNA"], age_range_low=0, age_range_high=100, diagnoses=["C51"],
+                           inclusion_criteria=["HealthStatus"], number_of_subjects=10,
+                           storage_temperatures=[StorageTemperature.TEMPERATURE_LN],
+                           sample_ids=["sampleId1", "sampleId2"])
+        self.assertNotEqual(coll1, coll2)

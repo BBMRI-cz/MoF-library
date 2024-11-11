@@ -74,8 +74,19 @@ class TestDiagnosisReport(unittest.TestCase):
         example_fhir = example_diagnosis_report.to_fhir("sampleFhirId", "donorFhirId", ["obsFhirId", "obsFhirId2"])
         example_fhir.id = "TestFHIRId"
         diagnosis_report = _DiagnosisReport.from_json(example_fhir.as_json(), "sampleId", "donorId")
-        self.assertEqual(example_diagnosis_report.sample_identifier, diagnosis_report.sample_identifier)
+        # self.assertEqual(example_diagnosis_report.sample_identifier, diagnosis_report.sample_identifier)
+        self.assertEqual(example_diagnosis_report, diagnosis_report)
         self.assertEqual("TestFHIRId", diagnosis_report.diagnosis_report_fhir_id)
         self.assertEqual(["obsFhirId", "obsFhirId2"], diagnosis_report.observations_fhir_identifiers)
         self.assertEqual("sampleFhirId", diagnosis_report.sample_fhir_id)
         self.assertEqual("donorFhirId", diagnosis_report.patient_fhir_id)
+
+    def test_diagnosis_report_eq(self):
+        dr_1 = _DiagnosisReport("sampleId", "donorId")
+        dr_2 = _DiagnosisReport("sampleId", "donorId")
+        self.assertEqual(dr_2, dr_1)
+
+    def test_diagnosis_report_not_eq(self):
+        dr_1 = _DiagnosisReport("sampleId", "donorId")
+        dr_2 = _DiagnosisReport("different_sample_id", "donorId")
+        self.assertNotEqual(dr_2,dr_1)

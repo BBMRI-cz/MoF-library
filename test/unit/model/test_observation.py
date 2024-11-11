@@ -41,7 +41,7 @@ class TestObservation(unittest.TestCase):
 
     def test_observation_to_fhir_ok(self):
         observation = _Observation("C51", "sampleId", "patientId", datetime.datetime(year=2022, month=10, day=10),
-                                  "obsId")
+                                   "obsId")
         obs_fhir = observation.to_fhir("patientFhirId", "sampleFhirId")
         self.assertEqual("C51", obs_fhir.valueCodeableConcept.coding[0].code)
         self.assertEqual("obsId", obs_fhir.identifier[0].value)
@@ -56,12 +56,27 @@ class TestObservation(unittest.TestCase):
         example_fhir = example_observation.to_fhir("patientFhirId", "sampleFhirId")
         example_fhir.id = "TestFHIRId"
         observation = _Observation.from_json(example_fhir.as_json(), "patientId", "sampleId")
-        self.assertEqual(example_observation.icd10_code, observation.icd10_code)
-        self.assertEqual(example_observation.sample_identifier, observation.sample_identifier)
-        self.assertEqual(example_observation.patient_identifier, observation.patient_identifier)
-        self.assertEqual(example_observation.diagnosis_observed_datetime.date(),
-                         observation.diagnosis_observed_datetime.date())
+        self.assertEqual(example_observation, observation)
+        # self.assertEqual(example_observation.icd10_code, observation.icd10_code)
+        # self.assertEqual(example_observation.sample_identifier, observation.sample_identifier)
+        # self.assertEqual(example_observation.patient_identifier, observation.patient_identifier)
+        # self.assertEqual(example_observation.diagnosis_observed_datetime.date(),
+        #                  observation.diagnosis_observed_datetime.date())
         self.assertEqual("TestFHIRId", observation.observation_fhir_id)
         self.assertEqual("sampleFhirId", observation.sample_fhir_id)
         self.assertEqual("patientFhirId", observation.patient_fhir_id)
 
+    def test_observation_eq(self):
+        obs1 = _Observation("C51", "sampleId", "patientId",
+                            datetime.datetime(year=2022, month=10, day=10))
+        obs2 = _Observation("C51", "sampleId", "patientId",
+                            datetime.datetime(year=2022, month=10, day=10))
+        self.assertEqual(obs1, obs2)
+
+    def test_observation_not_eq(self):
+        obs1 = _Observation("C51", "sampleId", "patientId",
+                            datetime.datetime(year=2022, month=10, day=10))
+        obs2 = _Observation("C51", "sampleId", "patientId",
+                            datetime.datetime(year=2021, month=10, day=10))
+
+        self.assertNotEqual(obs1, obs2)

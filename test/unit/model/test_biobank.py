@@ -5,7 +5,6 @@ from miabis_model import Biobank
 
 class TestBiobank(unittest.TestCase):
 
-
     def test_biobank_init(self):
         biobank = Biobank("biobankId", "biobankName", "biobankAlias", "CZ", "ContactName", "ContactSurname",
                           "ContactEmail@email.com")
@@ -129,17 +128,29 @@ class TestBiobank(unittest.TestCase):
                                   bioprocessing_and_analysis_capabilities=["Genomics"])
         example_biobank_fhir = example_biobank.to_fhir()
         example_biobank_fhir.id = "TestFHIRId"
-        biobank_json =example_biobank_fhir.as_json()
+        biobank_json = example_biobank_fhir.as_json()
         biobank = Biobank.from_json(biobank_json)
-        self.assertEqual(example_biobank.identifier, biobank.identifier)
-        self.assertEqual(example_biobank.name, biobank.name)
-        self.assertEqual(example_biobank.alias, biobank.alias)
-        self.assertEqual(example_biobank.country, biobank.country)
-        self.assertEqual(example_biobank.contact_name, biobank.contact_name)
-        self.assertEqual(example_biobank.contact_surname, biobank.contact_surname)
-        self.assertEqual(example_biobank.contact_email, biobank.contact_email)
-        self.assertEqual(example_biobank.infrastructural_capabilities, biobank.infrastructural_capabilities)
-        self.assertEqual(example_biobank.organisational_capabilities, biobank.organisational_capabilities)
-        self.assertEqual(example_biobank.bioprocessing_and_analysis_capabilities,
-                         biobank.bioprocessing_and_analysis_capabilities)
+        self.assertEqual(example_biobank, biobank)
         self.assertEqual("TestFHIRId", biobank.biobank_fhir_id)
+
+    def test_biobank_eq(self):
+        biobank1 = Biobank("biobankId", "biobankName", "biobankAlias", "CZ", "ContactName", "ContactSurname",
+                           "email", infrastructural_capabilities=["SampleStorage"],
+                           organisational_capabilities=["RecontactDonors"],
+                           bioprocessing_and_analysis_capabilities=["Genomics"])
+        biobank2 = Biobank("biobankId", "biobankName", "biobankAlias", "CZ", "ContactName", "ContactSurname",
+                           "email", infrastructural_capabilities=["SampleStorage"],
+                           organisational_capabilities=["RecontactDonors"],
+                           bioprocessing_and_analysis_capabilities=["Genomics"])
+        self.assertEqual(biobank2, biobank1)
+
+    def test_biobank_not_eq(self):
+        biobank1 = Biobank("biobankId", "biobankName", "biobankAlias", "CZ", "ContactName", "ContactSurname",
+                           "email", infrastructural_capabilities=["SampleStorage"],
+                           organisational_capabilities=["RecontactDonors"],
+                           bioprocessing_and_analysis_capabilities=["Genomics"])
+        biobank2 = Biobank("biobankId", "biobankName", "biobankAlias", "EU", "ContactName", "ContactSurname",
+                           "email", infrastructural_capabilities=["SampleStorage"],
+                           organisational_capabilities=["RecontactDonors"],
+                           bioprocessing_and_analysis_capabilities=["Genomics"])
+        self.assertNotEqual(biobank2, biobank1)

@@ -7,7 +7,7 @@ class TestCollectionOrganization(unittest.TestCase):
 
     def test_collection_org_init_required_params(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         self.assertIsInstance(collection_org, _CollectionOrganization)
         self.assertEqual("collectionOrgId", collection_org.identifier)
         self.assertEqual("collectionOrgName", collection_org.name)
@@ -19,9 +19,9 @@ class TestCollectionOrganization(unittest.TestCase):
 
     def test_collection_org_init_optional_params(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", "alias", "url",
-                                                "description",
-                                                "LifeStyle", "Human", "Environment", ["CaseControl"],
+                                                 "contactSurname", "contactEmail", "cz", "alias", "url",
+                                                 "description",
+                                                 "LifeStyle", "Human", "Environment", ["CaseControl"],
                                                  ["CommercialUse"], ["publication"])
         self.assertIsInstance(collection_org, _CollectionOrganization)
         self.assertEqual("collectionOrgId", collection_org.identifier)
@@ -44,298 +44,298 @@ class TestCollectionOrganization(unittest.TestCase):
     def test_collection_org_invalid_identifier_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization(37, "collectionOrgName", "biobankId", "contactName",
-                                                    "contactSurname", "contactEmail", "cz")
+                                                     "contactSurname", "contactEmail", "cz")
 
     def test_collection_org_invalid_name_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", 22, "biobankId", "contactName",
-                                                    "contactSurname", "contactEmail", "cz")
+                                                     "contactSurname", "contactEmail", "cz")
 
     def test_collection_org_invalid_managing_biobank_id_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", 22, "contactName",
-                                                    "contactSurname", "contactEmail", "cz")
+                                                     "contactSurname", "contactEmail", "cz")
 
     def test_collection_org_invalid_contact_name_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", 22,
-                                                    "contactSurname", "contactEmail", "cz")
+                                                     "contactSurname", "contactEmail", "cz")
 
     def test_collection_org_invalid_contact_surname_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
+                                                     "contactName",
                                                      22, "contactEmail", "cz")
 
     def test_collection_org_invalid_contact_email_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", 22, "cz")
+                                                     "contactName",
+                                                     "contactSurname", 22, "cz")
 
     def test_collection_org_invalid_country_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", 22)
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", 22)
 
     def test_collection_org_invalid_alias_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", "cz", 22)
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", "cz", 22)
 
     def test_collection_org_invalid_url_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", "cz", url=22)
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", "cz", url=22)
 
     def test_collection_org_invalid_description_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", "cz", description=22)
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", "cz", description=22)
 
     def test_collection_org_invalid_dataset_type_type_innit(self):
         with self.assertRaises(ValueError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", "cz", dataset_type=22)
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", "cz", dataset_type=22)
 
     def test_collection_org_invalid_sample_source_type_innit(self):
         with self.assertRaises(ValueError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", "cz", sample_source=22)
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", "cz", sample_source=22)
 
     def test_collection_org_invalid_sample_collection_setting_type_innit(self):
         with self.assertRaises(ValueError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", "cz",
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", "cz",
                                                      sample_collection_setting=22)
 
     def test_collection_org_invalid_collection_design_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", "cz", collection_design=22)
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", "cz", collection_design=22)
 
     def test_collection_org_invalid_use_and_access_conditions_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", "cz",
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", "cz",
                                                      use_and_access_conditions=22)
 
     def test_collection_org_invalid_publications_type_innit(self):
         with self.assertRaises(TypeError):
             collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                    "contactName",
-                                                    "contactSurname", "contactEmail", "cz", publications=22)
+                                                     "contactName",
+                                                     "contactSurname", "contactEmail", "cz", publications=22)
 
     def test_collection_org_set_identifier_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         collection_org.identifier = "newId"
         self.assertEqual("newId", collection_org.identifier)
 
     def test_collection_org_set_identifier_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         with self.assertRaises(TypeError):
             collection_org.identifier = 37
 
     def test_collection_org_set_name_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         collection_org.name = "newName"
         self.assertEqual("newName", collection_org.name)
 
     def test_collection_org_set_name_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         with self.assertRaises(TypeError):
             collection_org.name = 37
 
     def test_collection_org_set_managing_biobank_id_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         collection_org.managing_biobank_id = "newId"
         self.assertEqual("newId", collection_org.managing_biobank_id)
 
     def test_collection_org_set_managing_biobank_id_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         with self.assertRaises(TypeError):
             collection_org.managing_biobank_id = 37
 
     def test_collection_org_set_contact_name_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         collection_org.contact_name = "newName"
         self.assertEqual("newName", collection_org.contact_name)
 
     def test_collection_org_set_contact_name_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         with self.assertRaises(TypeError):
             collection_org.contact_name = 37
 
     def test_collection_org_set_contact_surname_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         collection_org.contact_surname = "newName"
         self.assertEqual("newName", collection_org.contact_surname)
 
     def test_collection_org_set_contact_surname_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         with self.assertRaises(TypeError):
             collection_org.contact_surname = 37
 
     def test_collection_org_set_contact_email_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         collection_org.contact_email = "newName"
         self.assertEqual("newName", collection_org.contact_email)
 
     def test_collection_org_set_contact_email_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         with self.assertRaises(TypeError):
             collection_org.contact_email = 37
 
     def test_collection_org_set_country_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         collection_org.country = "newName"
         self.assertEqual("newName", collection_org.country)
 
     def test_collection_org_set_country_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         with self.assertRaises(TypeError):
             collection_org.country = 37
 
     def test_collection_org_set_alias_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", "alias")
+                                                 "contactSurname", "contactEmail", "cz", "alias")
         collection_org.alias = "newName"
         self.assertEqual("newName", collection_org.alias)
 
     def test_collection_org_set_alias_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", "alias")
+                                                 "contactSurname", "contactEmail", "cz", "alias")
         with self.assertRaises(TypeError):
             collection_org.alias = 37
 
     def test_collection_org_set_url_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", url="url")
+                                                 "contactSurname", "contactEmail", "cz", url="url")
         collection_org.url = "newName"
         self.assertEqual("newName", collection_org.url)
 
     def test_collection_org_set_url_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", url="url")
+                                                 "contactSurname", "contactEmail", "cz", url="url")
         with self.assertRaises(TypeError):
             collection_org.url = 37
 
     def test_collection_org_set_description_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", description="description")
+                                                 "contactSurname", "contactEmail", "cz", description="description")
         collection_org.description = "newName"
         self.assertEqual("newName", collection_org.description)
 
     def test_collection_org_set_description_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", description="description")
+                                                 "contactSurname", "contactEmail", "cz", description="description")
         with self.assertRaises(TypeError):
             collection_org.description = 37
 
     def test_collection_org_set_dataset_type_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", dataset_type="LifeStyle")
+                                                 "contactSurname", "contactEmail", "cz", dataset_type="LifeStyle")
         collection_org.dataset_type = "Environmental"
         self.assertEqual("Environmental", collection_org.dataset_type)
 
     def test_collection_org_set_dataset_type_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", dataset_type="LifeStyle")
+                                                 "contactSurname", "contactEmail", "cz", dataset_type="LifeStyle")
         with self.assertRaises(ValueError):
             collection_org.dataset_type = 37
 
     def test_collection_org_set_sample_source_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", sample_source="Human")
+                                                 "contactSurname", "contactEmail", "cz", sample_source="Human")
         collection_org.sample_source = "Environment"
         self.assertEqual("Environment", collection_org.sample_source)
 
     def test_collection_org_set_sample_source_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", sample_source="Human")
+                                                 "contactSurname", "contactEmail", "cz", sample_source="Human")
         with self.assertRaises(ValueError):
             collection_org.sample_source = "Invalid"
 
     def test_collection_org_set_sample_collection_setting_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz",
+                                                 "contactSurname", "contactEmail", "cz",
                                                  sample_collection_setting="Environment")
         collection_org.sample_collection_setting = "Unknown"
         self.assertEqual("Unknown", collection_org.sample_collection_setting)
 
     def test_collection_org_set_sample_collection_setting_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz",
+                                                 "contactSurname", "contactEmail", "cz",
                                                  sample_collection_setting="Environment")
         with self.assertRaises(ValueError):
             collection_org.sample_collection_setting = "Invalid"
 
     def test_collection_org_set_collection_design_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz",
+                                                 "contactSurname", "contactEmail", "cz",
                                                  collection_design=["CaseControl"])
         collection_org.collection_design = ["CrossSectional"]
         self.assertEqual(["CrossSectional"], collection_org.collection_design)
 
     def test_collection_org_set_collection_design_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz",
+                                                 "contactSurname", "contactEmail", "cz",
                                                  collection_design=["CaseControl"])
         with self.assertRaises(ValueError):
             collection_org.collection_design = ["Invalid"]
 
     def test_collection_org_set_use_and_access_conditions_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz",
+                                                 "contactSurname", "contactEmail", "cz",
                                                  use_and_access_conditions=["CommercialUse"])
         collection_org.use_and_access_conditions = ["Xenograft"]
         self.assertEqual(["Xenograft"], collection_org.use_and_access_conditions)
 
     def test_collection_org_set_use_and_access_conditions_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz",
+                                                 "contactSurname", "contactEmail", "cz",
                                                  use_and_access_conditions=["CommercialUse"])
         with self.assertRaises(ValueError):
             collection_org.use_and_access_conditions = ["Invalid"]
 
     def test_collection_org_set_publications_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", publications=["publication"])
+                                                 "contactSurname", "contactEmail", "cz", publications=["publication"])
         collection_org.publications = ["publication2"]
         self.assertEqual(["publication2"], collection_org.publications)
 
     def test_collection_org_set_publications_invalid(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", publications=["publication"])
+                                                 "contactSurname", "contactEmail", "cz", publications=["publication"])
         with self.assertRaises(TypeError):
             collection_org.publications = 37
 
     def test_collection_org_to_fhir_required_params_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz")
+                                                 "contactSurname", "contactEmail", "cz")
         collection_org_fhir = collection_org.to_fhir("biobankFhirId")
         self.assertEqual("collectionOrgId", collection_org_fhir.identifier[0].value)
         self.assertEqual("collectionOrgName", collection_org_fhir.name)
@@ -349,9 +349,9 @@ class TestCollectionOrganization(unittest.TestCase):
 
     def test_collection_org_to_fhir_optional_params_ok(self):
         collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId", "contactName",
-                                                "contactSurname", "contactEmail", "cz", "alias", "url",
-                                                "description",
-                                                "LifeStyle", "Human", "Environment", ["CaseControl"],
+                                                 "contactSurname", "contactEmail", "cz", "alias", "url",
+                                                 "description",
+                                                 "LifeStyle", "Human", "Environment", ["CaseControl"],
                                                  ["CommercialUse"], ["publication"])
         collection_org_fhir = collection_org.to_fhir("biobankFhirId")
         self.assertEqual("alias", collection_org_fhir.alias[0])
@@ -366,30 +366,45 @@ class TestCollectionOrganization(unittest.TestCase):
 
     def test_collection_org_from_json(self):
         example_collection_org = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
-                                                        "contactName",
-                                                        "contactSurname", "contactEmail", "cz", "alias", "url",
-                                                        "description",
-                                                        "LifeStyle", "Human", "Environment", ["CaseControl"],
+                                                         "contactName",
+                                                         "contactSurname", "contactEmail", "cz", "alias", "url",
+                                                         "description",
+                                                         "LifeStyle", "Human", "Environment", ["CaseControl"],
                                                          ["CommercialUse"], ["publication"])
         example_fhir = example_collection_org.to_fhir("biobankFHIRId")
         example_fhir.id = "TestFHIRId"
         collection_org = _CollectionOrganization.from_json(example_fhir.as_json(), "biobankId")
         self.assertIsInstance(collection_org, _CollectionOrganization)
-        self.assertEqual(example_collection_org.identifier, collection_org.identifier)
-        self.assertEqual(example_collection_org.name, collection_org.name)
-        self.assertEqual(example_collection_org.managing_biobank_id, collection_org.managing_biobank_id)
-        self.assertEqual(example_collection_org.contact_name, collection_org.contact_name)
-        self.assertEqual(example_collection_org.contact_surname, collection_org.contact_surname)
-        self.assertEqual(example_collection_org.contact_email, collection_org.contact_email)
-        self.assertEqual(example_collection_org.country, collection_org.country)
-        self.assertEqual(example_collection_org.alias, collection_org.alias)
-        self.assertEqual(example_collection_org.url, collection_org.url)
-        self.assertEqual(example_collection_org.description, collection_org.description)
-        self.assertEqual(example_collection_org.dataset_type, collection_org.dataset_type)
-        self.assertEqual(example_collection_org.sample_source, collection_org.sample_source)
-        self.assertEqual(example_collection_org.sample_collection_setting, collection_org.sample_collection_setting)
-        self.assertEqual(example_collection_org.collection_design, collection_org.collection_design)
-        self.assertEqual(example_collection_org.use_and_access_conditions, collection_org.use_and_access_conditions)
-        self.assertEqual(example_collection_org.publications, collection_org.publications)
+        self.assertEqual(example_collection_org, collection_org)
         self.assertEqual("TestFHIRId", collection_org.collection_org_fhir_id)
         self.assertEqual("biobankFHIRId", collection_org.managing_biobank_fhir_id)
+
+    def test_collection_org_eq(self):
+        co1 = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                      "contactName",
+                                      "contactSurname", "contactEmail", "cz", "alias", "url",
+                                      "description",
+                                      "LifeStyle", "Human", "Environment", ["CaseControl"],
+                                      ["CommercialUse"], ["publication"])
+        co2 = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                      "contactName",
+                                      "contactSurname", "contactEmail", "cz", "alias", "url",
+                                      "description",
+                                      "LifeStyle", "Human", "Environment", ["CaseControl"],
+                                      ["CommercialUse"], ["publication"])
+        self.assertEqual(co2, co1)
+
+    def test_collection_org_not_eq(self):
+        co1 = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                      "contactName",
+                                      "contactSurname", "contactEmail", "cz", "alias", "url",
+                                      "description",
+                                      "LifeStyle", "Human", "Environment", ["CaseControl"],
+                                      ["CommercialUse"], ["publication"])
+        co2 = _CollectionOrganization("collectionOrgId", "collectionOrgName", "biobankId",
+                                      "contactName",
+                                      "differentSurename", "contactEmail", "cz", "alias", "url",
+                                      "description",
+                                      "LifeStyle", "Human", "Environment", ["CaseControl"],
+                                      ["CommercialUse"], ["publication"])
+        self.assertNotEqual(co2,co1)

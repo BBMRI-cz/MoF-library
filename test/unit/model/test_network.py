@@ -100,16 +100,25 @@ class TestNetwork(unittest.TestCase):
         example_fhir.id = "TestFHIRId"
         network_org_fhir = example_network._network_org.to_fhir("biobankFhirId")
         network_org_fhir.id = "TestNetworkOrgFhirId"
-        network = Network.from_json(example_fhir.as_json(), network_org_fhir.as_json(), "biobankId", ["collid1", "collid2"],
-                                    ["biobankid1", "biobankid2"])
+        network = Network.from_json(example_fhir.as_json(), network_org_fhir.as_json(), "managingBiobankId")
         self.assertIsInstance(network, Network)
-        self.assertIsInstance(network._network_org, _NetworkOrganization)
-        self.assertEqual(example_network.identifier, network.identifier)
-        self.assertEqual(example_network.name, network.name)
-        self.assertEqual(example_network.managing_network_org_id, network.managing_network_org_id)
-        self.assertEqual(["collid1", "collid2"], network.members_collections_ids)
-        self.assertEqual(["biobankid1", "biobankid2"], network.members_biobanks_ids)
+        eq = example_network == network
+        self.assertEqual(example_network, network)
         self.assertEqual("TestFHIRId", network.network_fhir_id)
         self.assertEqual("biobankFhirId", network.managing_network_org_fhir_id)
         self.assertEqual(["collfhirid1", "collfhirid2"], network.members_collections_fhir_ids)
         self.assertEqual(["biobankFhirId1", "biobankFhirId2"], network.members_biobanks_fhir_ids)
+
+    def test_network_eq(self):
+        network1 = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
+                           contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        network2 = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
+                           contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        self.assertEqual(network1, network2)
+
+    def test_network_not_eq(self):
+        network1 = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
+                           contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        network2 = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
+                           contact_email="DifferentEmail", country="CZ", juristic_person="juristicPerson")
+        self.assertNotEqual(network2, network1)
