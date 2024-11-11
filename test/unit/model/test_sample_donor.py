@@ -96,8 +96,15 @@ class TestSampleDonor(unittest.TestCase):
         example_fhir = example_donor.to_fhir()
         example_fhir.id = "TestFHIRId"
         donor = SampleDonor.from_json(example_fhir.as_json())
-        self.assertEqual(example_donor.identifier, donor.identifier)
-        self.assertEqual(example_donor.gender, donor.gender)
-        self.assertEqual(example_donor.date_of_birth, donor.date_of_birth)
-        self.assertEqual(example_donor.dataset_type, donor.dataset_type)
+        self.assertEqual(example_donor, donor)
         self.assertEqual("TestFHIRId", donor.donor_fhir_id)
+
+    def test_sample_eq(self):
+        donor1 = SampleDonor("patientId", Gender.FEMALE, datetime(year=2022, month=10, day=20), "Lifestyle")
+        donor2 = SampleDonor("patientId", Gender.FEMALE, datetime(year=2022, month=10, day=20), "Lifestyle")
+        self.assertEqual(donor1, donor2)
+
+    def test_sample_not_eq(self):
+        donor1 = SampleDonor("patientId", Gender.FEMALE, datetime(year=2022, month=10, day=20), "Lifestyle")
+        donor2 = SampleDonor("patientId", Gender.MALE, datetime(year=2022, month=10, day=20), "Lifestyle")
+        self.assertNotEqual(donor1, donor2)

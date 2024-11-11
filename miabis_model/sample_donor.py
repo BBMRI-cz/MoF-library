@@ -148,3 +148,15 @@ class SampleDonor:
         and is not known in advance."""
         donor.id = self.donor_fhir_id
         return donor
+
+    def __eq__(self, other):
+        if not isinstance(other, SampleDonor):
+            return False
+
+        return self.identifier == other.identifier and \
+            self.gender == other.gender and \
+            self.date_of_birth == other.date_of_birth and \
+            self.dataset_type == other.dataset_type
+
+    def __hash__(self):
+        return hash(self.identifier)

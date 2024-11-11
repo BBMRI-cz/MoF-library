@@ -167,6 +167,22 @@ class Sample:
         """FHIR ID of the sample."""
         return self._sample_fhir_id
 
+    @property
+    def diagnosis_report_fhir_id(self):
+        return self._diagnosis_report_fhir_id
+
+    @property
+    def observation_fhir_ids(self):
+        return self._observation_fhir_ids
+
+    @property
+    def diagnosis_report(self):
+        return self._diagnosis_report
+
+    @property
+    def observations(self):
+        return self._observations
+
     @classmethod
     def from_json(cls, sample_json: dict, observation_jsons: list[dict], diagnosis_report_json: dict,
                   donor_identifier: str) -> Self:
@@ -198,6 +214,8 @@ class Sample:
             instance._diagnosis_report = diagnosis_report_instance
             instance._subject_fhir_id = parse_reference_id(get_nested_value(sample_json, ["subject", "reference"]))
             instance._sample_fhir_id = sample_fhir_id
+            instance._diagnosis_report_fhir_id = diagnosis_report_instance.diagnosis_report_fhir_id
+            instance._observation_fhir_ids = [observation.observation_fhir_id for observation in observation_instances]
             return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occurred when parsing json into the MoFSample")
@@ -297,3 +315,31 @@ class Sample:
         if self.body_site_system is not None:
             body_site.coding[0].system = self.body_site_system
         return body_site
+
+    def __eq__(self, other):
+        """Check if two samples are equal(identical)"""
+        if not isinstance(other, Sample):
+            return False
+
+        observations_equal = set(self._observations) == set(other._observations)
+        diagnosis_report_equal = self._diagnosis_report == other._diagnosis_report
+
+        return self.identifier == other.identifier and \
+            self.material_type == other.material_type and \
+            self.collected_datetime == other.collected_datetime and \
+            self.donor_identifier == other.donor_identifier and \
+            self.body_site == other.body_site and \
+            self.body_site_system == other.body_site_system and \
+            self.storage_temperature == other.storage_temperature and \
+            self.use_restrictions == other.use_restrictions and \
+            observations_equal and diagnosis_report_equal
+
+    def compare_diagnosis_report(self, other):
+        if not isinstance(other, Sample):
+            return False
+        return self._diagnosis_report == other._diagnosis_report
+
+    def compare_observations(self, other):
+        if not isinstance(other, Sample):
+            return False
+        return set(self._observations) == set(other._observations)

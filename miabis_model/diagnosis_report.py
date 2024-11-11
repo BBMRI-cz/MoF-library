@@ -112,7 +112,8 @@ class _DiagnosisReport:
             result_references = get_nested_value(diagnosis_report, ["result"])
             observations_fhir_identifiers = None
             if result_references is not None:
-                observations_fhir_identifiers = cls._parse_observation_ids(get_nested_value(diagnosis_report, ["result"]))
+                observations_fhir_identifiers = cls._parse_observation_ids(
+                    get_nested_value(diagnosis_report, ["result"]))
             sample_fhir_id = parse_reference_id(get_nested_value(diagnosis_report, ["specimen", 0, "reference"]))
             patient_fhir_id = parse_reference_id(get_nested_value(diagnosis_report, ["subject", "reference"]))
             instance = cls(sample_identifier, patient_identifier, observations_identifiers, identifier)
@@ -205,3 +206,15 @@ class _DiagnosisReport:
             reference.reference = f"Observation/{observation_id}"
             result.append(reference)
         return result
+
+    def __eq__(self, other):
+        """Check if two diagnostic reports are equal"""
+        if not isinstance(other, _DiagnosisReport):
+            return False
+        return self.sample_identifier == other.sample_identifier and \
+            self.patient_identifier == other.patient_identifier and \
+            self.observations_identifiers == other.observations_identifiers \
+            and self.diagnosis_report_identifier == other.diagnosis_report_identifier
+
+    def __hash__(self):
+        return hash((self.patient_identifier, self.sample_identifier))

@@ -158,7 +158,7 @@ class BlazeClient:
             return None
         return get_nested_value(response_json, ["entry", 0, "resource", "id"])
 
-    def update_fhir_resource(self, resource_type: str, resource_fhir_id: str, resource_json: dict) -> bool:
+    def _update_fhir_resource(self, resource_type: str, resource_fhir_id: str, resource_json: dict) -> bool:
         """Update a FHIR resource in blaze.
         :param resource_type: the type of the resource
         :param resource_fhir_id: the fhir id of the resource
@@ -182,6 +182,25 @@ class BlazeClient:
         self.__raise_for_status_extract_diagnostics_message(response)
         return response.json()["id"]
 
+    def update_donor(self, donor: SampleDonor) -> str:
+        """
+        Update donor resource present in the blaze store.
+        Uses PUT method
+        :param donor: donor to be updated
+        :return: fhir id of the updated donor
+        """
+        if not self.is_resource_present_in_blaze("Patient", donor.identifier, "identifier"):
+            raise NonExistentResourceException(f"cannot update donor. Donor with identifier {donor.identifier} "
+                                               f"is not present in the blaze store")
+        existing_donor_fhir_id = self.get_fhir_id("Patient", donor.identifier)
+        existing_donor = self.build_donor_from_json(existing_donor_fhir_id)
+        if existing_donor == donor:
+            return existing_donor.donor_fhir_id
+        donor._donor_fhir_id = existing_donor.donor_fhir_id
+        donor_fhir = donor.add_fhir_id_to_donor(donor.to_fhir())
+        self._update_fhir_resource("Patient", existing_donor_fhir_id, donor_fhir.as_json())
+        return existing_donor.donor_fhir_id
+
     def upload_sample(self, sample: Sample):
         donor_fhir_id = sample.subject_fhir_id or self.get_fhir_id("Patient", sample.donor_identifier)
         if donor_fhir_id is None:
@@ -193,6 +212,40 @@ class BlazeClient:
         self.__raise_for_status_extract_diagnostics_message(response)
         response_json = response.json()
         return self.__get_id_from_bundle_response(response_json, "Specimen")
+
+    def update_sample(self, sample: Sample) -> str:
+        """
+        Update sample along with observation and diagnosis report that are already preent in the blaze store.
+        :param sample: sample to be updated
+        Uses PUT method
+        :return: fhir id of updated sample (fhir id will be changed after update of sample),
+        """
+        if not self.is_resource_present_in_blaze("Specimen", sample.identifier, "identifier"):
+            raise NonExistentResourceException(f"Cannot update sample. Sample with identifier {sample.identifier}"
+                                               f" is not present in the blaze store.")
+        existing_sample_fhir_id = self.get_fhir_id("Specimen", sample.identifier)
+        existing_sample = self.build_sample_from_json(existing_sample_fhir_id)
+        if existing_sample == sample:
+            return existing_sample.sample_fhir_id
+        sample._sample_fhir_id = existing_sample.sample_fhir_id
+        sample._subject_fhir_id = existing_sample.subject_fhir_id
+        same_observations = sample.compare_observations(existing_sample)
+
+        if same_observations:
+            sample_fhir = sample.to_fhir()
+            sample.add_fhir_id_to_fhir_representation(sample_fhir)
+            self._update_fhir_resource("Specimen", sample.sample_fhir_id, sample_fhir.as_json())
+        else:
+            sample_fhir = sample.to_fhir()
+            sample.add_fhir_id_to_fhir_representation(sample_fhir)
+            self._update_fhir_resource("Specimen", sample.sample_fhir_id, sample_fhir.as_json())
+            self._delete_diagnosis_report(existing_sample.diagnosis_report_fhir_id)
+            for observation in existing_sample.observations:
+                self._delete_observation(observation.observation_fhir_id)
+            for observation in sample.observations:
+                self._upload_observation(observation)
+            self._upload_diagnosis_report(sample.diagnosis_report)
+        return sample.sample_fhir_id
 
     def _upload_sample(self, sample: Sample) -> str:
         """Upload a sample to blaze.
@@ -286,6 +339,24 @@ class BlazeClient:
         self.__raise_for_status_extract_diagnostics_message(response)
         return response.json()["id"]
 
+    def update_biobank(self, biobank: Biobank) -> str:
+        """
+        Update biobank resource already present in the blaze store
+        :param biobank: biobank to be updated
+        :return: fhir id of the biobank
+        """
+        if not self.is_resource_present_in_blaze("Organization", biobank.identifier, "identifier"):
+            raise NonExistentResourceException(f"Cannot update biobank. Biobank with identifier {biobank.identifier} "
+                                               f"is not present in the blaze store.")
+        biobank_fhir_id = self.get_fhir_id("Organization", biobank.identifier)
+        existing_biobank = self.build_biobank_from_json(biobank_fhir_id)
+        if existing_biobank == biobank:
+            return biobank_fhir_id
+        biobank._biobank_fhir_id = existing_biobank.biobank_fhir_id
+        biobank_fhir = biobank.add_fhir_id_to_biobank(biobank.to_fhir())
+        self._update_fhir_resource("Organization", biobank_fhir_id, biobank_fhir.as_json())
+        return biobank_fhir_id
+
     def _upload_collection_organization(self, collection_org: _CollectionOrganization) -> str:
         """
         Upload a collection organization resource to a blaze
@@ -333,6 +404,39 @@ class BlazeClient:
         self.__raise_for_status_extract_diagnostics_message(response)
         response_json = response.json()
         return self.__get_id_from_bundle_response(response_json, "Group")
+
+    def update_collection(self, collection: Collection) -> str:
+        """
+        update collection resource that is already present in the blaze store.
+        :param collection: collection to be updated
+        :return: fhir id of the collection
+        """
+        if not self.is_resource_present_in_blaze("Group", collection.identifier, "identifier"):
+            raise NonExistentResourceException(f"cannot update collection. Collection with identifier "
+                                               f"{collection.identifier} is not present in the blaze store")
+        collection_fhir_id = self.get_fhir_id("Group", collection.identifier)
+        existing_collection = self.build_collection_from_json(collection_fhir_id)
+        if collection == existing_collection:
+            return collection_fhir_id
+        existing_collection.name = collection.name
+        existing_collection.managing_collection_org_id = collection.managing_collection_org_id
+        existing_collection.inclusion_criteria = collection.inclusion_criteria
+
+        collection_organization = collection.collection_organization
+        collection_organization._collection_org_fhir_id = existing_collection.collection_organization. \
+            collection_org_fhir_id
+        collection_organization._managing_biobank_fhir_id = existing_collection.collection_organization. \
+            managing_biobank_fhir_id
+        collection_organization_fhir = collection_organization.add_fhir_id_to_collection_organization(
+            collection_organization.to_fhir())
+
+        self._update_fhir_resource("Organization", collection_organization.collection_org_fhir_id,
+                                   collection_organization_fhir.as_json())
+
+        collection_to_update = existing_collection.add_fhir_id_to_collection(existing_collection.to_fhir())
+
+        self._update_fhir_resource("Group", collection_fhir_id, collection_to_update.as_json())
+        return collection_fhir_id
 
     def _upload_collection(self, collection: Collection) -> str:
         """
@@ -426,6 +530,37 @@ class BlazeClient:
         self.__raise_for_status_extract_diagnostics_message(response)
         response_json = response.json()
         return self.__get_id_from_bundle_response(response_json, "Group")
+
+    def update_network(self, network: Network) -> str:
+        """
+        Update network resource that is already present in the blaze store
+        :param network: network to be updated
+        :return: fhir id of the network
+        """
+        if not self.is_resource_present_in_blaze("Group", network.identifier, "identifier"):
+            raise NonExistentResourceException(f"cannot update network. Network with identifier {network.identifier} "
+                                               f"is not present in the blaze store")
+        network_fhir_id = self.get_fhir_id("Group", network.identifier)
+        existing_network = self.build_network_from_json(network_fhir_id)
+        if existing_network == network:
+            return network_fhir_id
+        existing_network.name = network.name
+        existing_network.managing_network_org_id = network.managing_network_org_id
+        existing_network.members_biobanks_ids = network.members_biobanks_ids
+        existing_network.members_collections_ids = network.members_collections_ids
+
+        network_organization = network.network_organization
+        network_organization._network_org_fhir_id = existing_network.network_organization.network_org_fhir_id
+        network_organization._managing_biobank_fhir_id = existing_network.network_organization.managing_biobank_fhir_id
+        network_organization_fhir = network_organization.add_fhir_id_to_network(network_organization.to_fhir())
+
+        self._update_fhir_resource("Organization", network_organization.network_org_fhir_id,
+                                   network_organization_fhir.as_json())
+        network_to_update = existing_network.add_fhir_id_to_network(existing_network.to_fhir())
+
+        self._update_fhir_resource("Group", network_fhir_id, network_to_update.as_json())
+        return network_fhir_id
+
 
     def _upload_network(self, network: Network) -> str:
         """
@@ -691,7 +826,7 @@ class BlazeClient:
             condition.diagnosis_report_fhir_ids.append(diagnostic_report_fhir_id)
         updated_condition_fhir = condition.to_fhir()
         condition.add_fhir_id_to_condition(updated_condition_fhir)
-        return self.update_fhir_resource("Condition", condition_fhir_id, updated_condition_fhir.as_json())
+        return self._update_fhir_resource("Condition", condition_fhir_id, updated_condition_fhir.as_json())
 
     def _add_diagnosis_reports_to_condition(self, condition_fhir_id: str, diagnosis_report_fhir_ids: list[str]) -> bool:
         """add new diagnosis to already present condition in the blaze store
@@ -706,7 +841,7 @@ class BlazeClient:
                 condition.diagnosis_report_fhir_ids.append(diagnosis_report_fhir_id)
         updated_condition_fhir = condition.to_fhir()
         condition.add_fhir_id_to_condition(updated_condition_fhir)
-        self.update_fhir_resource("Condition", condition_fhir_id, updated_condition_fhir.as_json())
+        self._update_fhir_resource("Condition", condition_fhir_id, updated_condition_fhir.as_json())
         return True
 
     def _add_existing_observations_to_diagnosis_report(self, observation_fhir_ids: list[str],
@@ -726,7 +861,7 @@ class BlazeClient:
             if observation_fhir_id not in diagnosis_report.observations_fhir_identifiers:
                 diagnosis_report.observations_fhir_identifiers.append(observation_fhir_id)
         diagnosis_report_json = diagnosis_report.add_fhir_id_to_diagnosis_report(diagnosis_report.to_fhir())
-        return self.update_fhir_resource("DiagnosticReport", diagnosis_report_fhir_id, diagnosis_report_json.as_json())
+        return self._update_fhir_resource("DiagnosticReport", diagnosis_report_fhir_id, diagnosis_report_json.as_json())
 
     def add_already_present_samples_to_existing_collection(self, sample_fhir_ids: list[str],
                                                            collection_fhir_id: str) -> bool:
@@ -748,7 +883,7 @@ class BlazeClient:
                 already_present_samples_set.add(sample_fhir_id)
         collection._sample_fhir_ids = list(already_present_samples_set)
         collection = collection.add_fhir_id_to_collection(collection.to_fhir())
-        return self.update_fhir_resource("Group", collection_fhir_id, collection.as_json())
+        return self._update_fhir_resource("Group", collection_fhir_id, collection.as_json())
 
     def update_collection_values(self, collection_fhir_id) -> bool:
         """Recalculate characteristics of a collection.
@@ -770,7 +905,7 @@ class BlazeClient:
         collection = self.__update_collection_characteristics_from_samples(present_samples, collection)
         collection._sample_fhir_ids = sample_fhir_ids
         collection_fhir = collection.add_fhir_id_to_collection(collection.to_fhir())
-        return self.update_fhir_resource("Group", collection.collection_fhir_id, collection_fhir.as_json())
+        return self._update_fhir_resource("Group", collection.collection_fhir_id, collection_fhir.as_json())
 
     def __update_collection_characteristics_from_samples(self, samples: Generator[Sample, Any, None],
                                                          collection: Collection) -> Collection:
@@ -1105,7 +1240,7 @@ class BlazeClient:
         if collection_fhir_id in network.members_collections_fhir_ids:
             network.members_collections_fhir_ids.remove(collection_fhir_id)
         update_network_fhir = network.add_fhir_id_to_network(network.to_fhir())
-        return self.update_fhir_resource("Group", network_fhir_id, update_network_fhir.as_json())
+        return self._update_fhir_resource("Group", network_fhir_id, update_network_fhir.as_json())
 
     def __delete_samples_from_collection(self, collection_fhir_id: str, sample_fhir_ids: list[str]) -> Collection:
         collection = self.build_collection_from_json(collection_fhir_id)
@@ -1248,6 +1383,34 @@ class BlazeClient:
         self.__raise_for_status_extract_diagnostics_message(response)
         return response.status_code == 200 or response.status_code == 204
 
+    def delete_all_resources(self, biobank_id: str):
+        """Just as name says.DELETES EVERYTHING!!!"""
+
+        biobank_fhir_id = self.get_fhir_id("Organization", biobank_id)
+        deleted_biobank = self.delete_biobank(biobank_fhir_id)
+        if not deleted_biobank:
+            return False
+        response = self._session.get(f"{self._blaze_url}/Patient")
+        while response.status_code == 200:
+            response_json = response.json()
+            for entry in response_json.get("entry", []):
+                patient_id = get_nested_value(entry, ["resource", "id"])
+                deleted_patient = self.delete_donor(patient_id)
+                if not deleted_patient:
+                    return False
+            links = response_json.get("link", [])
+            link_relations = [link.get("relation") for link in links]
+            if "next" not in link_relations:
+                break
+            next_index = link_relations.index("next")
+            url = links[next_index].get("url")
+            url_after_fhir = url.find("/fhir")
+            if url_after_fhir == -1:
+                break
+            next_link = self._blaze_url + url[url_after_fhir + len("/fhir"):]
+            response = self._session.get(url=next_link)
+        return True
+
     @staticmethod
     def __get_all_members_belonging_to_network(network_json: dict) -> tuple[list[str], list[str]]:
         """Get all members which belong to the network
@@ -1346,7 +1509,7 @@ class BlazeClient:
             condition_entry.request.url = f"Condition/{condition_fhir_id}"
             entries.append(condition_entry)
             return entries
-        return self.update_fhir_resource("Condition", condition_fhir_id, condition_fhir.as_json())
+        return self._update_fhir_resource("Condition", condition_fhir_id, condition_fhir.as_json())
 
     @staticmethod
     def __raise_for_status_extract_diagnostics_message(response: Response):

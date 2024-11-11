@@ -244,7 +244,7 @@ class TestNetworkOrganization(unittest.TestCase):
                                            contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
         network_org_fhir = network_org.to_fhir("biobankFhirId")
         self.assertEqual("networkOrgId", network_org_fhir.identifier[0].value)
-        self.assertEqual("networkName",network_org_fhir.name)
+        self.assertEqual("networkName", network_org_fhir.name)
         self.assertEqual("contactEmail", network_org_fhir.contact[0].telecom[0].value)
         self.assertEqual("CZ", network_org_fhir.address[0].country)
         self.assertEqual("Organization/biobankFhirId", network_org_fhir.partOf.reference)
@@ -280,14 +280,40 @@ class TestNetworkOrganization(unittest.TestCase):
         example_fhir = example_network.to_fhir("biobankFhirId")
         example_fhir.id = "TestFHIRId"
         network_org = _NetworkOrganization.from_json(example_fhir.as_json(), "biobankId")
-        self.assertEqual(example_network.identifier, network_org.identifier)
-        self.assertEqual(example_network.name, network_org.name)
-        self.assertEqual(example_network.managing_biobank_id, network_org.managing_biobank_id)
-        self.assertEqual(example_network.contact_name, network_org.contact_name)
-        self.assertEqual(example_network.contact_surname, network_org.contact_surname)
-        self.assertEqual(example_network.contact_email, network_org.contact_email)
-        self.assertEqual(example_network.country, network_org.country)
-        self.assertEqual(example_network.common_collaboration_topics, network_org.common_collaboration_topics)
-        self.assertEqual(example_network.juristic_person, network_org.juristic_person)
+        self.assertEqual(example_network, network_org)
         self.assertEqual("biobankFhirId", network_org.managing_biobank_fhir_id)
         self.assertEqual("TestFHIRId", network_org.network_org_fhir_id)
+
+    def test_network_org_eq(self):
+        network_org_1 = _NetworkOrganization(identifier="networkOrgId", name="networkName",
+                                             managing_biobank_id="biobankId",
+                                             contact_email="contactEmail", country="CZ",
+                                             juristic_person="juristicPerson",
+                                             contact_name="contactName", contact_surname="contactSurname",
+                                             common_collaboration_topics=["Charter"],
+                                             description="description")
+        network_org_2 = _NetworkOrganization(identifier="networkOrgId", name="networkName",
+                                             managing_biobank_id="biobankId",
+                                             contact_email="contactEmail", country="CZ",
+                                             juristic_person="juristicPerson",
+                                             contact_name="contactName", contact_surname="contactSurname",
+                                             common_collaboration_topics=["Charter"],
+                                             description="description")
+        self.assertEqual(network_org_1, network_org_2)
+
+    def test_network_org_not_eq(self):
+        network_org_1 = _NetworkOrganization(identifier="networkOrgId", name="networkName",
+                                             managing_biobank_id="biobankId",
+                                             contact_email="contactEmail", country="CZ",
+                                             juristic_person="juristicPerson",
+                                             contact_name="contactName", contact_surname="contactSurname",
+                                             common_collaboration_topics=["Charter"],
+                                             description="description")
+        network_org_2 = _NetworkOrganization(identifier="DifferentId", name="networkName",
+                                             managing_biobank_id="biobankId",
+                                             contact_email="contactEmail", country="CZ",
+                                             juristic_person="juristicPerson",
+                                             contact_name="contactName", contact_surname="contactSurname",
+                                             common_collaboration_topics=["Charter"],
+                                             description="description")
+        self.assertNotEqual(network_org_1, network_org_2)

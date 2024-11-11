@@ -310,6 +310,10 @@ class Collection:
     def sample_fhir_ids(self) -> list[str]:
         return self._sample_fhir_ids
 
+    @property
+    def collection_organization(self):
+        return self._collection_org
+
     @classmethod
     def from_json(cls, collection_json: dict, collection_org_json: dict, managing_biobank_id: str,
                   sample_ids: list[str]) -> Self:
@@ -553,3 +557,12 @@ class Collection:
         entity_reference = FHIRReference()
         entity_reference.reference = f"Organization/{managing_ogranization_fhir_id}"
         return entity_reference
+
+    def __eq__(self, other):
+        if not isinstance(other, Collection):
+            return False
+        return self.identifier == other.identifier and \
+            self.name == other.name and \
+            self.managing_collection_org_id == other.identifier and \
+            self.inclusion_criteria == other.inclusion_criteria and \
+            self._collection_org == other._collection_org

@@ -23,8 +23,8 @@ def parse_reference_id(reference: str) -> str:
 def parse_contact(contact: dict) -> dict:
     """Helper method to parse contact information."""
     return {
-        "name": contact.get("name", {}).get("given", [""])[0],
-        "surname": contact.get("name", {}).get("family", ""),
+        "name": contact.get("name", {}).get("given", [None])[0],
+        "surname": contact.get("name", {}).get("family", None),
         "email": contact.get("telecom", [{}])[0].get("value", "")
     }
 
