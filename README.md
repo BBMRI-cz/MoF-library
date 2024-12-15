@@ -37,7 +37,7 @@ This package is ideal for developers looking to work with MIABIS on FHIR resourc
 
 ## Installation
 ```bash 
-pip install miabis_model
+pip install MIABIS-on-FHIR
 ```
 ## How to use
 Here is how you can create a MIABIS on FHIR sample resource:
