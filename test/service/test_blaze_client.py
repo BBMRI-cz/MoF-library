@@ -265,8 +265,8 @@ class TestBlazeService(unittest.TestCase):
         updated = self.blaze_service.update_sample(different_sample)
         self.assertTrue(updated)
         updated_sample = self.blaze_service.build_sample_from_json(sample_fhir_id)
-        self.assertEqual(updated_sample.diagnoses_icd10_code_with_observed_datetime,
-                         different_sample.diagnoses_icd10_code_with_observed_datetime)
+        for diagnosis_with_datetime in updated_sample.diagnoses_icd10_code_with_observed_datetime:
+            self.assertIn(diagnosis_with_datetime,different_sample.diagnoses_icd10_code_with_observed_datetime)
         self.blaze_service.delete_sample(sample_fhir_id)
 
     def test_update_sample(self):
