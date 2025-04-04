@@ -1,35 +1,57 @@
 {
-    "entry": [
-        {
-            "request": {
-                "method": "POST",
-                "url": "SearchParameter"
-            },
-            "resource": {
-                "resourceType": "SearchParameter",
-                "id": "ExtensionMemberEntitySearch",
-                "url": "https://fhir.bbmri-eric.eu/fhir/SearchParameter/GroupMember",
-                "base": [
-                  "Group"
-                ],
-                "target": [
-                  "Specimen",
-                  "Group",
-                  "Organization"
-                ],
-                "chain": [
-                  "*"
-                ],
-                "name": "groupMember",
-                "description": "Search parameter for searching Group by provided members via extension",
-                "status": "active",
-                "code": "groupMember",
-                "type": "reference",
-                "expression": "Group.extension('http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity').value"
-              }
-
-        }
-    ],
-    "type": "transaction",
-    "resourceType": "Bundle"
+  "entry": [
+    {
+      "request": {
+        "method": "POST",
+        "url": "SearchParameter"
+      },
+      "resource": {
+        "resourceType": "SearchParameter",
+        "id": "ExtensionMemberEntitySearch",
+        "url": "https://fhir.bbmri-eric.eu/fhir/SearchParameter/GroupMember",
+        "base": [
+          "Group"
+        ],
+        "target": [
+          "Specimen",
+          "Group",
+          "Organization"
+        ],
+        "chain": [
+          "*"
+        ],
+        "name": "groupMember",
+        "description": "Search parameter for searching Group by provided members via extension",
+        "status": "active",
+        "code": "groupMember",
+        "type": "reference",
+        "expression": "Group.extension('http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity').value"
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "SearchParameter"
+      },
+      "resource": {
+        "resourceType": "SearchParameter",
+        "id": "SampleCollectionIdSearch",
+        "url": "http://example.org/fhir/SearchParameter/Specimen-sample-collection-id",
+        "description": "Allows searching for specimens by the sample collection ID stored in the miabis-sample-collection-extension.",
+        "base": [
+          "Specimen"
+        ],
+        "version": "1.0.0",
+        "name": "SampleCollectionIdSearch",
+        "status": "active",
+        "experimental": false,
+        "code": "sample-collection-id",
+        "type": "token",
+        "expression": "Specimen.extension('https://fhir.bbmri-eric.eu/fhir/StructureDefinition/miabis-sample-collection-extension').value as Identifier",
+        "xpathUsage": "normal"
+      }
+    }
+  ],
+  "type": "transaction",
+  "resourceType": "Bundle"
 }
