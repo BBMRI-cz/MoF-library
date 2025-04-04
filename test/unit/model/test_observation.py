@@ -57,11 +57,6 @@ class TestObservation(unittest.TestCase):
         example_fhir.id = "TestFHIRId"
         observation = _Observation.from_json(example_fhir.as_json(), "patientId", "sampleId")
         self.assertEqual(example_observation, observation)
-        # self.assertEqual(example_observation.icd10_code, observation.icd10_code)
-        # self.assertEqual(example_observation.sample_identifier, observation.sample_identifier)
-        # self.assertEqual(example_observation.patient_identifier, observation.patient_identifier)
-        # self.assertEqual(example_observation.diagnosis_observed_datetime.date(),
-        #                  observation.diagnosis_observed_datetime.date())
         self.assertEqual("TestFHIRId", observation.observation_fhir_id)
         self.assertEqual("sampleFhirId", observation.sample_fhir_id)
         self.assertEqual("patientFhirId", observation.patient_fhir_id)
