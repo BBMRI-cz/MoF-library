@@ -12,7 +12,7 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.specimen import Specimen, SpecimenCollection, SpecimenProcessing
 
-from miabis_model import _Observation, _DiagnosisReport
+from miabis_model import _Observation
 from miabis_model.incorrect_json_format import IncorrectJsonFormatException
 from miabis_model.storage_temperature import StorageTemperature
 from miabis_model.util.config import FHIRConfig
@@ -57,7 +57,6 @@ class Sample:
         for diagnosis_code, observed_datetime in diagnoses_with_observed_datetime:
             observation = _Observation(diagnosis_code, identifier, donor_identifier, observed_datetime)
             self._observations.append(observation)
-        self._diagnosis_report = _DiagnosisReport(self.identifier, donor_identifier)
         self._subject_fhir_id = None
         self._sample_fhir_id = None
         self._observation_fhir_ids = None
@@ -327,7 +326,6 @@ class Sample:
             return False
 
         observations_equal = set(self._observations) == set(other._observations)
-        diagnosis_report_equal = self._diagnosis_report == other._diagnosis_report
 
         return self.identifier == other.identifier and \
             self.material_type == other.material_type and \
@@ -337,12 +335,7 @@ class Sample:
             self.body_site_system == other.body_site_system and \
             self.storage_temperature == other.storage_temperature and \
             self.use_restrictions == other.use_restrictions and \
-            observations_equal and diagnosis_report_equal
-
-    def compare_diagnosis_report(self, other):
-        if not isinstance(other, Sample):
-            return False
-        return self._diagnosis_report == other._diagnosis_report
+            observations_equal
 
     def compare_observations(self, other):
         if not isinstance(other, Sample):

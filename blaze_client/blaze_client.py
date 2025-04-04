@@ -1,5 +1,4 @@
 import datetime
-import uuid
 from typing import Generator, Any
 
 import requests
@@ -11,7 +10,6 @@ from miabis_model.biobank import Biobank
 from miabis_model.collection import Collection
 from miabis_model.collection_organization import _CollectionOrganization
 from miabis_model.condition import Condition
-from miabis_model.diagnosis_report import _DiagnosisReport
 from miabis_model.network import Network
 from miabis_model.network_organization import _NetworkOrganization
 from miabis_model.observation import _Observation

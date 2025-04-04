@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from miabis_model import Sample, _DiagnosisReport
+from miabis_model import Sample
 from miabis_model import StorageTemperature
 from miabis_model import _Observation
 
@@ -22,7 +22,6 @@ class TestSample(unittest.TestCase):
                                                           ("C52", datetime(year=2029, month=10, day=5))])
         self.assertIsInstance(sample, Sample)
         self.assertIsInstance(sample._observations[0], _Observation)
-        self.assertIsInstance(sample._diagnosis_report, _DiagnosisReport)
         self.assertEqual("sampleId", sample.identifier)
         self.assertEqual("donorId", sample.donor_identifier)
         self.assertEqual("BuffyCoat", sample.material_type)
@@ -145,8 +144,6 @@ class TestSample(unittest.TestCase):
             obs_fhir = observation.to_fhir("donorFhirId", "TestFHIRId")
             obs_fhir.identifier = f"TestFhirObs{i}"
             observation_jsons.append(observation.to_fhir("donorFhirId", "TestFHIRId").as_json())
-        diagnosis_report = example_sample._diagnosis_report.to_fhir("TestFHIRId", "donorFHIRId",
-                                                                    ["TestFhirObs0", ["testFhirOBs1"]])
         sample = Sample.from_json(example_fhir.as_json(), observation_jsons, "donorId")
         self.assertEqual(example_sample, sample)
         self.assertEqual("donorFhirId", sample._subject_fhir_id)
