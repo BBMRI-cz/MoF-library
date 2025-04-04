@@ -19,7 +19,8 @@ class FHIRConfig:
         "resource": "/Specimen",
         "meta_profile": "/StructureDefinition/miabis-sample",
         "extensions": {
-            "storage_temperature": "/StructureDefinition/miabis-sample-storage-temperature-extension"
+            "storage_temperature": "/StructureDefinition/miabis-sample-storage-temperature-extension",
+            "sample_collection_id": "/StructureDefinition/miabis-sample-collection-extension"
         },
         "value_sets": {
             "detailed_sample_type": "/ValueSet/miabis-detailed-sample-type-vs",

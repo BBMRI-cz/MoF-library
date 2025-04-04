@@ -1,5 +1,6 @@
 from typing import Self
 
+from fhirclient.models.contactpoint import ContactPoint
 from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
@@ -17,7 +18,7 @@ class _NetworkOrganization:
      like ist name, contact information, url, etc."""
 
     def __init__(self, identifier: str, name: str, managing_biobank_id: str, contact_email: str, country: str,
-                 juristic_person: str, contact_name: str = None, contact_surname: str = None,
+                 juristic_person: str, url: str = None, contact_name: str = None, contact_surname: str = None,
                  common_collaboration_topics: list[str] = None, description: str = None):
         """
         :param identifier: network organizational identifier
@@ -34,6 +35,7 @@ class _NetworkOrganization:
         self.contact_surname = contact_surname
         self.contact_email = contact_email
         self.country = country
+        self.url = url
         self.juristic_person = juristic_person
         self.common_collaboration_topics = common_collaboration_topics
         self.description = description
@@ -59,6 +61,16 @@ class _NetworkOrganization:
         if not isinstance(name, str):
             raise TypeError("Name must be string")
         self._name = name
+
+    @property
+    def url(self) -> str:
+        return self._url
+
+    @url.setter
+    def url(self, url: str):
+        if url is not None and not isinstance(url, str):
+            raise TypeError("url must be a string")
+        self._url = url
 
     @property
     def contact_name(self) -> str:
@@ -159,6 +171,7 @@ class _NetworkOrganization:
             name = get_nested_value(network_json, ["name"])
             managing_biobank_fhir_id = parse_reference_id(get_nested_value(network_json, ["partOf", "reference"]))
             contact = parse_contact(network_json.get("contact", [{}])[0])
+            url = get_nested_value(network_json, ["telecom", 0, "value"])
             country = get_nested_value(network_json, ["address", 0, "country"])
             parsed_extensions = cls._parse_extensions(network_json.get("extension", []))
             instance = cls(identifier=identifier, name=name, managing_biobank_id=managing_biobank_id,
@@ -166,7 +179,8 @@ class _NetworkOrganization:
                            contact_surname=contact["surname"], contact_email=contact["email"], country=country,
                            common_collaboration_topics=parsed_extensions["common_collaboration_topics"],
                            juristic_person=parsed_extensions["juristic_person"],
-                           description=parsed_extensions["description"])
+                           description=parsed_extensions["description"],
+                           url=url)
             instance._network_org_fhir_id = network_org_fhir_id
             instance._managing_biobank_fhir_id = managing_biobank_fhir_id
             return instance
@@ -212,6 +226,8 @@ class _NetworkOrganization:
         network.partOf.reference = f"Organization/{managing_biobank_fhir_id}"
         network.contact = [create_contact(self._contact_name, self._contact_surname, self._contact_email)]
         network.address = [create_country_of_residence(self._country)]
+        if self.url is not None:
+            network.telecom = [self.create_url(self.url)]
         extensions = []
         if self._common_collaboration_topics is not None:
             for topic in self._common_collaboration_topics:
@@ -229,6 +245,13 @@ class _NetworkOrganization:
                                         self._description))
         network.extension = extensions
         return network
+
+    @staticmethod
+    def create_url(url: str) -> ContactPoint:
+        contact_point = ContactPoint()
+        contact_point.system = "url"
+        contact_point.value = url
+        return contact_point
 
     def add_fhir_id_to_network(self, network: Organization) -> Organization:
         """Add FHIR id to the FHIR representation of the NetworkOrganization. FHIR ID is necessary for updating the

@@ -7,8 +7,8 @@ from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.group import Group
 from fhirclient.models.meta import Meta
 
-from miabis_model.network_organization import _NetworkOrganization
 from miabis_model.incorrect_json_format import IncorrectJsonFormatException
+from miabis_model.network_organization import _NetworkOrganization
 from miabis_model.util.config import FHIRConfig
 from miabis_model.util.parsing_util import get_nested_value, parse_reference_id
 from miabis_model.util.util import create_fhir_identifier, create_post_bundle_entry, create_bundle
@@ -19,7 +19,9 @@ class Network:
 
     def __init__(self, identifier: str, name: str, managing_biobank_id: str,
                  contact_email: str, country: str, juristic_person: str,
+                 alias: str = None,
                  members_collections_ids: list[str] = None,
+                 url: str = None,
                  members_biobanks_ids: list[str] = None, contact_name: str = None, contact_surname: str = None,
                  common_collaboration_topics: list[str] = None, description: str = None):
         """
@@ -33,6 +35,7 @@ class Network:
         self.identifier = identifier
         self.name = name
         self.managing_network_org_id = identifier
+        self.alias = alias
         self.members_collections_ids = members_collections_ids
         self.members_biobanks_ids = members_biobanks_ids
         self._network_org = _NetworkOrganization(identifier=identifier, name=name,
@@ -40,7 +43,7 @@ class Network:
                                                  contact_surname=contact_surname, contact_email=contact_email,
                                                  country=country,
                                                  common_collaboration_topics=common_collaboration_topics,
-                                                 juristic_person=juristic_person, description=description)
+                                                 juristic_person=juristic_person, description=description, url=url)
         self._network_fhir_id = None
         self._managing_network_org_fhir_id = None
         self._members_biobanks_fhir_ids = None
@@ -57,6 +60,10 @@ class Network:
     @property
     def common_collaboration_topics(self) -> list[str]:
         return self._network_org.common_collaboration_topics
+
+    @property
+    def url(self) -> str:
+        return self._network_org._url
 
     @property
     def country(self) -> str:
@@ -102,6 +109,15 @@ class Network:
     def managing_network_org_id(self) -> str:
         return self._managing_biobank_id
 
+    @property
+    def alias(self) -> str:
+        return self._alias
+
+    @alias.setter
+    def alias(self, alias: str):
+        if alias is not None and not isinstance(alias, str):
+            raise TypeError("Alias must be string")
+        self._alias = alias
     @managing_network_org_id.setter
     def managing_network_org_id(self, managing_biobank_id: str):
         if not isinstance(managing_biobank_id, str):

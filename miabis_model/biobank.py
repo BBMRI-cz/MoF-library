@@ -16,11 +16,12 @@ from miabis_model.util.util import create_fhir_identifier, create_contact, creat
 class Biobank:
     """Class representing a biobank as defined by the MIABIS on FHIR profile."""
 
-    def __init__(self, identifier: str, name: str, alias: str, country: str, contact_name: str, contact_surname: str,
-                 contact_email: str, infrastructural_capabilities: list[str] = None,
+    def __init__(self, identifier: str, name: str, country: str, contact_name: str, contact_surname: str,
+                 contact_email: str, juristic_person: str, description: str, alias: str = None, url: str = None,
+                 infrastructural_capabilities: list[str] = None,
                  organisational_capabilities: list[str] = None,
                  bioprocessing_and_analysis_capabilities: list[str] = None,
-                 quality__management_standards: list[str] = None, juristic_person: str = None, description: str = None):
+                 quality__management_standards: list[str] = None):
         """
         :param identifier: Biobank identifier same format as in the BBMRI-ERIC directory.
         :param name: name of the biobank
@@ -51,6 +52,7 @@ class Biobank:
         self.infrastructural_capabilities = infrastructural_capabilities
         self.organisational_capabilities = organisational_capabilities
         self.description = description
+        self.url = url
         self.bioprocessing_and_analysis_capabilities = bioprocessing_and_analysis_capabilities
         self._biobank_fhir_id = None
 
@@ -80,7 +82,7 @@ class Biobank:
 
     @alias.setter
     def alias(self, alias: str):
-        if not isinstance(alias, str):
+        if alias is not None and not isinstance(alias, str):
             raise TypeError("Alias must be a string.")
         self._alias = alias
 
@@ -123,6 +125,16 @@ class Biobank:
         if not isinstance(contact_email, str):
             raise TypeError("Contact email must be a string.")
         self._contact_email = contact_email
+
+    @property
+    def url(self) -> str:
+        return self._url
+
+    @url.setter
+    def url(self, url: str):
+        if url is not None and not isinstance(url, str):
+            raise TypeError("Url must be a string.")
+        self._url = url
 
     @property
     def infrastructural_capabilities(self) -> list[str]:
@@ -212,9 +224,12 @@ class Biobank:
             juristic_person = parsed_extension["juristic_person"]
             description = parsed_extension["description"]
 
-            instance = cls(identifier, name, alias, country, contact["name"], contact["surname"], contact["email"],
-                           infrastructural_capabilities, organisational_capabilities, bioprocessing, quality_standards,
-                           juristic_person, description)
+            instance = cls(identifier, name, country, contact["name"], contact["surname"], contact["email"],
+                           juristic_person, description, alias,
+                           infrastructural_capabilities=infrastructural_capabilities,
+                           organisational_capabilities=organisational_capabilities,
+                           bioprocessing_and_analysis_capabilities=bioprocessing,
+                           quality__management_standards=quality_standards)
             instance._biobank_fhir_id = biobank_fhir_id
             return instance
         except KeyError:
@@ -279,7 +294,8 @@ class Biobank:
         fhir_organization.identifier = [create_fhir_identifier(self.identifier)]
         fhir_organization.identifier[0].system = "http://www.bbmri-eric.eu/"
         fhir_organization.name = self.name
-        fhir_organization.alias = [self.alias]
+        if self.alias is not None:
+            fhir_organization.alias = [self.alias]
         fhir_organization.contact = [create_contact(self.contact_name, self.contact_surname, self.contact_email)]
         fhir_organization.address = [create_country_of_residence(self.country)]
         extensions = []

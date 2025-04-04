@@ -26,16 +26,15 @@ from miabis_model.util.util import create_fhir_identifier, create_integer_extens
 class Collection:
     """Sample Collection represents a set of samples with at least one common characteristic."""
 
-    # TODO age range units
     def __init__(self, identifier: str, name: str, managing_biobank_id: str, contact_name: str, contact_surname: str,
                  contact_email: str,
                  country: str, genders: list[Gender],
+                 description: str,
                  material_types: list[str], age_range_low: int = None, age_range_high: int = None,
                  storage_temperatures: list[StorageTemperature] = None, diagnoses: list[str] = None,
                  number_of_subjects: int = None, inclusion_criteria: list[str] = None, sample_ids: list[str] = None,
                  alias: str = None,
                  url: str = None,
-                 description: str = None,
                  dataset_type: str = None,
                  sample_source: str = None,
                  sample_collection_setting: str = None, collection_design: list[str] = None,
@@ -448,8 +447,6 @@ class Collection:
         sample_fhir_ids = sample_fhir_ids or self.sample_fhir_ids
         if sample_fhir_ids is None:
             sample_fhir_ids = []
-            # raise ValueError("Sample FHIR ids must be provided either as an argument or as a property.")
-
         fhir_group = Group()
         fhir_group.meta = Meta()
         fhir_group.meta.profile = [FHIRConfig.get_meta_profile_url("collection")]
