@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from miabis_model import Sample, _DiagnosisReport
+from miabis_model import Sample
 from miabis_model import StorageTemperature
 from miabis_model import _Observation
 
@@ -22,7 +22,6 @@ class TestSample(unittest.TestCase):
                                                           ("C52", datetime(year=2029, month=10, day=5))])
         self.assertIsInstance(sample, Sample)
         self.assertIsInstance(sample._observations[0], _Observation)
-        self.assertIsInstance(sample._diagnosis_report, _DiagnosisReport)
         self.assertEqual("sampleId", sample.identifier)
         self.assertEqual("donorId", sample.donor_identifier)
         self.assertEqual("BuffyCoat", sample.material_type)
@@ -114,7 +113,7 @@ class TestSample(unittest.TestCase):
             sample = Sample("sampleId", "donorId", "BuffyCoat", use_restrictions=37)
 
     def test_sample_to_fhir_necessary_args_ok(self):
-        sample = Sample("sampleId", "donorId", "BuffyCoat")
+        sample = Sample("sampleId", "donorId", "BuffyCoat", sample_collection_id="collectionId")
         sample_fhir = sample.to_fhir("donorFhirId")
         self.assertEqual("sampleId", sample_fhir.identifier[0].value)
         self.assertEqual("Patient/donorFhirId", sample_fhir.subject.reference)
@@ -122,20 +121,22 @@ class TestSample(unittest.TestCase):
 
     def test_sample_to_fhir_all_args_ok(self):
         sample = Sample("sampleId", "donorId", "BuffyCoat", storage_temperature=StorageTemperature.TEMPERATURE_LN,
-                        use_restrictions="No restrictions")
+                        use_restrictions="No restrictions", sample_collection_id="collectionId")
         sample_fhir = sample.to_fhir("donorFhirId")
         self.assertEqual("sampleId", sample_fhir.identifier[0].value)
         self.assertEqual("Patient/donorFhirId", sample_fhir.subject.reference)
         self.assertEqual("BuffyCoat", sample_fhir.type.coding[0].code)
         self.assertEqual("LN", sample_fhir.processing[0].extension[0].valueCodeableConcept.coding[0].code)
         self.assertEqual("No restrictions", sample_fhir.note[0].text)
+        self.assertEqual("collectionId", sample_fhir.extension[0].valueIdentifier.value)
 
     def test_sample_from_json(self):
         example_sample = Sample(identifier="sampleId", donor_identifier="donorId", material_type="BuffyCoat",
                                 collected_datetime=datetime(year=2022, month=10, day=5),
                                 storage_temperature=StorageTemperature.TEMPERATURE_LN,
                                 diagnoses_with_observed_datetime=[("C51", datetime(year=2020, month=10, day=5)),
-                                                                  ("C52", datetime(year=2029, month=10, day=5))])
+                                                                  ("C52", datetime(year=2029, month=10, day=5))],
+                                sample_collection_id="collectionId")
         example_fhir = example_sample.to_fhir("donorFhirId")
         example_fhir.id = "TestFHIRId"
         observation_jsons = []
@@ -143,12 +144,11 @@ class TestSample(unittest.TestCase):
             obs_fhir = observation.to_fhir("donorFhirId", "TestFHIRId")
             obs_fhir.identifier = f"TestFhirObs{i}"
             observation_jsons.append(observation.to_fhir("donorFhirId", "TestFHIRId").as_json())
-        diagnosis_report = example_sample._diagnosis_report.to_fhir("TestFHIRId", "donorFHIRId",
-                                                                    ["TestFhirObs0", ["testFhirOBs1"]])
-        sample = Sample.from_json(example_fhir.as_json(), observation_jsons, diagnosis_report.as_json(), "donorId")
+        sample = Sample.from_json(example_fhir.as_json(), observation_jsons, "donorId")
         self.assertEqual(example_sample, sample)
         self.assertEqual("donorFhirId", sample._subject_fhir_id)
         self.assertEqual("TestFHIRId", sample._sample_fhir_id)
+        self.assertEqual("collectionId", sample._sample_collection_id)
 
     def test_sample_eq(self):
         sample1 = Sample(identifier="sampleId", donor_identifier="donorId", material_type="BuffyCoat",

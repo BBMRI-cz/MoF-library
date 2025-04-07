@@ -28,7 +28,6 @@ class Condition:
         self.condition_identifier = condition_identifier
         self._condition_fhir_id = None
         self._patient_fhir_id = None
-        self._diagnosis_report_fhir_ids = None
 
     @property
     def icd_10_code(self) -> str:
@@ -68,10 +67,6 @@ class Condition:
     def patient_fhir_id(self) -> str:
         return self._patient_fhir_id
 
-    @property
-    def diagnosis_report_fhir_ids(self) -> list[str]:
-        return self._diagnosis_report_fhir_ids
-
     @classmethod
     def from_json(cls, condition_json: dict, patient_identifier: str) -> Self:
         try:
@@ -102,18 +97,13 @@ class Condition:
             diagnosis_ids.append(diagnosis_report_fhir_id)
         return diagnosis_ids
 
-    def to_fhir(self, patient_fhir_id: str = None, diagnosis_report_fhir_ids: list[str] = None):
+    def to_fhir(self, patient_fhir_id: str = None):
         """Return condition's representation as a FHIR resource.
         @patient_id: FHIR Resource ID of the patient.
         @diagnosis_report_id: FHIR Resource ID of the diagnosis report."""
         patient_fhir_id = patient_fhir_id or self.patient_fhir_id
         if patient_fhir_id is None:
             raise ValueError("Patient FHIR ID must be provided either as an argument or as an property.")
-
-        diagnosis_report_fhir_ids = diagnosis_report_fhir_ids or self.diagnosis_report_fhir_ids
-        if diagnosis_report_fhir_ids is None:
-            diagnosis_report_fhir_ids = []
-
         condition = fhir_condition.Condition()
         condition.meta = Meta()
         condition.meta.profile = [FHIRConfig.get_meta_profile_url("condition")]
@@ -125,9 +115,6 @@ class Condition:
         condition.subject.reference = f"Patient/{patient_fhir_id}"
         condition.stage = [fhir_condition.ConditionStage()]
         condition.stage[0].assessment = []
-        for diagnosis_report_id in diagnosis_report_fhir_ids:
-            condition.stage[0].assessment.append(self.__create_diagnostic_report_reference(diagnosis_report_id))
-
         return condition
 
     @staticmethod

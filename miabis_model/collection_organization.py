@@ -17,8 +17,6 @@ from miabis_model.util.util import create_country_of_residence, create_contact, 
 
 class _CollectionOrganization:
     """Sample Collection represents a set of samples with at least one common characteristic."""
-
-    # TODO age range units
     def __init__(self, identifier: str, name: str, managing_biobank_id: str,
                  contact_name: str, contact_surname: str,
                  contact_email: str,
