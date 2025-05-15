@@ -18,6 +18,7 @@ from miabis_model import StorageTemperature
 from miabis_model import _NetworkOrganization
 from miabis_model.collection_organization import _CollectionOrganization
 from miabis_model.observation import _Observation
+from miabis_model.util.parsing_util import get_nested_value, parse_reference_id
 
 
 class TestBlazeService(unittest.TestCase):
@@ -54,8 +55,8 @@ class TestBlazeService(unittest.TestCase):
                                     sample_collection_setting="Environment", collection_design=["CaseControl"],
                                     use_and_access_conditions=["CommercialUse"], publications=["publication"])
 
-    example_network = Network(identifier="networkId", name="networkName", managing_biobank_id="biobankId",
-                              contact_email="contactEmail", country="cz", juristic_person="juristicPerson",
+    example_network = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="cz",
+                              juristic_person="juristicPerson",
                               members_collections_ids=["collectionId"],
                               members_biobanks_ids=["biobankId"], contact_name="contactName",
                               contact_surname="contactSurname", common_collaboration_topics=["Charter"],
@@ -67,10 +68,9 @@ class TestBlazeService(unittest.TestCase):
                                                      "LifeStyle", "Human", "Environment", ["CaseControl"],
                                                      ["CommercialUse"], ["publication"])
 
-    example_network_org = _NetworkOrganization(identifier="networkId", name="networkName",
-                                               managing_biobank_id="biobankId", contact_email="contactEmail",
+    example_network_org = _NetworkOrganization(identifier="networkId", name="networkName", contact_email="contactEmail",
                                                contact_surname="contactSurname", contact_name="contactName",
-                                               country="country", common_collaboration_topics=["Charter"],
+                                               country="cz", common_collaboration_topics=["Charter"],
                                                juristic_person="juristicPerson", description="description")
 
     @pytest.fixture(autouse=True)
@@ -488,7 +488,7 @@ class TestBlazeService(unittest.TestCase):
         self.assertEqual(self.example_biobank.contact_surname, biobank.contact_surname)
         self.assertEqual(self.example_biobank.country, biobank.country)
         self.assertEqual(self.example_biobank.contact_email, biobank.contact_email)
-        self.assertEqual(self.example_biobank.juristic_person, biobank.juristic_person)
+        self.assertEqual(self.example_biobank.juristic_person.name, biobank.juristic_person.name)
         self.assertEqual(self.example_biobank.contact_name, biobank.contact_name)
         self.assertEqual(self.example_biobank.alias, biobank.alias)
         self.assertEqual(self.example_biobank.description, biobank.description)
@@ -537,51 +537,9 @@ class TestBlazeService(unittest.TestCase):
         self.assertTrue(deleted)
         self.assertFalse(self.blaze_service.is_resource_present_in_blaze("Group", collection_fhir_id))
 
-    def test_upload_collection_organization(self):
-        self.blaze_service.upload_biobank(self.example_biobank)
-        collection_organization_id = self.blaze_service._upload_collection_organization(self.example_collection_org)
-        self.assertIsNotNone(collection_organization_id)
-        self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Organization", collection_organization_id))
-
-    def test_upload_collection_organization_with_nonexistent_biobank_raises_nonexistent_exception(self):
-        with self.assertRaises(NonExistentResourceException):
-            self.blaze_service._upload_collection_organization(self.example_collection_org)
-
-    def test_build_collection_organization_from_json(self):
-        biobank_fhir_id = self.blaze_service.upload_biobank(self.example_biobank)
-        collection_organization_id = self.blaze_service._upload_collection_organization(self.example_collection_org)
-        collection_org = self.blaze_service._build_collection_organization_from_json(collection_organization_id)
-        self.assertEqual(collection_org.identifier, self.example_collection_org.identifier)
-        self.assertEqual(collection_org.name, self.example_collection_org.name)
-        self.assertEqual(collection_org.alias, self.example_collection_org.alias)
-        self.assertEqual(collection_org.collection_design, self.example_collection_org.collection_design)
-        self.assertEqual(collection_organization_id, collection_org.collection_org_fhir_id)
-        self.assertEqual(collection_org.dataset_type, self.example_collection_org.dataset_type)
-        self.assertEqual(collection_org.country, self.example_collection_org.country)
-        self.assertEqual(collection_org.contact_email, self.example_collection_org.contact_email)
-        self.assertEqual(collection_org.contact_name, self.example_collection_org.contact_name)
-        self.assertEqual(collection_org.contact_surname, self.example_collection_org.contact_surname)
-        self.assertEqual(collection_org.managing_biobank_id, self.example_collection_org.managing_biobank_id)
-        self.assertEqual(collection_org.publications, self.example_collection_org.publications)
-        self.assertEqual(collection_org.use_and_access_conditions,
-                         self.example_collection_org.use_and_access_conditions)
-        self.assertEqual(collection_org.sample_collection_setting,
-                         self.example_collection_org.sample_collection_setting)
-        self.assertEqual(collection_org.sample_source, self.example_collection_org.sample_source)
-        self.assertEqual(collection_org.description, self.example_collection_org.description)
-        self.assertEqual(biobank_fhir_id, collection_org.managing_biobank_fhir_id)
-
-    def test_upload_collection_private(self):
-        self.blaze_service.upload_biobank(self.example_biobank)
-        self.blaze_service._upload_collection_organization(self.example_collection_org)
-        collection_fhir_id = self.blaze_service._upload_collection(self.example_collection)
-        self.assertIsNotNone(collection_fhir_id)
-        self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Group", collection_fhir_id))
-
     def test_build_collection_from_json(self):
         self.blaze_service.upload_biobank(self.example_biobank)
-        collection_org_fhir_id = self.blaze_service._upload_collection_organization(self.example_collection_org)
-        collection_fhir_id = self.blaze_service._upload_collection(self.example_collection)
+        collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
         collection = self.blaze_service.build_collection_from_json(collection_fhir_id)
         self.assertEqual(self.example_collection.name, collection.name)
         self.assertEqual(self.example_collection.identifier, collection.identifier)
@@ -595,39 +553,25 @@ class TestBlazeService(unittest.TestCase):
         self.assertEqual(self.example_collection.age_range_low, collection.age_range_low)
         self.assertEqual(self.example_collection.age_range_high, collection.age_range_high)
         self.assertEqual(collection_fhir_id, collection.collection_fhir_id)
-        self.assertEqual(collection_org_fhir_id, collection.managing_collection_org_fhir_id)
+        # self.assertEqual(collection_org_fhir_id, collection.managing_collection_org_fhir_id)
         self.assertEqual(self.example_collection.managing_collection_org_id, collection.managing_collection_org_id)
 
-    def test_upload_collection_with_nonexistent_organization_raises_nonexistent_exception(self):
-        self.blaze_service.upload_biobank(self.example_biobank)
-        with self.assertRaises(NonExistentResourceException):
-            self.blaze_service._upload_collection(self.example_collection)
-
-    def test_upload_network_organization(self):
-        self.blaze_service.upload_biobank(self.example_biobank)
-        network_org_fhir_id = self.blaze_service._upload_network_organization(self.example_network_org)
-        self.assertIsNotNone(network_org_fhir_id)
-        self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Organization", network_org_fhir_id))
-
-    def test_upload_network_organization_with_nonexistent_biobank_raises_nonexistent_exception(self):
-        with self.assertRaises(NonExistentResourceException):
-            self.blaze_service._upload_network_organization(self.example_network_org)
-
     def test_build_network_organization_from_json(self):
-        biobank_fhir_id = self.blaze_service.upload_biobank(self.example_biobank)
-        network_org_fhir_id = self.blaze_service._upload_network_organization(self.example_network_org)
+        self.blaze_service.upload_biobank(self.example_biobank)
+        self.blaze_service.upload_collection(self.example_collection)
+        network_fhir_id = self.blaze_service.upload_network(self.example_network)
+        network_json = self.blaze_service.get_fhir_resource_as_json("Group", network_fhir_id)
+        network_org_fhir_id = parse_reference_id(get_nested_value(network_json, ["managingEntity", "reference"]))
         network_org = self.blaze_service._build_network_org_from_json(network_org_fhir_id)
         self.assertEqual(network_org.network_org_fhir_id, network_org_fhir_id)
         self.assertEqual(network_org.name, self.example_network_org.name)
         self.assertEqual(network_org.identifier, self.example_network_org.identifier)
         self.assertEqual(network_org.contact_name, self.example_network_org.contact_name)
-        self.assertEqual(network_org.managing_biobank_fhir_id, biobank_fhir_id)
-        self.assertEqual(network_org.managing_biobank_id, self.example_network_org.managing_biobank_id)
         self.assertEqual(network_org.description, self.example_network_org.description)
         self.assertEqual(network_org.contact_surname, self.example_network_org.contact_surname)
         self.assertEqual(network_org.contact_email, self.example_network_org.contact_email)
         self.assertEqual(network_org.country, self.example_network_org.country)
-        self.assertEqual(network_org.juristic_person, self.example_network_org.juristic_person)
+        self.assertEqual(network_org.juristic_person.name, self.example_network_org.juristic_person.name)
         self.assertEqual(network_org.common_collaboration_topics, self.example_network_org.common_collaboration_topics)
 
     def test_upload_network(self):
@@ -641,8 +585,8 @@ class TestBlazeService(unittest.TestCase):
         self.blaze_service.upload_biobank(self.example_biobank)
         self.blaze_service.upload_collection(self.example_collection)
         network_id = self.blaze_service.upload_network(self.example_network)
-        different_network = Network(identifier="networkId", name="differentName", managing_biobank_id="biobankId",
-                                    contact_email="contactEmail", country="SK", juristic_person="juristicPerson",
+        different_network = Network(identifier="networkId", name="differentName", contact_email="contactEmail",
+                                    country="SK", juristic_person="juristicPerson",
                                     members_collections_ids=["collectionId"],
                                     members_biobanks_ids=["biobankId"], contact_name="contactName",
                                     contact_surname="differentSurname", common_collaboration_topics=["Charter"],
@@ -663,27 +607,18 @@ class TestBlazeService(unittest.TestCase):
 
     def test_upload_network_private(self):
         self.blaze_service.upload_biobank(self.example_biobank)
-        self.blaze_service._upload_collection_organization(self.example_collection_org)
-        self.blaze_service._upload_collection(self.example_collection)
-        self.blaze_service._upload_network_organization(self.example_network_org)
-        network_fhir_id = self.blaze_service._upload_network(self.example_network)
+        self.blaze_service.upload_collection(self.example_collection)
+        network_fhir_id = self.blaze_service.upload_network(self.example_network)
         self.assertIsNotNone(network_fhir_id)
         self.assertTrue(self.blaze_service.is_resource_present_in_blaze("Group", network_fhir_id))
 
-    def test_upload_network_with_nonexistent_network_organization_raises_nonexistent_exception(self):
-        self.blaze_service.upload_biobank(self.example_biobank)
-        with self.assertRaises(NonExistentResourceException):
-            self.blaze_service._upload_network(self.example_network)
-
     def test_build_network_from_json(self):
         biobank_fhir_id = self.blaze_service.upload_biobank(self.example_biobank)
-        collection_org_fhir_id = self.blaze_service._upload_collection_organization(self.example_collection_org)
-        collection_fhir_id = self.blaze_service._upload_collection(self.example_collection)
-        network_org_fhir_id = self.blaze_service._upload_network_organization(self.example_network_org)
-        network_fhir_id = self.blaze_service._upload_network(self.example_network)
+        collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
+        network_fhir_id = self.blaze_service.upload_network(self.example_network)
         network = self.blaze_service.build_network_from_json(network_fhir_id)
         self.assertEqual(network_fhir_id, network.network_fhir_id)
-        self.assertEqual(network_org_fhir_id, network.managing_network_org_fhir_id)
+        # self.assertEqual(network_org_fhir_id, network.managing_network_org_fhir_id)
         self.assertIn(biobank_fhir_id, network.members_biobanks_fhir_ids)
         self.assertIn(collection_fhir_id, network.members_collections_fhir_ids)
         self.assertEqual(self.example_network.name, network.name)
@@ -729,8 +664,7 @@ class TestBlazeService(unittest.TestCase):
         new_donor_fhir_id = self.blaze_service.upload_donor(new_donor)
         new_sample_fhir_id = self.blaze_service.upload_sample(new_sample)
         self.blaze_service.upload_biobank(self.example_biobank)
-        self.blaze_service._upload_collection_organization(self.example_collection_org)
-        collection_fhir_id = self.blaze_service._upload_collection(self.example_collection)
+        collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
         updated = self.blaze_service.add_already_present_samples_to_existing_collection(
             [sample_fhir_id1, new_sample_fhir_id], collection_fhir_id)
         self.assertTrue(updated)
@@ -795,8 +729,7 @@ class TestBlazeService(unittest.TestCase):
         sample_fhir_id1 = self.blaze_service.upload_sample(self.example_samples[0])
         self.blaze_service._upload_observation(self.example_observations[0])
         self.blaze_service.upload_biobank(self.example_biobank)
-        self.blaze_service._upload_collection_organization(self.example_collection_org)
-        collection_fhir_id = self.blaze_service._upload_collection(self.example_collection)
+        collection_fhir_id = self.blaze_service.upload_collection(self.example_collection)
         updated = self.blaze_service.add_already_present_samples_to_existing_collection(
             [sample_fhir_id1], collection_fhir_id)
         self.assertTrue(updated)

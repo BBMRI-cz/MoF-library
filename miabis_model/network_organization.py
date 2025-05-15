@@ -6,6 +6,7 @@ from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
 from miabis_model.incorrect_json_format import IncorrectJsonFormatException
+from miabis_model.juristic_person import _JuristicPerson
 from miabis_model.util.config import FHIRConfig
 from miabis_model.util.constants import NETWORK_COMMON_COLLAB_TOPICS
 from miabis_model.util.parsing_util import get_nested_value, parse_contact, parse_reference_id
@@ -17,7 +18,7 @@ class _NetworkOrganization:
     """Network Organization represent a formal part of a network member,
      like ist name, contact information, url, etc."""
 
-    def __init__(self, identifier: str, name: str, managing_biobank_id: str, contact_email: str, country: str,
+    def __init__(self, identifier: str, name: str, contact_email: str, country: str,
                  juristic_person: str, url: str = None, contact_name: str = None, contact_surname: str = None,
                  common_collaboration_topics: list[str] = None, description: str = None):
         """
@@ -30,17 +31,15 @@ class _NetworkOrganization:
         """
         self.identifier = identifier
         self.name = name
-        self.managing_biobank_id = managing_biobank_id
         self.contact_name = contact_name
         self.contact_surname = contact_surname
         self.contact_email = contact_email
         self.country = country
         self.url = url
-        self.juristic_person = juristic_person
+        self.juristic_person = _JuristicPerson(juristic_person)
         self.common_collaboration_topics = common_collaboration_topics
         self.description = description
         self._network_org_fhir_id = None
-        self._managing_biobank_fhir_id = None
 
     @property
     def identifier(self) -> str:
@@ -136,22 +135,8 @@ class _NetworkOrganization:
         self._common_collaboration_topics = common_collaboration_topics
 
     @property
-    def juristic_person(self) -> str:
-        return self._juristic_person
-
-    @juristic_person.setter
-    def juristic_person(self, juristic_person: str):
-        if juristic_person is not None and not isinstance(juristic_person, str):
-            raise TypeError("Juristic person must be string")
-        self._juristic_person = juristic_person
-
-    @property
     def network_org_fhir_id(self) -> str:
         return self._network_org_fhir_id
-
-    @property
-    def managing_biobank_fhir_id(self) -> str:
-        return self._managing_biobank_fhir_id
 
     @property
     def description(self) -> str:
@@ -164,7 +149,7 @@ class _NetworkOrganization:
         self._description = description
 
     @classmethod
-    def from_json(cls, network_json: dict, managing_biobank_id: str) -> Self:
+    def from_json(cls, network_json: dict, juristic_person_json: dict) -> Self:
         try:
             network_org_fhir_id = get_nested_value(network_json, ["id"])
             identifier = get_nested_value(network_json, ["identifier", 0, "value"])
@@ -174,15 +159,18 @@ class _NetworkOrganization:
             url = get_nested_value(network_json, ["telecom", 0, "value"])
             country = get_nested_value(network_json, ["address", 0, "country"])
             parsed_extensions = cls._parse_extensions(network_json.get("extension", []))
-            instance = cls(identifier=identifier, name=name, managing_biobank_id=managing_biobank_id,
+            juristic_person_fhir_id = get_nested_value(juristic_person_json, ["id"])
+            juristic_person_name = get_nested_value(juristic_person_json, ["name"])
+            instance = cls(identifier=identifier, name=name,
                            contact_name=contact["name"],
                            contact_surname=contact["surname"], contact_email=contact["email"], country=country,
                            common_collaboration_topics=parsed_extensions["common_collaboration_topics"],
-                           juristic_person=parsed_extensions["juristic_person"],
+                           juristic_person=juristic_person_name,
                            description=parsed_extensions["description"],
                            url=url)
             instance._network_org_fhir_id = network_org_fhir_id
             instance._managing_biobank_fhir_id = managing_biobank_fhir_id
+            instance.juristic_person._fhir_id = juristic_person_fhir_id
             return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occured when parsing json into the MoFNetwork")
@@ -192,7 +180,6 @@ class _NetworkOrganization:
         parsed_extension = {"common_collaboration_topics": [], "juristic_person": None, "description": None}
         common_coll_topic_extension: str = FHIRConfig.get_extension_url("network_organization",
                                                                         "common_collaboration_topics")
-        juristic_person_extension: str = FHIRConfig.get_extension_url("network_organization", "juristic_person")
         description_extension: str = FHIRConfig.get_extension_url("network_organization", "description")
         for extension in extensions:
             extension_url = extension["url"]
@@ -200,9 +187,6 @@ class _NetworkOrganization:
                 value = get_nested_value(extension, ["valueCodeableConcept", "coding", 0, "code"])
                 if value is not None:
                     parsed_extension["common_collaboration_topics"].append(value)
-            elif extension_url == juristic_person_extension:
-                value = get_nested_value(extension, ["valueString"])
-                parsed_extension["juristic_person"] = value
             elif extension_url == description_extension:
                 value = get_nested_value(extension, ["valueString"])
                 parsed_extension["description"] = value
@@ -212,10 +196,10 @@ class _NetworkOrganization:
             parsed_extension["common_collaboration_topics"] = None
         return parsed_extension
 
-    def to_fhir(self, managing_biobank_fhir_id: str = None) -> Organization:
-        managing_biobank_fhir_id = managing_biobank_fhir_id or self._managing_biobank_fhir_id
-        if managing_biobank_fhir_id is None:
-            raise ValueError("Managing biobank FHIR ID must be provided either as an argument or as an property.")
+    def to_fhir(self, juristic_person_fhir_id: str = None) -> Organization:
+        juristic_person_fhir_id = juristic_person_fhir_id or self.juristic_person.fhir_id
+        if juristic_person_fhir_id is None:
+            raise ValueError("Juristic Person FHIR ID must be provided either as an argument or as an property.")
         network = Organization()
         network.meta = Meta()
         network.meta.profile = [FHIRConfig.get_meta_profile_url("network_organization")]
@@ -223,7 +207,7 @@ class _NetworkOrganization:
         network.name = self._name
         network.active = True
         network.partOf = FHIRReference()
-        network.partOf.reference = f"Organization/{managing_biobank_fhir_id}"
+        network.partOf.reference = f"Organization/{juristic_person_fhir_id}"
         network.contact = [create_contact(self._contact_name, self._contact_surname, self._contact_email)]
         network.address = [create_country_of_residence(self._country)]
         if self.url is not None:
@@ -235,10 +219,6 @@ class _NetworkOrganization:
                     create_codeable_concept_extension(
                         FHIRConfig.get_extension_url("network_organization", "common_collaboration_topics"),
                         FHIRConfig.get_code_system_url("network_organization", "common_collaboration_topics"), topic))
-        if self._juristic_person is not None:
-            extensions.append(
-                create_string_extension(FHIRConfig.get_extension_url("network_organization", "juristic_person"),
-                                        self._juristic_person))
         if self._description is not None:
             extensions.append(
                 create_string_extension(FHIRConfig.get_extension_url("network_organization", "description"),
@@ -266,11 +246,10 @@ class _NetworkOrganization:
             return False
         return self.identifier == other.identifier and \
             self.name == other.name and \
-            self.managing_biobank_id == other.managing_biobank_id and \
             self.contact_name == other.contact_name and \
             self.contact_surname == other.contact_surname and \
             self.contact_email == other.contact_email and \
             self.country == other.country and \
-            self.juristic_person == other.juristic_person and \
+            self.juristic_person.name == other.juristic_person.name and \
             self.common_collaboration_topics == other.common_collaboration_topics and \
             self.description == other.description

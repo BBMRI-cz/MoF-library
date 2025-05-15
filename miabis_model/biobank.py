@@ -1,16 +1,20 @@
+import uuid
 from typing import Self
 
+from fhirclient.models.bundle import Bundle
+from fhirclient.models.fhirreference import FHIRReference
 from fhirclient.models.meta import Meta
 from fhirclient.models.organization import Organization
 
 from miabis_model.incorrect_json_format import IncorrectJsonFormatException
+from miabis_model.juristic_person import _JuristicPerson
 from miabis_model.util.config import FHIRConfig
 from miabis_model.util.constants import BIOBANK_BIOPROCESSING_AND_ANALYTICAL_CAPABILITIES, \
     BIOBANK_INFRASTRUCTURAL_CAPABILITIES, \
     BIOBANK_ORGANISATIONAL_CAPABILITIES, DEFINITION_BASE_URL
 from miabis_model.util.parsing_util import get_nested_value, parse_contact
 from miabis_model.util.util import create_fhir_identifier, create_contact, create_country_of_residence, \
-    create_codeable_concept_extension, create_string_extension
+    create_codeable_concept_extension, create_string_extension, create_post_bundle_entry, create_bundle
 
 
 class Biobank:
@@ -47,7 +51,7 @@ class Biobank:
         self.contact_name = contact_name
         self.contact_surname = contact_surname
         self.contact_email = contact_email
-        self.juristic_person = juristic_person
+        self.juristic_person = _JuristicPerson(juristic_person)
         self.quality__management_standards = quality__management_standards
         self.infrastructural_capabilities = infrastructural_capabilities
         self.organisational_capabilities = organisational_capabilities
@@ -178,16 +182,6 @@ class Biobank:
         self._quality__management_standards = quality__management_standards
 
     @property
-    def juristic_person(self) -> str:
-        return self._juristic_person
-
-    @juristic_person.setter
-    def juristic_person(self, juristic_person: str):
-        if juristic_person is not None and not isinstance(juristic_person, str):
-            raise TypeError("Juristic person must be a string.")
-        self._juristic_person = juristic_person
-
-    @property
     def description(self) -> str:
         return self._description
 
@@ -202,9 +196,10 @@ class Biobank:
         return self._biobank_fhir_id
 
     @classmethod
-    def from_json(cls, biobank_json: dict) -> Self:
+    def from_json(cls, biobank_json: dict, juristic_person_json: dict) -> Self:
         """
         Parse a json into a MoFBiobank object.
+        :param juristic_person_json: json representation of juristic person responsible for this biobank.
         :param biobank_json: json representation of the biobank.
         :return: MoFBiobank object.
         """
@@ -221,16 +216,17 @@ class Biobank:
             organisational_capabilities = parsed_extension["organisational_capabilities"]
             bioprocessing = parsed_extension["bioprocessing_and_analysis_capabilities"]
             quality_standards = parsed_extension["quality_management_standards"]
-            juristic_person = parsed_extension["juristic_person"]
             description = parsed_extension["description"]
-
+            juristic_person_fhir_id = get_nested_value(juristic_person_json, ["id"])
+            juristic_person_name = get_nested_value(juristic_person_json, ["name"])
             instance = cls(identifier, name, country, contact["name"], contact["surname"], contact["email"],
-                           juristic_person, description, alias,
+                           juristic_person_name, description, alias,
                            infrastructural_capabilities=infrastructural_capabilities,
                            organisational_capabilities=organisational_capabilities,
                            bioprocessing_and_analysis_capabilities=bioprocessing,
                            quality__management_standards=quality_standards)
             instance._biobank_fhir_id = biobank_fhir_id
+            instance.juristic_person._fhir_id = juristic_person_fhir_id
             return instance
         except KeyError:
             raise IncorrectJsonFormatException("Error occurred when parsing json into MoFBiobank")
@@ -251,7 +247,6 @@ class Biobank:
         org_capability_url = FHIRConfig.get_extension_url("biobank", "organisational_capabilities")
         bioprocess__url = FHIRConfig.get_extension_url("biobank", "bioprocessing_and_analysis_capabilities")
         quality_url = FHIRConfig.get_extension_url("biobank", "quality_management_standard")
-        juristic_url = FHIRConfig.get_extension_url("biobank", "juristic_person")
         description_url = FHIRConfig.get_extension_url("biobank", "description")
         for extension in extensions:
             ext_type = extension["url"].replace(f"{DEFINITION_BASE_URL}/", "", 1)
@@ -272,9 +267,6 @@ class Biobank:
                 value = get_nested_value(extension, ["valueString"])
                 if value is not None:
                     parsed_extension["quality_management_standards"].append(value)
-            elif extension_url == juristic_url:
-                value = get_nested_value(extension, ["valueString"])
-                parsed_extension["juristic_person"] = value
             elif extension_url == description_url:
                 value = get_nested_value(extension, ["valueString"])
                 if value is not None:
@@ -286,14 +278,20 @@ class Biobank:
                 parsed_extension[key] = None
         return parsed_extension
 
-    def to_fhir(self) -> Organization:
+    def to_fhir(self, juristic_person_fhir_id: str = None) -> Organization:
         """Return biobank representation in FHIR"""
+        juristic_person_fhir_id = juristic_person_fhir_id or self.juristic_person.fhir_id
+        if juristic_person_fhir_id is None:
+            raise ValueError("Managing biobank FHIR id must be provided either as an argument or as a property.")
+
         fhir_organization = Organization()
         fhir_organization.meta = Meta()
         fhir_organization.meta.profile = [FHIRConfig.get_meta_profile_url("biobank")]
         fhir_organization.identifier = [create_fhir_identifier(self.identifier)]
         fhir_organization.identifier[0].system = "http://www.bbmri-eric.eu/"
         fhir_organization.name = self.name
+        fhir_organization.partOf = FHIRReference()
+        fhir_organization.partOf.reference = f"Organization/{juristic_person_fhir_id}"
         if self.alias is not None:
             fhir_organization.alias = [self.alias]
         fhir_organization.contact = [create_contact(self.contact_name, self.contact_surname, self.contact_email)]
@@ -326,10 +324,6 @@ class Biobank:
                     create_string_extension(
                         FHIRConfig.get_extension_url("biobank", "quality_management_standard"),
                         standard))
-        if self.juristic_person is not None:
-            extensions.append(
-                create_string_extension(FHIRConfig.get_extension_url("biobank", "juristic_person"),
-                                        self.juristic_person))
         if self.description is not None:
             extensions.append(create_string_extension(
                 FHIRConfig.get_extension_url("biobank", "description"),
@@ -337,6 +331,19 @@ class Biobank:
         if extensions:
             fhir_organization.extension = extensions
         return fhir_organization
+
+    def build_bundle_for_upload(self) -> Bundle:
+
+        juristic_person_temporary_id = str(uuid.uuid4())
+        biobank_temporary_id = str(uuid.uuid4())
+        biobank_fhir = self.to_fhir(juristic_person_temporary_id)
+        biobank_fhir.partOf.reference = juristic_person_temporary_id
+        juristic_person_fhir = self.juristic_person.to_fhir()
+        biobank_entry = create_post_bundle_entry("Organization", biobank_fhir, biobank_temporary_id)
+        juristic_person_entry = create_post_bundle_entry("Organization", juristic_person_fhir,
+                                                         juristic_person_temporary_id)
+        bundle = create_bundle([biobank_entry, juristic_person_entry])
+        return bundle
 
     def add_fhir_id_to_biobank(self, biobank: Organization) -> Organization:
         """Add FHIR id to the FHIR representation of the Biobank. FHIR ID is necessary for updating the
@@ -356,7 +363,7 @@ class Biobank:
             self.contact_name == other.contact_name and \
             self.contact_surname == other.contact_surname and \
             self.contact_email == other.contact_email and \
-            self.juristic_person == other.juristic_person and \
+            self.juristic_person.name == other.juristic_person.name and \
             self.quality__management_standards == other.quality__management_standards and \
             self.infrastructural_capabilities == other.infrastructural_capabilities and \
             self.organisational_capabilities == other.organisational_capabilities and \

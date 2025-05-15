@@ -96,6 +96,11 @@ class FHIRConfig:
         "meta_profile": "/StructureDefinition/miabis-network"
     }
 
+    JURISTIC_PERSON_URLS = {
+        "resource": "/Organization",
+        "meta_profile": "/StructureDefinition/miabis-juristic-person"
+    }
+
     NETWORK_ORGANIZATION_URLS = {
         "resource": "/Organization",
         "meta_profile": "/StructureDefinition/miabis-network-organization",

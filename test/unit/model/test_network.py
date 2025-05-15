@@ -6,7 +6,7 @@ from miabis_model.network_organization import _NetworkOrganization
 
 class TestNetwork(unittest.TestCase):
     def test_network_init(self):
-        network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
+        network = Network(identifier="networkId", name="networkName",
                           contact_email="contactEmail", country="CZ", juristic_person="juristicPerson",
                           members_collections_ids=["collMemID1, collemMemID2"],
                           members_biobanks_ids=["bioMemID1, bioMemID2"], contact_name="contactName",
@@ -15,10 +15,9 @@ class TestNetwork(unittest.TestCase):
         self.assertIsInstance(network, Network)
         self.assertEqual("networkId", network.identifier)
         self.assertEqual("networkName", network.name)
-        self.assertEqual("managingBiobankId", network.managing_biobank_id)
         self.assertEqual("contactEmail", network.contact_email)
         self.assertEqual("CZ", network.country)
-        self.assertEqual("juristicPerson", network.juristic_person)
+        self.assertEqual("juristicPerson", network.network_organization.juristic_person.name)
         self.assertEqual(["collMemID1, collemMemID2"], network.members_collections_ids)
         self.assertEqual(["bioMemID1, bioMemID2"], network.members_biobanks_ids)
         self.assertEqual("contactSurname", network.contact_surname)
@@ -28,59 +27,59 @@ class TestNetwork(unittest.TestCase):
 
     def test_network_invalid_identifier_type_innit(self):
         with self.assertRaises(TypeError):
-            network = Network(identifier=37, name="networkName", managing_biobank_id="managingBiobankId",
-                              contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+            network = Network(identifier=37, name="networkName", contact_email="contactEmail", country="CZ",
+                              juristic_person="juristicPerson")
 
     def test_network_invalid_name_type_innit(self):
         with self.assertRaises(TypeError):
-            network = Network(identifier="networkId", name=37, managing_biobank_id="managingBiobankId",
-                              contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+            network = Network(identifier="networkId", name=37, contact_email="contactEmail", country="CZ",
+                              juristic_person="juristicPerson")
 
     def test_network_members_collection_ids_invalid_type(self):
         with self.assertRaises(TypeError):
-            network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                              contact_email="contactEmail", country="CZ", juristic_person="juristicPerson",
+            network = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                              juristic_person="juristicPerson",
                               members_collections_ids=[5])
 
     def test_network_members_biobanks_ids_invalid_type(self):
         with self.assertRaises(TypeError):
-            network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                              contact_email="contactEmail", country="CZ", juristic_person="juristicPerson",
+            network = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                              juristic_person="juristicPerson",
                               members_biobanks_ids=[47])
 
     def test_network_set_identifier_ok(self):
-        network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                          contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        network = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                          juristic_person="juristicPerson")
         network.identifier = "newId"
         self.assertEqual("newId", network.identifier)
 
     def test_network_set_identifier_invalid(self):
-        network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                          contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        network = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                          juristic_person="juristicPerson")
         with self.assertRaises(TypeError):
             network.identifier = 37
 
     def test_network_set_name_ok(self):
-        network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                          contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        network = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                          juristic_person="juristicPerson")
         network.name = "newName"
         self.assertEqual("newName", network.name)
 
     def test_network_set_name_invalid(self):
-        network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                          contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        network = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                          juristic_person="juristicPerson")
         with self.assertRaises(TypeError):
             network.name = 37
 
     def test_network_set_collection_ids_invalid(self):
-        network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                          contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        network = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                          juristic_person="juristicPerson")
         with self.assertRaises(TypeError):
             network.members_collections_ids = [5]
 
     def test_network_to_fhir(self):
-        network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                          contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        network = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                          juristic_person="juristicPerson")
         network_fhir = network.to_fhir("biobankFhirId", ["collfhirid1", "collfhirid2"],
                                        ["biobankFhirId1", "biobankFhirId2"])
         self.assertTrue(network_fhir.active)
@@ -93,32 +92,33 @@ class TestNetwork(unittest.TestCase):
         self.assertEqual("Organization/biobankFhirId2", network_fhir.extension[3].valueReference.reference)
 
     def test_network_from_json(self):
-        example_network = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                                  contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        example_network = Network(identifier="networkId", name="networkName", contact_email="contactEmail",
+                                  country="CZ", juristic_person="juristicPerson")
         example_fhir = example_network.to_fhir("biobankFhirId", ["collfhirid1", "collfhirid2"],
                                                ["biobankFhirId1", "biobankFhirId2"])
         example_fhir.id = "TestFHIRId"
         network_org_fhir = example_network._network_org.to_fhir("biobankFhirId")
         network_org_fhir.id = "TestNetworkOrgFhirId"
-        network = Network.from_json(example_fhir.as_json(), network_org_fhir.as_json(), "managingBiobankId")
+        juristic_person_fhir = example_network.network_organization.juristic_person.to_fhir()
+        juristic_person_fhir.id = "jpfi"
+        network = Network.from_json(example_fhir.as_json(), network_org_fhir.as_json(), juristic_person_fhir.as_json())
         self.assertIsInstance(network, Network)
-        eq = example_network == network
         self.assertEqual(example_network, network)
         self.assertEqual("TestFHIRId", network.network_fhir_id)
-        self.assertEqual("biobankFhirId", network.managing_network_org_fhir_id)
+        self.assertEqual("juristicPerson",network.network_organization.juristic_person.name)
         self.assertEqual(["collfhirid1", "collfhirid2"], network.members_collections_fhir_ids)
         self.assertEqual(["biobankFhirId1", "biobankFhirId2"], network.members_biobanks_fhir_ids)
 
     def test_network_eq(self):
-        network1 = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                           contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
-        network2 = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                           contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
+        network1 = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                           juristic_person="juristicPerson")
+        network2 = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                           juristic_person="juristicPerson")
         self.assertEqual(network1, network2)
 
     def test_network_not_eq(self):
-        network1 = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                           contact_email="contactEmail", country="CZ", juristic_person="juristicPerson")
-        network2 = Network(identifier="networkId", name="networkName", managing_biobank_id="managingBiobankId",
-                           contact_email="DifferentEmail", country="CZ", juristic_person="juristicPerson")
+        network1 = Network(identifier="networkId", name="networkName", contact_email="contactEmail", country="CZ",
+                           juristic_person="juristicPerson")
+        network2 = Network(identifier="networkId", name="networkName", contact_email="DifferentEmail", country="CZ",
+                           juristic_person="juristicPerson")
         self.assertNotEqual(network2, network1)
