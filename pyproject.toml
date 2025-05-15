@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MIABIS_on_FHIR"
-version = "1.1.0"
+version = "1.2.0"
 description = "Library containing classes for easier handling of data according to the MIABIS on FHIR profile, as well as client for communication with sample blaze server"
 readme = "README.md"
 authors = [{"name" = "Simon Konar", "email" = "simon.konar@gmail.com"}]
-license = { file = "LICENSE" }
+license = { text = "MIT"  }
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -26,7 +26,8 @@ requires-python = ">=3.11"
 [project.optional-dependencies]
  test=["pytest >= 8.3.0"]
 
-
+[tool.setuptools]
+license-files = []
 
 [tool.setuptools.packages.find]
 include = ["miabis_model*", "blaze_client*"]
