@@ -1,4 +1,4 @@
-DEFINITION_BASE_URL = "https://fhir.bbmri-eric.eu/fhir"
+DEFINITION_BASE_URL = "https://fhir.bbmri-eric.eu"
 
 DETAILED_MATERIAL_TYPE_CODES = ["AmnioticFluid", "AscitesFluid", "Bile", "BodyCavityFluid", "Bone",
                                 "BoneMarrowAspirate", "BoneMarrowPlasma", "BoneMarrowWhole", "BreastMilk",

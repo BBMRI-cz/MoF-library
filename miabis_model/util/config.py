@@ -1,5 +1,5 @@
 class FHIRConfig:
-    BASE_URL = "https://fhir.bbmri-eric.eu/fhir"
+    BASE_URL = "https://fhir.bbmri-eric.eu"
 
     MEMBER_V5_EXTENSION = "http://hl7.org/fhir/5.0/StructureDefinition/extension-Group.member.entity"
     DIAGNOSIS_CODE_SYSTEM = "http://hl7.org/fhir/sid/icd-10"
@@ -123,7 +123,7 @@ class FHIRConfig:
             "bioprocessing_and_analysis_capabilities": "/StructureDefinition/miabis-bioprocessing-and-analytical-capabilities-extension",
             "quality_management_standard": "/StructureDefinition/miabis-quality-management-standard-extension",
             "juristic_person": "/StructureDefinition/miabis-juristic-person-extension",
-            "description": "/fhir/StructureDefinition/miabis-organization-description-extension"
+            "description": "/StructureDefinition/miabis-organization-description-extension"
         },
         "code_systems": {
             "infrastructural_capabilities": "/CodeSystem/miabis-infrastructural-capabilities-cs",

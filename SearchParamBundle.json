@@ -8,7 +8,7 @@
       "resource": {
         "resourceType": "SearchParameter",
         "id": "ExtensionMemberEntitySearch",
-        "url": "https://fhir.bbmri-eric.eu/fhir/SearchParameter/GroupMember",
+        "url": "https://fhir.bbmri-eric.eu/SearchParameter/GroupMember",
         "base": [
           "Group"
         ],
@@ -47,7 +47,7 @@
         "experimental": false,
         "code": "sample-collection-id",
         "type": "token",
-        "expression": "Specimen.extension('https://fhir.bbmri-eric.eu/fhir/StructureDefinition/miabis-sample-collection-extension').value as Identifier",
+        "expression": "Specimen.extension('https://fhir.bbmri-eric.eu/StructureDefinition/miabis-sample-collection-extension').value as Identifier",
         "xpathUsage": "normal"
       }
     }
